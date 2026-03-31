@@ -495,28 +495,53 @@
             return m[cat] || cat || '';
         }
 
-        async function refrescarCategoriasCierreMensual() {
-            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
-            const select = document.getElementById('cierreCategoria');
-            if (!select) return;
+        
+async function refrescarCategoriasCierreMensual() {
+    const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+    const select = document.getElementById('cierreCategoria');
+    if (!select) return;
 
-            let items = getInventarioSupabaseLocal();
-            if (!items.length) {
-                items = await cargarInventarioDesdeSupabase();
-            }
-            const categorias = [...new Set(items
-                .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
-                .map(x => String(x.categoria || '').toUpperCase())
-                .filter(Boolean)
-            )].sort();
+    let items = getInventarioSupabaseLocal();
+    if (!items.length) {
+        items = await cargarInventarioDesdeSupabase();
+    }
 
-            select.innerHTML = categorias.map(cat => `<option value="${escHtml(cat)}">${escHtml(categoriaInventarioLabel(cat))}</option>`).join('');
-            if (!categorias.length) {
-                select.innerHTML = '<option value="">SIN DATOS</option>';
-            }
-        }
+    let categorias = [...new Set(items
+        .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
+        .map(x => String(x.categoria || '').toUpperCase())
+        .filter(Boolean)
+    )].sort();
 
-        function obtenerRowsCierreMensual() {
+    const fallback = {
+        'PLANTA': ['MATERIA_PRIMA', 'ACCESORIOS', 'TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS'],
+        'SUCURSAL': ['TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS', 'CASAS_PERRO', 'OTROS', 'ADITAMENTOS', 'ARTICULOS_JAGR']
+    };
+
+    if (!categorias.length) {
+        categorias = fallback[ubicacion] || [];
+    }
+
+    select.innerHTML = '';
+    categorias.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = categoriaInventarioLabel(cat);
+        select.appendChild(opt);
+    });
+
+    if (!categorias.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'SIN DATOS';
+        select.appendChild(opt);
+    }
+
+    if (select.options.length) {
+        select.selectedIndex = 0;
+    }
+}
+
+function obtenerRowsCierreMensualfunction obtenerRowsCierreMensual() {
             const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
             const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
             const items = getInventarioSupabaseLocal();
@@ -865,20 +890,21 @@
             "235LT":  { publico: 520,  mayoreo: 495,  distribuidor: 495,  segunda: 350,  consignacion_salida: 0, consignacion_cobro: 495,  garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 495 } 
         };
 
-        function cambiarTab(tab) {
+        function cambiarTab(tab) { 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
-            const tabEl = document.getElementById('tab-' + tab);
-            const btnEl = document.getElementById('btn-tab-' + tab);
-            if (tabEl) tabEl.classList.add('active');
-            if (btnEl) btnEl.classList.add('active');
-            if (tab === 'bd') cargarBD();
-            if (tab === 'dashboard') renderGraficas();
-            if (tab === 'cortes') actualizarFechasCorte();
-            if (tab === 'inventario') {
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('btn-tab-' + tab).classList.add('active');
+            if(tab === 'bd') cargarBD();
+            if(tab === 'dashboard') renderGraficas();
+            if(tab === 'cortes') actualizarFechasCorte();
+            if(tab === 'inventario') {
                 verStockActual();
-                inicializarModuloCierreMensual();
+                if (typeof inicializarModuloCierreMensual === 'function') {
+                    inicializarModuloCierreMensual();
+                }
             }
+        }
         }
         
         function actualizarPrecios(tipoItem) { if(tipoItem === 'tinaco') { const cap = document.getElementById('capTinaco').value; const tipo = document.getElementById('tipoPrecioTinaco').value; document.getElementById('pTinaco').value = LISTA_PRECIOS[cap][tipo]; } else if (tipoItem === 'tambo') { const cap = document.getElementById('capTambo').value; const tipo = document.getElementById('tipoPrecioTambo').value; document.getElementById('pTambo').value = LISTA_PRECIOS[cap][tipo]; } }

@@ -903,6 +903,7 @@ function renderHistorialCierresMensuales() {
             document.getElementById('invMaterial').innerHTML = document.getElementById('compraMaterial').innerHTML;
             actualizarFechasCorte(); 
             actualizarListaMermas();
+            bindNavTabsIOS();
         });
 
         const LISTA_PRECIOS = { 
@@ -922,17 +923,45 @@ function renderHistorialCierresMensuales() {
             if(tab === 'cortes') actualizarFechasCorte();
             if(tab === 'inventario') {
                 verStockActual();
-            const cierreCatEl = document.getElementById('cierreCategoria');
-            if (cierreCatEl) {
-                cierreCatEl.addEventListener('focus', asegurarCategoriasCierreMensual);
-                cierreCatEl.addEventListener('touchstart', asegurarCategoriasCierreMensual, { passive: true });
-                cierreCatEl.addEventListener('mousedown', asegurarCategoriasCierreMensual);
-            }
+                const cierreCatEl = document.getElementById('cierreCategoria');
+                if (cierreCatEl) {
+                    cierreCatEl.addEventListener('focus', asegurarCategoriasCierreMensual);
+                    cierreCatEl.addEventListener('touchstart', asegurarCategoriasCierreMensual, { passive: true });
+                    cierreCatEl.addEventListener('mousedown', asegurarCategoriasCierreMensual);
+                }
                 if (typeof inicializarModuloCierreMensual === 'function') {
                     inicializarModuloCierreMensual();
                 }
             }
         }
+
+        function bindNavTabsIOS() {
+            const map = [
+                ['btn-tab-registro', 'registro'],
+                ['btn-tab-bd', 'bd'],
+                ['btn-tab-dashboard', 'dashboard'],
+                ['btn-tab-cortes', 'cortes'],
+                ['btn-tab-inventario', 'inventario']
+            ];
+
+            map.forEach(([id, tab]) => {
+                const btn = document.getElementById(id);
+                if (!btn || btn.dataset.boundNavIos === '1') return;
+                btn.dataset.boundNavIos = '1';
+                btn.setAttribute('type', 'button');
+
+                const handler = function(ev) {
+                    if (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                    }
+                    cambiarTab(tab);
+                };
+
+                btn.addEventListener('click', handler, { passive: false });
+                btn.addEventListener('touchend', handler, { passive: false });
+                btn.addEventListener('mouseup', handler, { passive: false });
+            });
         }
         
         function actualizarPrecios(tipoItem) { if(tipoItem === 'tinaco') { const cap = document.getElementById('capTinaco').value; const tipo = document.getElementById('tipoPrecioTinaco').value; document.getElementById('pTinaco').value = LISTA_PRECIOS[cap][tipo]; } else if (tipoItem === 'tambo') { const cap = document.getElementById('capTambo').value; const tipo = document.getElementById('tipoPrecioTambo').value; document.getElementById('pTambo').value = LISTA_PRECIOS[cap][tipo]; } }

@@ -45,6 +45,18 @@
         .bar-prod { background-color: #EF6C00; }
         .grafica-label { font-size: 9px; font-weight: bold; margin-top: 8px; text-align: center; color: #333; text-transform: uppercase;}
         .info-arriba { font-size: 10px; font-weight: bold; text-align: center; margin-bottom: 4px; line-height: 1.2; }
+
+        .cierre-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; }
+        .cierre-summary-item { border-radius: 8px; padding: 10px; font-weight: bold; text-align: center; border: 1px solid #ddd; background: #fafafa; }
+        .cierre-summary-item .num { display:block; font-size: 18px; margin-top: 4px; }
+        .estado-chip { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: bold; }
+        .estado-ok { background:#e8f5e9; color:#2E7D32; border:1px solid #c8e6c9; }
+        .estado-falta { background:#ffebee; color:#c62828; border:1px solid #ffcdd2; }
+        .estado-sobra { background:#fff8e1; color:#ef6c00; border:1px solid #ffe0b2; }
+        .estado-na { background:#eceff1; color:#455a64; border:1px solid #cfd8dc; }
+        .cierre-toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+        .cierre-toolbar .btn { margin-top:0; flex:1; min-width:180px; }
+        .cierre-mini-note { font-size: 11px; color:#555; margin-top:8px; }
     </style>
 </head>
 <body>
@@ -235,6 +247,77 @@
                     </div>
                 </div>
 
+
+                <div class="card" style="border: 2px solid #1565C0; background-color: #f4f9ff;">
+                    <h3 style="color: #1565C0; margin-bottom: 5px;">📋 Inventario Físico Mensual (Planta / Sucursal)</h3>
+                    <p style="font-size: 11px; color: #555; margin-top: 0; margin-bottom: 10px;">Captura el conteo del cierre mensual, compara contra sistema y aplica el ajuste sin salir de la app.</p>
+
+                    <div class="row">
+                        <div class="form-group"><label>Fecha del Cierre</label><input type="date" id="cierreFecha"></div>
+                        <div class="form-group"><label>Ubicación</label>
+                            <select id="cierreUbicacion" onchange="refrescarCategoriasCierreMensual(); renderCierreMensual();">
+                                <option value="PLANTA">PLANTA</option>
+                                <option value="SUCURSAL">SUCURSAL</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Categoría</label>
+                            <select id="cierreCategoria" onchange="renderCierreMensual()"></select>
+                        </div>
+                    </div>
+
+                    <div class="cierre-toolbar">
+                        <button class="btn" style="background-color:#1565C0;" onclick="cargarInventarioCierreMensual(true)">🔄 Cargar stock del sistema</button>
+                        <button class="btn btn-orange" onclick="guardarBorradorCierreMensual()">💾 Guardar sin aplicar</button>
+                        <button class="btn btn-green" onclick="aplicarCierreMensual()">✅ Confirmar y aplicar ajuste</button>
+                    </div>
+
+                    <div style="overflow-x:auto; margin-top:12px;">
+                        <table class="db-table" id="tablaCierreMensual">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Tipo</th>
+                                    <th>Medida</th>
+                                    <th>Color</th>
+                                    <th>Sistema</th>
+                                    <th>Físico</th>
+                                    <th>Diferencia</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="cierre-summary-grid" id="cierreResumenGrid">
+                        <div class="cierre-summary-item">Coinciden<span class="num" id="cierreCoinciden">0</span></div>
+                        <div class="cierre-summary-item">Faltantes<span class="num" id="cierreFaltan">0</span></div>
+                        <div class="cierre-summary-item">Sobrantes<span class="num" id="cierreSobran">0</span></div>
+                        <div class="cierre-summary-item">Diferencia Total<span class="num" id="cierreDiferenciaTotal">0</span></div>
+                    </div>
+                    <div class="cierre-mini-note">El ajuste aplica sobre el inventario oficial y deja historial del cierre mensual.</div>
+                </div>
+
+                <div class="card" style="border: 2px solid #455A64; background-color: #fafafa;">
+                    <h3 style="color: #455A64; margin-bottom: 5px;">🗂️ Historial de Cierres Mensuales</h3>
+                    <div style="overflow-x:auto;">
+                        <table class="db-table" id="tablaHistorialCierresMensuales">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Ubicación</th>
+                                    <th>Categoría</th>
+                                    <th>Coinciden</th>
+                                    <th>Faltan</th>
+                                    <th>Sobran</th>
+                                    <th>Diferencia</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="card" style="border: 2px solid #1565C0;">
                     <h3 style="color: #1565C0; margin-bottom: 5px;">📥 Entrada Directa (Compras o Punto Cero)</h3>
                     <div class="row">
@@ -245,7 +328,7 @@
                                 <optgroup label="MATERIA PRIMA (POLVO)">
                                     <option value="ROTOFOAM NEGRO AR">ROTOFOAM NEGRO AR</option><option value="ROTOFOAM BLANCO AR">ROTOFOAM BLANCO AR</option>
                                     <option value="ROTOLENE BEIGE">ROTOLENE BEIGE</option><option value="ROTOLENE NEGRO - BLACK">ROTOLENE NEGRO - BLACK</option>
-                                    <option value="ROTOLENE AZUL #5">ROTOLENE AZUL #5</option><option value="ROTOLENE VERDE #15">ROTOLENE VERDE #15</option><option value="ROTOLENE VERDE INDUST.">ROTOLENE VERDE INDUST.</option>
+                                    <option value="ROTOLENE AZUL #5">ROTOLENE AZUL #5</option><option value="ROTOLENE VERDE #15">ROTOLENE VERDE #15</option>
                                     <option value="ROTOLENE BLANCO">ROTOLENE BLANCO</option><option value="RECICLADO / MERMA">RECICLADO / MERMA</option>
                                     <option value="ROTOLENE ROJO 14">ROTOLENE ROJO 14</option><option value="ROTOLENE NATURAL">ROTOLENE NATURAL</option>
                                     <option value="ROTOLENE CAFÉ">ROTOLENE CAFÉ</option><option value="ROTOLENE NARANJA II">ROTOLENE NARANJA II</option>
@@ -310,18 +393,21 @@
 
         const URL_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbzRpyFi3tp65WTEye3zV5q8iPPDPm8ZRmn-cX-Wqc9eQpYS1NGtjItSBy5Y6KEgR3iG/exec";
 
+        function enviarNube(registro) {
+            fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(registro) })
+            .catch(error => console.log("Aviso: Falló la conexión a la nube.", error));
+        }
 
         // ==========================================
-        // 🟦 SUPABASE - CONFIGURACIÓN BASE
+        // 🟦 SUPABASE + INVENTARIO MENSUAL
         // ==========================================
         const SUPABASE_URL = "https://lngqpschtfbuekawjqpt.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_gjba1_03hWXH2bzSO01dhg_R8MOw7cI";
-
         let supabaseClient = null;
+        let cierreMensualRows = [];
 
         async function cargarSDKSupabase() {
             if (window.supabase) return true;
-
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
@@ -338,261 +424,290 @@
             return supabaseClient;
         }
 
-        async function sembrarCatalogoBaseDirecto() {
-            const sb = await initSupabase();
-            if (!sb) return { ok: false, sembrados: 0 };
-
-            const catalogo = catalogoInventarioBaseMinimo();
-            const { error } = await sb.from('inventario').insert(catalogo);
-            if (error) {
-                console.error('❌ Error sembrando catálogo base en Supabase:', error);
-                return { ok: false, sembrados: 0, error };
-            }
-            console.log(`✅ Catálogo base inicial cargado en Supabase: ${catalogo.length} registros.`);
-            return { ok: true, sembrados: catalogo.length };
+        function getInventarioSupabaseLocal() {
+            return JSON.parse(localStorage.getItem('plastinova_inventario_supabase_v1')) || [];
         }
 
-        async function recargarInventarioSupabaseALocal() {
-            const sb = await initSupabase();
-            if (!sb) return [];
-
-            const { data, error } = await sb
-                .from('inventario')
-                .select('*')
-                .order('ubicacion', { ascending: true })
-                .order('categoria', { ascending: true })
-                .order('producto', { ascending: true });
-
-            if (error) {
-                console.error('❌ Error cargando inventario desde Supabase:', error);
-                return [];
-            }
-
-            localStorage.setItem('plastinova_inventario_maestro_v1', JSON.stringify(data || []));
-            console.log(`🔄 Inventario sincronizado a localStorage: ${(data || []).length} registros.`);
-            return data || [];
+        function setInventarioSupabaseLocal(items) {
+            localStorage.setItem('plastinova_inventario_supabase_v1', JSON.stringify(items || []));
         }
 
-        async function asegurarCatalogoBase() {
-            const sb = await initSupabase();
-            if (!sb) return false;
-
-            const { data, error } = await sb
-                .from('inventario')
-                .select('id')
-                .limit(1);
-
-            if (error) {
-                console.error('❌ Error revisando inventario base:', error);
-                return false;
-            }
-
-            if (Array.isArray(data) && data.length > 0) {
-                console.log('ℹ️ Inventario ya tiene registros, no se sembró catálogo base.');
-                return true;
-            }
-
-            const res = await sembrarCatalogoBaseDirecto();
-            return !!res.ok;
-        }
-
-        async function probarConexionSupabase() {
+        async function cargarInventarioDesdeSupabase() {
             try {
                 const sb = await initSupabase();
-                const { data, error } = await sb.from('inventario').select('*').limit(3);
-                if (error) {
-                    console.error('❌ Error leyendo tabla inventario en Supabase:', error);
-                    return false;
-                }
-                console.log('✅ Supabase conectado correctamente');
-                console.log('📦 Inventario leído correctamente:', data || []);
-
-                await asegurarCatalogoBase();
-                const fullReload = await recargarInventarioSupabaseALocal();
-                console.log(`📚 Registros finales inventario: ${fullReload.length}`);
-                return true;
+                const { data, error } = await sb
+                    .from('inventario')
+                    .select('*')
+                    .order('ubicacion', { ascending: true })
+                    .order('categoria', { ascending: true })
+                    .order('producto', { ascending: true });
+                if (error) throw error;
+                setInventarioSupabaseLocal(data || []);
+                return data || [];
             } catch (e) {
-                console.error('❌ Error inicializando Supabase:', e);
-                return false;
+                console.error('Error cargando inventario desde Supabase:', e);
+                return getInventarioSupabaseLocal();
             }
         }
 
-        async function forzarSemillaCatalogoBase() {
+        async function actualizarStockInventarioSupabase(row, nuevoStock) {
             const sb = await initSupabase();
-            if (!sb) return;
-            const { error } = await sb.from('inventario').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-            if (error) console.warn('⚠️ No se pudo limpiar inventario antes de resembra:', error);
-            await sembrarCatalogoBaseDirecto();
-            await recargarInventarioSupabaseALocal();
-            console.log('✅ Semilla forzada terminada.');
+            const stockNum = parseFloat(nuevoStock) || 0;
+            const { error } = await sb
+                .from('inventario')
+                .update({ stock: stockNum })
+                .eq('id', row.id);
+            if (error) throw error;
         }
 
-function enviarNube(registro) {
-            fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(registro) })
-            .catch(error => console.log("Aviso: Falló la conexión a la nube.", error));
+        async function registrarMovimientoInventarioSupabase(row, diferencia, referencia) {
+            const sb = await initSupabase();
+            const payload = {
+                producto_id: row.id,
+                tipo_movimiento: 'AJUSTE_CIERRE',
+                cantidad: parseFloat(diferencia) || 0,
+                fecha: new Date().toISOString(),
+                vendedor: 'CIERRE_MENSUAL',
+                origen: (row.ubicacion || '').toUpperCase(),
+                referencia: referencia || ''
+            };
+            const { error } = await sb
+                .from('movimientos_inventario')
+                .insert([payload]);
+            if (error) throw error;
         }
 
-        // ==========================================
-        // 🟢 UTILIDADES GLOBALES (BLINDAJE DE SEGURIDAD)
-        // ==========================================
-        function parseLocalDate(fechaStr) {
-            if (!fechaStr) return null;
-            const [y, m, d] = String(fechaStr).split('-').map(Number);
-            if (!y || !m || !d) return null;
-            const dt = new Date(y, m - 1, d);
-            if (dt.getFullYear() !== y || dt.getMonth() !== (m - 1) || dt.getDate() !== d) return null;
-            return dt;
+        function categoriaInventarioLabel(cat) {
+            const m = {
+                'MATERIA_PRIMA': 'MATERIA PRIMA',
+                'ACCESORIOS': 'ACCESORIOS',
+                'TINACOS': 'TINACOS',
+                'TAMBOS': 'TAMBOS',
+                'MACETEROS': 'MACETEROS',
+                'LAMINAS': 'LÁMINAS',
+                'BANCOS': 'BANCOS',
+                'CASAS_PERRO': 'CASAS DE PERRO',
+                'OTROS': 'OTROS',
+                'ADITAMENTOS': 'ADITAMENTOS',
+                'ARTICULOS_JAGR': 'ARTÍCULOS JAGR'
+            };
+            return m[cat] || cat || '';
         }
 
-        function hoyLocalISO() {
-            const d = new Date();
-            const offset = d.getTimezoneOffset();
-            const local = new Date(d.getTime() - offset * 60000);
-            return local.toISOString().split('T')[0];
-        }
+        function refrescarCategoriasCierreMensual() {
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            const select = document.getElementById('cierreCategoria');
+            if (!select) return;
 
-        function syncSemanaDesdeFecha() {
-            const fechaEl = document.getElementById('fecha');
-            const semanaEl = document.getElementById('semana');
-            if (!fechaEl || !semanaEl) return;
-            semanaEl.value = getNumeroSemana(fechaEl.value || hoyLocalISO());
-        }
+            const items = getInventarioSupabaseLocal();
+            const categorias = [...new Set(items
+                .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
+                .map(x => String(x.categoria || '').toUpperCase())
+                .filter(Boolean)
+            )].sort();
 
-        function fechaOrdenValor(fechaStr) {
-            const d = parseLocalDate(fechaStr);
-            return d ? d.getTime() : 0;
-        }
-
-        function esMovimientoConIngreso(r) {
-            const tipo = String((r && r.tipo) || '').trim();
-            const concepto = String((r && r.concepto) || '').toUpperCase();
-
-            if (concepto.includes('ENTREGA CONSIGNACIÓN')) return false;
-            if (concepto.includes('TRASPASO SUCURSAL')) return false;
-            if (concepto.includes('GARANTÍA')) return false;
-
-            return (
-                tipo === 'VENTA_TINACO' ||
-                tipo === 'VENTA_TINACO_COBRO' ||
-                tipo === 'VENTA_TAMBO' ||
-                tipo === 'VENTA_TAMBO_COBRO' ||
-                tipo === 'TRASPASO_TINACO_COBRO' ||
-                tipo === 'TRASPASO_TAMBO_COBRO'
-            );
-        }
-
-        function escJsStr(str) { return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-        function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-
-        function parseCSVLine(line) {
-            const out = []; let cur = ''; let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const ch = line[i];
-                if (ch === '"') {
-                    if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; }
-                } else if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; } else { cur += ch; }
+            select.innerHTML = categorias.map(cat => `<option value="${escHtml(cat)}">${escHtml(categoriaInventarioLabel(cat))}</option>`).join('');
+            if (!categorias.length) {
+                select.innerHTML = '<option value="">SIN DATOS</option>';
             }
-            out.push(cur); return out.map(v => v.trim());
         }
 
-        function ordenarDBCronologicamente(db) {
-            return db.map((r, idx) => ({ ...r, _ord: idx }))
+        function obtenerRowsCierreMensual() {
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
+            const items = getInventarioSupabaseLocal();
+
+            const draft = JSON.parse(localStorage.getItem('plastinova_cierre_mensual_draft_v1') || '{}');
+            const draftRows = draft.rows || {};
+
+            return items
+                .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion && String(x.categoria || '').toUpperCase() === categoria)
                 .sort((a, b) => {
-                    const da = parseLocalDate(a.fecha);
-                    const dbb = parseLocalDate(b.fecha);
-                    const ta = da ? da.getTime() : 0;
-                    const tb = dbb ? dbb.getTime() : 0;
-                    if (ta !== tb) return ta - tb;
-                    return a._ord - b._ord;
+                    const aa = `${a.producto || ''}|${a.tipo || ''}|${a.medida || ''}|${a.color || ''}`;
+                    const bb = `${b.producto || ''}|${b.tipo || ''}|${b.medida || ''}|${b.color || ''}`;
+                    return aa.localeCompare(bb, 'es');
                 })
-                .map(({ _ord, ...r }) => r);
+                .map(x => {
+                    const key = String(x.id);
+                    const fisico = draftRows[key] != null ? (parseFloat(draftRows[key]) || 0) : (parseFloat(x.stock) || 0);
+                    return {
+                        ...x,
+                        stockSistema: parseFloat(x.stock) || 0,
+                        stockFisico: fisico
+                    };
+                });
         }
 
-        // ==========================================
-        // 🟢 MOTOR CENTRAL DE EVENT SOURCING Y B.O.M.
-        // Esto recalcula TODO el stock con las reglas de fábrica, sin errores.
-        // ==========================================
-        function reconstruirStockDesdeBD(db) {
-            let stock = {};
-            db.forEach(r => {
-                const cant = parseFloat(r.cantidad) || 0;
-                const tipo = String(r.tipo || '').trim();
-                const concepto = String(r.concepto || '').trim();
+        function estadoCierre(diff) {
+            const num = parseFloat(diff) || 0;
+            if (num === 0) return { texto: 'COINCIDE', cls: 'estado-ok' };
+            if (num < 0) return { texto: 'FALTA', cls: 'estado-falta' };
+            return { texto: 'SOBRA', cls: 'estado-sobra' };
+        }
 
-                let cap = (r.capacidad || '').trim();
-                let col = (r.colorUI || '').trim();
-
-                // COBROS y GASTOS no tocan bodega
-                if (tipo.includes('_COBRO') || tipo === 'GASTO') return;
-
-                // INVENTARIO FÍSICO fija el stock total
-                if (tipo === 'INVENTARIO_FISICO') {
-                    let clave = col;
-                    if (!clave && concepto.startsWith('REAL: ')) clave = concepto.replace('REAL: ', '').split(' (')[0].trim();
-                    if (clave) stock[clave] = cant;
-                    return;
-                }
-
-                // COMPRA y MERMA (Materias primas puras)
-                if (tipo === 'COMPRA' || tipo === 'MERMA') {
-                    let clave = col;
-                    if (!clave) {
-                        if (concepto.startsWith('INGRESO: ')) clave = concepto.replace('INGRESO: ', '').split(' (')[0].trim();
-                        else if (concepto.startsWith('MERMA: ')) clave = concepto.replace('MERMA: ', '').split(' (')[0].trim();
-                    }
-                    if (clave) {
-                        let mod = tipo === 'MERMA' ? -1 : 1;
-                        stock[clave] = (stock[clave] || 0) + (cant * mod);
-                    }
-                    return;
-                }
-
-                // PRODUCTO TERMINADO (Con Explosión de Materiales - B.O.M.)
-                if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA')) {
-                    // Fallback para stock histórico sin color (No rompe el BOM normal)
-                    if (!col && cap) {
-                        let legacyKey = "";
-                        if (tipo.includes('TINACO')) legacyKey = `TINACO ${cap} [LEGACY]`;
-                        else if (tipo.includes('TAMBO')) legacyKey = `TAMBO ${cap} [LEGACY]`;
-
-                        if (legacyKey) {
-                            if (tipo.includes('PROD_')) stock[legacyKey] = (stock[legacyKey] || 0) + cant;
-                            else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[legacyKey] = (stock[legacyKey] || 0) - cant;
-                        }
-                        return; 
-                    }
-
-                    // Flujo Normal (Con descuenta de receta)
-                    if (col && cap) {
-                        let receta = obtenerRecetaMateriales(tipo, cap, col);
-                        for(let m in receta) {
-                            stock[m] = (stock[m] || 0) - (receta[m] * cant);
-                        }
-
-                        let fgName = null;
-                        if(tipo.includes('TINACO')) fgName = `TINACO ${cap} ${col}`;
-                        else if(tipo.includes('TAMBO')) fgName = `TAMBO ${cap} ${col}`;
-                        else if(tipo.includes('MACETA')) fgName = `MACETA ${cap} ${col}`;
-
-                        if (fgName) {
-                            if (tipo.includes('PROD_')) stock[fgName] = (stock[fgName] || 0) + cant;
-                            else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[fgName] = (stock[fgName] || 0) - cant;
-                        }
-                    }
-                }
+        function renderResumenCierreMensual() {
+            let coinciden = 0, faltan = 0, sobran = 0, totalDiff = 0;
+            cierreMensualRows.forEach(r => {
+                const diff = (parseFloat(r.stockFisico) || 0) - (parseFloat(r.stockSistema) || 0);
+                totalDiff += diff;
+                if (diff === 0) coinciden++;
+                else if (diff < 0) faltan++;
+                else sobran++;
             });
-            localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock));
-            verStockActual();
+            document.getElementById('cierreCoinciden').innerText = coinciden;
+            document.getElementById('cierreFaltan').innerText = faltan;
+            document.getElementById('cierreSobran').innerText = sobran;
+            document.getElementById('cierreDiferenciaTotal').innerText = Number.isInteger(totalDiff) ? totalDiff : totalDiff.toFixed(2);
+        }
+
+        function renderCierreMensual() {
+            cierreMensualRows = obtenerRowsCierreMensual();
+            const tbody = document.querySelector('#tablaCierreMensual tbody');
+            if (!tbody) return;
+
+            if (!cierreMensualRows.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:12px;">No hay productos cargados para esa ubicación/categoría.</td></tr>';
+                renderResumenCierreMensual();
+                return;
+            }
+
+            tbody.innerHTML = cierreMensualRows.map((r, idx) => {
+                const diff = (parseFloat(r.stockFisico) || 0) - (parseFloat(r.stockSistema) || 0);
+                const estado = estadoCierre(diff);
+                const diffTxt = Number.isInteger(diff) ? diff : diff.toFixed(2);
+                return `<tr>
+                    <td>${escHtml(r.producto || '')}</td>
+                    <td>${escHtml(r.tipo || '-')}</td>
+                    <td>${escHtml(r.medida || '-')}</td>
+                    <td>${escHtml(r.color || '-')}</td>
+                    <td style="font-weight:bold;">${r.stockSistema}</td>
+                    <td><input type="number" step="0.01" value="${r.stockFisico}" onchange="actualizarConteoCierreMensual(${idx}, this.value)" style="width:90px; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                    <td style="font-weight:bold; color:${diff < 0 ? '#d32f2f' : diff > 0 ? '#EF6C00' : '#2E7D32'};">${diff > 0 ? '+' : ''}${diffTxt}</td>
+                    <td><span class="estado-chip ${estado.cls}">${estado.texto}</span></td>
+                </tr>`;
+            }).join('');
+            renderResumenCierreMensual();
+        }
+
+        function actualizarConteoCierreMensual(idx, value) {
+            const val = parseFloat(value);
+            cierreMensualRows[idx].stockFisico = isNaN(val) ? 0 : val;
+            guardarBorradorCierreMensual(true);
+            renderCierreMensual();
+        }
+
+        function guardarBorradorCierreMensual(silencioso = false) {
+            const fecha = document.getElementById('cierreFecha')?.value || hoyLocalISO();
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
+
+            const rows = {};
+            cierreMensualRows.forEach(r => { rows[String(r.id)] = parseFloat(r.stockFisico) || 0; });
+
+            localStorage.setItem('plastinova_cierre_mensual_draft_v1', JSON.stringify({ fecha, ubicacion, categoria, rows }));
+            if (!silencioso) alert('💾 Borrador de cierre guardado.');
+        }
+
+        function getHistorialCierresMensuales() {
+            return JSON.parse(localStorage.getItem('plastinova_historial_cierres_mensuales_v1')) || [];
+        }
+
+        function setHistorialCierresMensuales(items) {
+            localStorage.setItem('plastinova_historial_cierres_mensuales_v1', JSON.stringify(items || []));
+        }
+
+        function renderHistorialCierresMensuales() {
+            const tbody = document.querySelector('#tablaHistorialCierresMensuales tbody');
+            if (!tbody) return;
+            const hist = getHistorialCierresMensuales()
+                .slice()
+                .sort((a, b) => fechaOrdenValor(b.fecha) - fechaOrdenValor(a.fecha));
+
+            if (!hist.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:12px;">Sin cierres mensuales registrados todavía.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = hist.map(h => `<tr>
+                <td>${escHtml(h.fecha || '')}</td>
+                <td>${escHtml(h.ubicacion || '')}</td>
+                <td>${escHtml(categoriaInventarioLabel(h.categoria || ''))}</td>
+                <td>${h.coinciden || 0}</td>
+                <td>${h.faltan || 0}</td>
+                <td>${h.sobran || 0}</td>
+                <td style="font-weight:bold; color:${(parseFloat(h.diferenciaTotal) || 0) < 0 ? '#d32f2f' : (parseFloat(h.diferenciaTotal) || 0) > 0 ? '#EF6C00' : '#2E7D32'};">${h.diferenciaTotal || 0}</td>
+            </tr>`).join('');
+        }
+
+        async function aplicarCierreMensual() {
+            if (!cierreMensualRows.length) return alert('No hay productos para aplicar.');
+
+            if (!confirm('¿Confirmas aplicar este cierre mensual al inventario oficial?')) return;
+
+            const fecha = document.getElementById('cierreFecha')?.value || hoyLocalISO();
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
+
+            let coinciden = 0, faltan = 0, sobran = 0, totalDiff = 0;
+
+            try {
+                for (const row of cierreMensualRows) {
+                    const sistema = parseFloat(row.stockSistema) || 0;
+                    const fisico = parseFloat(row.stockFisico) || 0;
+                    const diff = fisico - sistema;
+                    totalDiff += diff;
+
+                    if (diff === 0) coinciden++;
+                    else if (diff < 0) faltan++;
+                    else sobran++;
+
+                    await actualizarStockInventarioSupabase(row, fisico);
+                    await registrarMovimientoInventarioSupabase(row, diff, `CIERRE ${fecha} ${ubicacion} ${categoria}`);
+                }
+
+                const hist = getHistorialCierresMensuales();
+                hist.push({
+                    id: Date.now(),
+                    fecha,
+                    ubicacion,
+                    categoria,
+                    coinciden,
+                    faltan,
+                    sobran,
+                    diferenciaTotal: Number.isInteger(totalDiff) ? totalDiff : totalDiff.toFixed(2)
+                });
+                setHistorialCierresMensuales(hist);
+                localStorage.removeItem('plastinova_cierre_mensual_draft_v1');
+
+                await cargarInventarioCierreMensual(true);
+                renderHistorialCierresMensuales();
+                alert('✅ Cierre mensual aplicado correctamente.');
+            } catch (e) {
+                console.error('Error aplicando cierre mensual:', e);
+                alert('❌ No se pudo aplicar el cierre mensual. Revisa la consola.');
+            }
+        }
+
+        async function cargarInventarioCierreMensual(silencioso = false) {
+            await cargarInventarioDesdeSupabase();
+            refrescarCategoriasCierreMensual();
+            renderCierreMensual();
+            renderHistorialCierresMensuales();
+            if (!silencioso) alert('🔄 Stock del sistema cargado para cierre mensual.');
+        }
+
+        async function inicializarModuloCierreMensual() {
+            const fechaEl = document.getElementById('cierreFecha');
+            if (fechaEl && !fechaEl.value) fechaEl.value = hoyLocalISO();
+            await cargarInventarioCierreMensual(true);
         }
 
         // ==========================================
-        // 🟢 MOTOR DE IMPRESIÓN SEGURO
+        // 🟢 MOTOR DE IMPRESIÓN SEGURO (VENTANA NUEVA CON BOTÓN DE REGRESO)
         // ==========================================
-        function imprimirDocumento(htmlContent, tituloDocumento, modoImpresion = 'spacious-mode', escalaImpresion = 1) {
+        function imprimirDocumento(htmlContent, tituloDocumento) {
             let logoHTML = LOGO_PLASTINOVA ? `<img src="${LOGO_PLASTINOVA}" style="height:60px; max-width: 150px; object-fit: contain;">` : `<div style="height:60px; width:150px; background:#eee; display:flex; align-items:center; justify-content:center; border:1px dashed #999;"><b>[LOGO]</b></div>`;
             let fStr = new Date().toLocaleString('es-MX');
-            const escalaSegura = Math.max(0.84, Math.min(parseFloat(escalaImpresion) || 1, 1));
-            const anchoEscala = (100 / escalaSegura).toFixed(2) + '%';
 
             let printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -600,395 +715,76 @@ function enviarNube(registro) {
                 <head>
                     <title>${tituloDocumento}</title>
                     <style>
-                        @page { size: landscape; margin: 4mm 5mm; }
+                        /* Forzamos a Horizontal */
+                        @page { size: landscape; margin: 10mm; }
+                        body { font-family: 'Arial Narrow', Arial, sans-serif; margin: 0; padding: 0; }
+                        
+                        /* Estilos para el botón de Regreso */
+                        .btn-volver { display: block; width: 90%; margin: 10px auto 20px auto; padding: 15px; background-color: #d32f2f; color: white; text-align: center; font-size: 18px; text-decoration: none; font-weight: bold; border-radius: 8px; border: 2px solid #b71c1c; }
+                        
+                        /* Cabecera */
+                        .print-header-global { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2E7D32; padding-bottom: 5px; margin-bottom: 10px; }
+                        .print-header-info { text-align: right; font-size: 11px; }
+                        .print-header-info h2 { margin: 0; font-size: 16px; color: #2E7D32; text-transform: uppercase;}
+                        
+                        /* Tablas de Corte Restauradas (Colores y Columnas Exactas) */
+                        .header-pdf { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px; text-transform: uppercase; }
+                        .subtitle-pdf { text-align: center; font-weight: bold; font-size: 14px; margin-top: 5px; margin-bottom: 2px; text-transform: uppercase; border: 1px solid #000; border-bottom: none; }
+                        
+                        .pdf-table { width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 10px; }
+                        .pdf-table th { background-color: #388E3C !important; color: white !important; border: 1px solid #000; -webkit-print-color-adjust: exact; padding: 4px; font-size: 11px; font-weight: bold; }
+                        .pdf-table td { border: 1px solid #000; font-weight: bold; padding: 4px; font-size: 12px; }
+                        .row-total td { color: red !important; font-weight: bold; }
+                        
+                        /* Contenedores de Totales y Firmas alineados lado a lado */
+                        .bottom-container { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-top: 10px; page-break-inside: avoid; }
+                        .left-panel { width: 45%; }
+                        .right-panel { width: 50%; }
 
-                        html {
-                            -webkit-text-size-adjust: 100%;
-                            text-size-adjust: 100%;
-                        }
-
-                        html, body {
-                            margin: 0;
-                            padding: 0;
-                            width: 100%;
-                            background: #fff;
-                            overflow: visible !important;
-                        }
-
-                        :root,
-                        body,
-                        #print-master-zone {
-                            --logo-h: 46px;
-                            --logo-w: 120px;
-                            --header-info-size: 8.2px;
-                            --header-title-size: 12px;
-                            --doc-title-size: 10.8px;
-                            --sub-title-size: 9px;
-                            --th-size: 7px;
-                            --td-size: 7.6px;
-                            --mini-table-size: 7.7px;
-                            --cell-pad-v: 1px;
-                            --cell-pad-h: 3px;
-                            --gap: 4px;
-                            --line-tight: 1.02;
-                            --gasto-row-h: 12px;
-                        }
-
-                        body.spacious-mode,
-                        #print-master-zone.spacious-mode {
-                            --logo-h: 50px;
-                            --logo-w: 128px;
-                            --header-info-size: 8.8px;
-                            --header-title-size: 13px;
-                            --doc-title-size: 11.3px;
-                            --sub-title-size: 9.5px;
-                            --th-size: 7.3px;
-                            --td-size: 8px;
-                            --mini-table-size: 8px;
-                            --cell-pad-v: 1.5px;
-                            --cell-pad-h: 3px;
-                            --gap: 5px;
-                            --line-tight: 1.05;
-                            --gasto-row-h: 13px;
-                        }
-
-                        body.compact-mode,
-                        #print-master-zone.compact-mode {
-                            --logo-h: 40px;
-                            --logo-w: 108px;
-                            --header-info-size: 7px;
-                            --header-title-size: 10.3px;
-                            --doc-title-size: 9.2px;
-                            --sub-title-size: 7.8px;
-                            --th-size: 6.1px;
-                            --td-size: 6.6px;
-                            --mini-table-size: 6.7px;
-                            --cell-pad-v: 0.5px;
-                            --cell-pad-h: 2px;
-                            --gap: 2px;
-                            --line-tight: 0.98;
-                            --gasto-row-h: 9px;
-                        }
-
-                        body.super-compact-mode,
-                        #print-master-zone.super-compact-mode {
-                            --logo-h: 34px;
-                            --logo-w: 96px;
-                            --header-info-size: 6.2px;
-                            --header-title-size: 9px;
-                            --doc-title-size: 8px;
-                            --sub-title-size: 6.8px;
-                            --th-size: 5.4px;
-                            --td-size: 5.8px;
-                            --mini-table-size: 5.8px;
-                            --cell-pad-v: 0px;
-                            --cell-pad-h: 1px;
-                            --gap: 1px;
-                            --line-tight: 0.94;
-                            --gasto-row-h: 7px;
-                        }
-
-                        * {
-                            box-sizing: border-box;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-
-                        body {
-                            font-family: 'Arial Narrow', Arial, sans-serif;
-                            color: #000;
-                            font-size: 9px;
-                            line-height: var(--line-tight);
-                            word-spacing: -0.2px;
-                        }
-
-                        #print-master-zone {
-                            width: 100%;
-                            transform-origin: top left;
-                        }
-
-                        .btn-volver {
-                            display: block;
-                            width: 90%;
-                            margin: 10px auto 20px auto;
-                            padding: 15px;
-                            background-color: #d32f2f;
-                            color: white;
-                            text-align: center;
-                            font-size: 18px;
-                            text-decoration: none;
-                            font-weight: bold;
-                            border-radius: 8px;
-                            border: 2px solid #b71c1c;
-                        }
-
-                        .print-header-global,
-                        .header-pdf,
-                        .subtitle-pdf,
-                        .pdf-table,
-                        .gen-table,
-                        .fifo-table,
-                        .bottom-container,
-                        .left-panel,
-                        .right-panel,
-                        .tabla-extras,
-                        .tabla-resumen,
-                        .tabla-gastos,
-                        .firma,
-                        tbody,
-                        tfoot,
-                        tr {
-                            break-inside: avoid;
-                            page-break-inside: avoid;
-                        }
-
-                        .print-header-global {
-                            width: 100%;
-                            display: table;
-                            table-layout: fixed;
-                            border-bottom: 2px solid #2E7D32;
-                            padding-bottom: var(--gap);
-                            margin-bottom: var(--gap);
-                        }
-
-                        .print-header-global > :first-child,
-                        .print-header-global > :last-child {
-                            display: table-cell;
-                            vertical-align: middle;
-                        }
-
-                        .print-header-global > :first-child {
-                            width: var(--logo-w) !important;
-                            max-width: var(--logo-w) !important;
-                        }
-
-                        .print-header-global img {
-                            display: block;
-                            height: var(--logo-h) !important;
-                            max-height: var(--logo-h) !important;
-                            max-width: var(--logo-w) !important;
-                            width: auto;
-                            object-fit: contain;
-                        }
-
-                        .print-header-global > div:first-child {
-                            height: var(--logo-h) !important;
-                            width: var(--logo-w) !important;
-                        }
-
-                        .print-header-info {
-                            text-align: right;
-                            font-size: var(--header-info-size) !important;
-                            line-height: var(--line-tight);
-                        }
-
-                        .print-header-info h2 {
-                            margin: 0 0 1px 0;
-                            font-size: var(--header-title-size) !important;
-                            color: #2E7D32;
-                            text-transform: uppercase;
-                            line-height: 1;
-                        }
-
-                        .header-pdf {
-                            text-align: center;
-                            font-weight: bold;
-                            font-size: var(--doc-title-size) !important;
-                            line-height: var(--line-tight);
-                            margin: 0 0 var(--gap) 0 !important;
-                            text-transform: uppercase;
-                        }
-
-                        .subtitle-pdf {
-                            text-align: center;
-                            font-weight: bold;
-                            font-size: var(--sub-title-size) !important;
-                            line-height: 1;
-                            margin: var(--gap) 0 0 0;
-                            padding: 1px 2px;
-                            text-transform: uppercase;
-                            border: 1px solid #000;
-                            border-bottom: none;
-                        }
-
-                        .pdf-table,
-                        table.gen-table,
-                        table.fifo-table,
-                        .tabla-extras,
-                        .tabla-resumen,
-                        .tabla-gastos {
-                            width: 100%;
-                            border-collapse: collapse;
-                            table-layout: fixed;
-                            margin: 0 0 var(--gap) 0 !important;
-                            text-align: center;
-                        }
-
-                        .pdf-table th,
-                        .pdf-table td,
-                        table.gen-table th,
-                        table.gen-table td,
-                        table.fifo-table th,
-                        table.fifo-table td,
-                        .tabla-extras td,
-                        .tabla-resumen td,
-                        .tabla-gastos td {
-                            border: 1px solid #000;
-                            padding: var(--cell-pad-v) var(--cell-pad-h) !important;
-                            vertical-align: middle;
-                            line-height: 1;
-                            overflow: hidden;
-                            text-overflow: clip;
-                        }
-
-                        .pdf-table th,
-                        table.gen-table th,
-                        table.fifo-table th {
-                            background-color: #388E3C !important;
-                            color: white !important;
-                            font-size: var(--th-size) !important;
-                            font-weight: bold;
-                            white-space: nowrap;
-                        }
-
-                        .pdf-table td,
-                        table.gen-table td,
-                        table.fifo-table td {
-                            font-size: var(--td-size) !important;
-                            font-weight: bold;
-                        }
-
-                        table.gen-table th { background-color: #2E7D32 !important; }
-                        table.fifo-table th { background-color: #757575 !important; }
+                        .tabla-extras, .tabla-resumen { width: 100%; border-collapse: collapse; font-weight: bold; font-size: 11px; }
+                        .tabla-extras td, .tabla-resumen td { border: 1px solid #000; padding: 4px; }
+                        .tabla-gastos { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 11px; }
+                        .tabla-gastos td { border: 1px solid #000; padding: 4px; height: 18px;}
+                        .firma { margin-bottom: 5px; font-size: 12px; text-align: left; font-weight: normal; }
+                        
+                        /* Tablas Generales */
+                        table.gen-table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 10px; font-size: 12px; }
+                        table.gen-table th { background-color: #2E7D32 !important; color: white !important; border: 1px solid #000; padding: 5px; -webkit-print-color-adjust: exact; }
+                        table.gen-table td { border: 1px solid #000; padding: 5px; }
+                        
+                        /* Tablas FIFO */
+                        table.fifo-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; margin-bottom: 15px;}
+                        table.fifo-table th { background-color: #757575 !important; color: white !important; border: 1px solid #000; padding: 5px; -webkit-print-color-adjust: exact;}
+                        table.fifo-table td { border: 1px solid #000; padding: 5px;}
                         table.fifo-table.nuevo th { background-color: #8E24AA !important; }
                         table.fifo-table.resumen th { background-color: #2E7D32 !important; }
 
-                        .pdf-table th,
-                        .pdf-table td,
-                        .tabla-extras td,
-                        .tabla-resumen td,
-                        .tabla-gastos td {
-                            white-space: nowrap;
-                        }
-
-                        .pdf-table th:nth-child(1), .pdf-table td:nth-child(1) { width: 6%; }
-                        .pdf-table th:nth-child(2), .pdf-table td:nth-child(2) { width: 11%; }
-                        .pdf-table th:nth-child(3), .pdf-table td:nth-child(3) { width: 38%; }
-                        .pdf-table th:nth-child(4), .pdf-table td:nth-child(4) { width: 9%; }
-                        .pdf-table th:nth-child(5), .pdf-table td:nth-child(5) { width: 10%; }
-                        .pdf-table th:nth-child(6), .pdf-table td:nth-child(6) { width: 12%; }
-                        .pdf-table th:nth-child(7), .pdf-table td:nth-child(7) { width: 14%; }
-                        .pdf-table td:nth-child(3) { text-align: left; }
-
-                        .row-total td {
-                            color: red !important;
-                            font-weight: bold;
-                        }
-
-                        .bottom-container {
-                            width: 100%;
-                            display: table;
-                            table-layout: fixed;
-                            margin-top: var(--gap);
-                            border-spacing: 0;
-                        }
-
-                        .left-panel,
-                        .right-panel {
-                            display: table-cell;
-                            vertical-align: top;
-                        }
-
-                        .left-panel {
-                            width: 46%;
-                            padding-right: 4px;
-                        }
-
-                        .right-panel {
-                            width: 54%;
-                            padding-left: 4px;
-                        }
-
-                        .tabla-extras,
-                        .tabla-resumen,
-                        .tabla-gastos {
-                            font-size: var(--mini-table-size) !important;
-                            font-weight: bold;
-                        }
-
-                        .tabla-gastos td {
-                            height: var(--gasto-row-h) !important;
-                        }
-
-                        .firma {
-                            margin-top: 3px;
-                            font-size: var(--mini-table-size) !important;
-                            line-height: 1 !important;
-                            text-align: left;
-                            font-weight: normal;
-                            white-space: nowrap;
-                        }
-
-                        body.compact-mode *,
-                        #print-master-zone.compact-mode *,
-                        body.super-compact-mode *,
-                        #print-master-zone.super-compact-mode * {
-                            line-height: var(--line-tight) !important;
-                        }
-
-                        @media print {
-                            .btn-volver { display: none !important; }
-
-                            body {
-                                margin: 0 !important;
-                                padding: 0 !important;
-                            }
-
-                            body.compact-mode #print-master-zone,
-                            #print-master-zone.compact-mode {
-                                zoom: var(--print-scale, 0.90);
-                            }
-
-                            body.super-compact-mode #print-master-zone,
-                            #print-master-zone.super-compact-mode {
-                                zoom: var(--print-scale, 0.78);
-                            }
-
-                            @supports not (zoom: 1) {
-                                body.compact-mode #print-master-zone,
-                                #print-master-zone.compact-mode,
-                                body.super-compact-mode #print-master-zone,
-                                #print-master-zone.super-compact-mode {
-                                    transform: scale(var(--print-scale, 1));
-                                    transform-origin: top left;
-                                    width: var(--print-scale-width, 100%);
-                                }
-                            }
-                        }
+                        /* Ocultar el botón rojo a la hora de imprimir en papel */
+                        @media print { .btn-volver { display: none !important; } }
                     </style>
                 </head>
-                <body class="${modoImpresion}" style="--print-scale:${escalaSegura}; --print-scale-width:${anchoEscala};">
+                <body>
                     <a href="#" class="btn-volver" onclick="window.close(); return false;">❌ CERRAR VISTA PREVIA Y VOLVER A LA APP</a>
                     
-                    <div id="print-master-zone" class="${modoImpresion}">
-                        <div class="print-header-global">
-                            ${logoHTML}
-                            <div class="print-header-info">
-                                <h2>${tituloDocumento}</h2>
-                                Generado: <b>${fStr}</b>
-                            </div>
+                    <div class="print-header-global">
+                        ${logoHTML}
+                        <div class="print-header-info">
+                            <h2>${tituloDocumento}</h2>
+                            Generado: <b>${fStr}</b>
                         </div>
-                        <div>
-                            ${htmlContent}
-                        </div>
+                    </div>
+                    <div>
+                        ${htmlContent}
                     </div>
                     
                     <script>
+                        // Al cargar la ventana, lanzamos la impresión automáticamente
                         window.onload = function() {
                             setTimeout(function() {
                                 window.print();
                             }, 500);
                         };
+                        // Al terminar de imprimir (o cancelar), cerramos la ventana automáticamente
                         window.onafterprint = function() {
                             window.close();
                         };
@@ -997,16 +793,25 @@ function enviarNube(registro) {
                 </html>
             `);
             printWindow.document.close();
+            // Ya no le damos focus desde la app, dejamos que la nueva ventana haga su trabajo
         }
 
         // ==========================================
+        // 🟢 CÁLCULO DE SEMANA CORREGIDO (Zona Horaria Local de México)
+        // ==========================================
         function getNumeroSemana(fechaInput) {
-            const d = parseLocalDate(fechaInput);
-            if (!d || isNaN(d.getTime())) return 0;
-            d.setHours(0, 0, 0, 0);
+            // Separa la fecha YYYY-MM-DD para evitar el error de huso horario UTC vs Local
+            let partes = fechaInput.split('-');
+            if(partes.length !== 3) return 0;
+            // Año, Mes (0-11), Día
+            let d = new Date(partes[0], partes[1] - 1, partes[2]);
+            d.setHours(0,0,0,0);
+            // Día de la semana (Lunes=1, Domingo=7)
             let diaSemana = d.getDay() || 7;
+            // Jueves de esa semana (ISO 8601)
             d.setDate(d.getDate() + 4 - diaSemana);
             let yearStart = new Date(d.getFullYear(), 0, 1);
+            // Días de diferencia / 7
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
@@ -1019,7 +824,7 @@ function enviarNube(registro) {
         const LISTA_MATERIALES = {
             "POLVOS": [
                 "ROTOFOAM NEGRO AR", "ROTOFOAM BLANCO AR", "ROTOLENE BEIGE", "ROTOLENE NEGRO - BLACK", 
-                "ROTOLENE AZUL #5", "ROTOLENE VERDE #15", "ROTOLENE VERDE INDUST.", "ROTOLENE BLANCO", "RECICLADO / MERMA", 
+                "ROTOLENE AZUL #5", "ROTOLENE VERDE #15", "ROTOLENE BLANCO", "RECICLADO / MERMA", 
                 "ROTOLENE ROJO 14", "ROTOLENE NATURAL", "ROTOLENE CAFÉ", "ROTOLENE NARANJA II"
             ],
             "ACCESORIOS": [
@@ -1036,24 +841,17 @@ function enviarNube(registro) {
         colsTam.forEach(col => LISTA_MATERIALES["TERMINADOS"].push(`TAMBO 235LT ${col}`));
         colsTam.forEach(col => { LISTA_MATERIALES["TERMINADOS"].push(`MACETA GRANDE ${col}`); LISTA_MATERIALES["TERMINADOS"].push(`MACETA CHICA ${col}`); });
 
-        window.addEventListener('DOMContentLoaded', async (event) => {
-            const fechaLocal = hoyLocalISO();
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const dateObj = new Date(); 
+            const offset = dateObj.getTimezoneOffset() * 60000;
+            const fechaLocal = new Date(dateObj.getTime() - offset).toISOString().split('T')[0];
             document.getElementById('fecha').value = fechaLocal;
             document.getElementById('invFecha').value = fechaLocal; 
-            syncSemanaDesdeFecha();
-            document.getElementById('fecha').addEventListener('change', syncSemanaDesdeFecha);
-
+            document.getElementById('semana').value = getNumeroSemana(fechaLocal);
+            
             document.getElementById('invMaterial').innerHTML = document.getElementById('compraMaterial').innerHTML;
             actualizarFechasCorte(); 
             actualizarListaMermas();
-            autoCompletarPesoInv();
-            actualizarPrecios('tinaco');
-            actualizarPrecios('tambo');
-            verStockActual();
-            if (location.protocol === 'file:') {
-                console.warn('⚠️ Estás abriendo la app como archivo local (file://). El aviso “Unsafe attempt to load URL” es del navegador y no bloquea Supabase. Para evitarlo, luego conviene abrir la app desde un servidor local o GitHub Pages.');
-            }
-            probarConexionSupabase();
         });
 
         const LISTA_PRECIOS = { 
@@ -1062,64 +860,6 @@ function enviarNube(registro) {
             "750LT":  { publico: 1450, mayoreo: 1200, distribuidor: 1200, segunda: 850,  consignacion_salida: 0, consignacion_cobro: 1200, garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 1200 }, 
             "235LT":  { publico: 520,  mayoreo: 495,  distribuidor: 495,  segunda: 350,  consignacion_salida: 0, consignacion_cobro: 495,  garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 495 } 
         };
-
-        const COLORES_UI_DETECTABLES = [...new Set([...colsTin, ...colsTam])].sort((a, b) => b.length - a.length);
-        const CATALOGO_STOCK_CANONICO = [...new Set([...LISTA_MATERIALES["POLVOS"], ...LISTA_MATERIALES["ACCESORIOS"], ...LISTA_MATERIALES["TERMINADOS"]])];
-
-        function normalizarTextoClave(txt) {
-            return String(txt || '')
-                .toUpperCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        function normalizarColorUI(color) {
-            const buscado = normalizarTextoClave(color);
-            if (!buscado) return null;
-            return COLORES_UI_DETECTABLES.find(c => normalizarTextoClave(c) === buscado) || color;
-        }
-
-        function extraerColorDesdeConcepto(concepto) {
-            const conceptoNorm = normalizarTextoClave(concepto);
-            if (!conceptoNorm) return null;
-            const match = COLORES_UI_DETECTABLES.find(c => conceptoNorm.includes(normalizarTextoClave(c)));
-            return match || null;
-        }
-
-        function normalizarMaterialStock(material) {
-            const original = String(material || '').trim().toUpperCase();
-            if (!original) return null;
-            const normalizado = normalizarTextoClave(original);
-            const alias = {
-                'ROTOLENE VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.',
-                'ROTOLENE VERDE INDUST': 'ROTOLENE VERDE INDUST.',
-                'ROTOLENE VERDE INDUST.': 'ROTOLENE VERDE INDUST.',
-                'ROTOLENE VERDE INDUSTRIAL.': 'ROTOLENE VERDE INDUST.',
-                'ROTOLENE CAFE': 'ROTOLENE CAFÉ'
-            };
-            if (alias[normalizado]) return alias[normalizado];
-            const exacto = CATALOGO_STOCK_CANONICO.find(item => normalizarTextoClave(item) === normalizado);
-            return exacto || original;
-        }
-
-        function extraerMaterialDesdeConcepto(concepto, tipoMov) {
-            const raw = String(concepto || '').trim().toUpperCase();
-            if (!raw) return null;
-            if (tipoMov === 'COMPRA') return normalizarMaterialStock(raw.replace(/^INGRESO:\s*/, ''));
-            if (tipoMov === 'MERMA') {
-                const sinPrefijo = raw.replace(/^MERMA:\s*/, '').trim();
-                const matchMerma = sinPrefijo.match(/^(.*?)(\s*\([^()]*\))?\s*$/);
-                return normalizarMaterialStock(matchMerma ? matchMerma[1].trim() : sinPrefijo);
-            }
-            if (tipoMov === 'INVENTARIO_FISICO') {
-                const sinPrefijo = raw.replace(/^REAL:\s*/, '').trim();
-                const matchInv = sinPrefijo.match(/^(.*?)\s*\(DIF:\s*[-+]?\d+(?:\.\d+)?\)\s*$/);
-                return normalizarMaterialStock(matchInv ? matchInv[1].trim() : sinPrefijo);
-            }
-            return normalizarMaterialStock(raw);
-        }
 
         function cambiarTab(tab) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active')); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('btn-tab-' + tab).classList.add('active'); if(tab === 'bd') cargarBD(); if(tab === 'dashboard') renderGraficas(); if(tab === 'cortes') actualizarFechasCorte(); if(tab === 'inventario') verStockActual(); }
         
@@ -1135,7 +875,6 @@ function enviarNube(registro) {
 
         function obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI) {
             let consumo = {};
-            colorUI = normalizarColorUI(colorUI);
             const mapeoColor = { 'NEGRO': 'ROTOLENE NEGRO - BLACK', 'BEIGE': 'ROTOLENE BEIGE', 'AZUL': 'ROTOLENE AZUL #5', 'VERDE': 'ROTOLENE VERDE #15', 'NATURAL': 'ROTOLENE NATURAL', 'NARANJA': 'ROTOLENE NARANJA II', 'CAFÉ': 'ROTOLENE CAFÉ', 'BLANCO': 'ROTOLENE BLANCO', 'ROJO': 'ROTOLENE ROJO 14', 'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.' };
             let matColorBase = mapeoColor[colorUI] || `ROTOLENE ${colorUI}`;
             
@@ -1166,6 +905,32 @@ function enviarNube(registro) {
                 }
             }
             return consumo;
+        }
+
+        function actualizarStockGlobal(tipo, capacidad, color, cant, esReversa) {
+            if(tipo.includes('_COBRO')) return;
+
+            let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
+            let mult = esReversa ? -1 : 1; 
+            
+            if(tipo === 'COMPRA' || tipo === 'MERMA') {
+                let mod = tipo === 'MERMA' ? -1 : 1; 
+                stock[color] = (stock[color] || 0) + (cant * mod * mult);
+            } else { 
+                let receta = obtenerRecetaMateriales(tipo, capacidad, color); 
+                for(let mat in receta) { stock[mat] = (stock[mat] || 0) - (receta[mat] * cant * mult); }
+                
+                let nombreProductoTerminado = null;
+                if(tipo.includes('TINACO')) nombreProductoTerminado = `TINACO ${capacidad} ${color}`;
+                else if(tipo.includes('TAMBO')) nombreProductoTerminado = `TAMBO ${capacidad} ${color}`;
+                else if(tipo.includes('MACETA')) nombreProductoTerminado = `MACETA ${capacidad} ${color}`;
+                
+                if (nombreProductoTerminado) {
+                    if (tipo.includes('PROD_')) { stock[nombreProductoTerminado] = (stock[nombreProductoTerminado] || 0) + (cant * mult); } 
+                    else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) { stock[nombreProductoTerminado] = (stock[nombreProductoTerminado] || 0) - (cant * mult); }
+                }
+            }
+            localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock));
         }
 
         function obtenerDeudaConsignacion(vendedor, productoName) {
@@ -1207,6 +972,7 @@ function enviarNube(registro) {
                 else if (tipoOpTin === 'traspaso_cobro') { tipoRealTin = 'TRASPASO_TINACO_COBRO'; descTin = `COBRO SUCURSAL: ${capTin} ${colTin}`; }
 
                 add(v, tipoRealTin, descTin, qTin, pTin, qTin*pTin, capTin, colTin); 
+                actualizarStockGlobal(tipoRealTin, capTin, colTin, qTin, false); 
             }
 
             const tipoOpTam = document.getElementById('tipoPrecioTambo').value;
@@ -1228,22 +994,20 @@ function enviarNube(registro) {
                 else if (tipoOpTam === 'traspaso_cobro') { tipoRealTam = 'TRASPASO_TAMBO_COBRO'; descTam = `COBRO SUCURSAL: ${capTam} ${colTam}`; }
 
                 add(v, tipoRealTam, descTam, qTam, pTam, qTam*pTam, capTam, colTam); 
+                actualizarStockGlobal(tipoRealTam, capTam, colTam, qTam, false); 
             }
 
             const tP = document.getElementById('tipoProdFabricado').value, cP = document.getElementById('capProdFabricado').value, coP = document.getElementById('colProdFabricado').value;
             const qN = parseFloat(document.getElementById('qProdNormal').value)||0; 
-            if(qN > 0) { add(prod, `PROD_NORMAL_${tP}`, `NORMAL: ${tP} ${cP} ${coP}`, qN, 0, 0, cP, coP); }
+            if(qN > 0) { let tN = `PROD_NORMAL_${tP}`; add(prod, tN, `NORMAL: ${tP} ${cP} ${coP}`, qN, 0, 0, cP, coP); actualizarStockGlobal(tN, cP, coP, qN, false); }
             
             const qE = parseFloat(document.getElementById('qProdExtra').value)||0; 
-            if(qE > 0) { add(prod, `PROD_EXTRA_${tP}`, `EXTRA: ${tP} ${cP} ${coP}`, qE, 0, 0, cP, coP); }
+            if(qE > 0) { let tE = `PROD_EXTRA_${tP}`; add(prod, tE, `EXTRA: ${tP} ${cP} ${coP}`, qE, 0, 0, cP, coP); actualizarStockGlobal(tE, cP, coP, qE, false); }
             
             const g = parseFloat(document.getElementById('montoGasto').value)||0; 
             if(g > 0) add(v, 'GASTO', document.getElementById('descGasto').value.toUpperCase(), 1, g, g, null, null);
             
-            db = ordenarDBCronologicamente(db);
             localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-            reconstruirStockDesdeBD(db);
-
             ['qTinaco', 'pTinaco', 'qTambo', 'pTambo', 'qProdNormal', 'qProdExtra', 'montoGasto', 'descGasto'].forEach(id => document.getElementById(id).value = '');
             alert('¡Guardado en Teléfono y Google Sheets!');
         }
@@ -1260,15 +1024,10 @@ function enviarNube(registro) {
             const cant = parseFloat(document.getElementById('qMerma').value) || 0;
             const causa = document.getElementById('descMerma').value.toUpperCase() || 'DAÑO / MERMA';
             if(!mat || cant <= 0) return alert("Ingresa cantidad válida.");
-            
+            actualizarStockGlobal('MERMA', null, mat, cant, false);
             let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
             const reg = { id: Date.now(), fecha: document.getElementById('fecha').value, semana: getNumeroSemana(document.getElementById('fecha').value), vendedor: 'SISTEMA', tipo: 'MERMA', concepto: `MERMA: ${mat} (${causa})`, cantidad: cant, precio: 0, total: 0, capacidad: null, colorUI: mat };
-            db.push(reg); enviarNube(reg); 
-            
-            db = ordenarDBCronologicamente(db);
-            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-            reconstruirStockDesdeBD(db);
-
+            db.push(reg); enviarNube(reg); localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
             document.getElementById('qMerma').value = ''; document.getElementById('descMerma').value = '';
             alert(`⚠️ Registrada pérdida de ${cant} de ${mat}. Restado de inventario.`);
         }
@@ -1276,16 +1035,11 @@ function enviarNube(registro) {
         function registrarCompra() {
             const mat = document.getElementById('compraMaterial').value, cant = parseFloat(document.getElementById('compraCantidad').value)||0;
             if(!mat || cant <= 0) return alert("Datos inválidos.");
-            
+            actualizarStockGlobal('COMPRA', null, mat, cant, false);
             let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
             const reg = { id: Date.now(), fecha: document.getElementById('invFecha').value, semana: getNumeroSemana(document.getElementById('invFecha').value), vendedor: 'SISTEMA/PROV', tipo: 'COMPRA', concepto: `INGRESO: ${mat}`, cantidad: cant, precio: 0, total: 0, capacidad: null, colorUI: mat };
-            db.push(reg); enviarNube(reg); 
-
-            db = ordenarDBCronologicamente(db);
-            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-            reconstruirStockDesdeBD(db);
-
-            document.getElementById('compraCantidad').value = '';
+            db.push(reg); enviarNube(reg); localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+            document.getElementById('compraCantidad').value = ''; verStockActual();
             alert(`Sumados ${cant} de ${mat}.`);
         }
 
@@ -1325,12 +1079,9 @@ function enviarNube(registro) {
             if (!sArray.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:10px;">Stock en 0.</td></tr>'; }
             else {
                 sArray.forEach(i => {
-                    let valorNum = parseFloat(i.q) || 0; 
-                    let esKg = i.m.includes('ROTO') || i.m.includes('MERMA'); 
-                    let unidadStr = esKg ? 'KG' : 'PZAS';
-                    let valorFmt = Number.isInteger(valorNum) ? valorNum : valorNum.toFixed(2);
-                    let colorVal = valorNum < 0 ? '#d32f2f' : (valorNum < 10 ? '#EF6C00' : 'black');
-                    tbody.innerHTML += `<tr><td style="font-weight:bold;">${escHtml(i.m)}</td><td style="color:${colorVal}; font-weight:bold;">${valorFmt} <span class="lbl-unidad">${unidadStr}</span></td><td style="text-align:center;"><button class="btn btn-small" style="background:#1976D2; padding: 4px 8px; margin-right:4px;" onclick="promptEditarStock('${escJsStr(i.m)}', ${valorNum}, '${unidadStr}')">✏️</button><button class="btn btn-small" style="background:#d32f2f; padding: 4px 8px;" onclick="promptBorrarStock('${escJsStr(i.m)}')">🗑️</button></td></tr>`;
+                    let valorNum = parseFloat(i.q), esKg = i.m.includes('ROTO') || i.m.includes('MERMA'), unidadStr = esKg ? 'KG' : 'PZAS';
+                    let valorFmt = esKg ? valorNum.toFixed(2) : Math.round(valorNum), colorVal = valorNum < 0 ? '#d32f2f' : (valorNum < 10 ? '#EF6C00' : 'black');
+                    tbody.innerHTML += `<tr><td style="font-weight:bold;">${i.m}</td><td style="color:${colorVal}; font-weight:bold;">${valorFmt} <span class="lbl-unidad">${unidadStr}</span></td><td style="text-align:center;"><button class="btn btn-small" style="background:#1976D2; padding: 4px 8px; margin-right:4px;" onclick="promptEditarStock('${i.m}', ${valorNum}, '${unidadStr}')">✏️</button><button class="btn btn-small" style="background:#d32f2f; padding: 4px 8px;" onclick="promptBorrarStock('${i.m}')">🗑️</button></td></tr>`;
                 });
             }
             verStockRuta();
@@ -1338,64 +1089,17 @@ function enviarNube(registro) {
         
         function promptEditarStock(material, actualVal, unidad) {
             let newValStr = prompt(`✏️ AJUSTE MANUAL\nEl stock actual de '${material}' es ${actualVal} ${unidad}.\nIngrese la NUEVA cantidad exacta que hay físicamente:`, actualVal);
-            if (newValStr !== null) {
-                const nuevoVal = parseFloat(newValStr);
-                if (isNaN(nuevoVal) || nuevoVal < 0) return alert("Ingresa un valor numérico mayor o igual a 0.");
-
-                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
-                const hoy = document.getElementById('fecha').value || hoyLocalISO();
-
-                const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: getNumeroSemana(hoy), vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (AJUSTE MANUAL DESDE ${actualVal} A ${nuevoVal})`, cantidad: nuevoVal, precio: 0, total: 0, capacidad: null, colorUI: material };
-                db.push(reg);
-                enviarNube(reg);
-
-                db = ordenarDBCronologicamente(db);
-                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-                reconstruirStockDesdeBD(db);
-                alert('✅ ¡Stock ajustado manualmente con trazabilidad!');
+            if (newValStr !== null && !isNaN(parseFloat(newValStr))) {
+                let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {}; stock[material] = parseFloat(newValStr); localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock)); verStockActual(); alert('✅ ¡Stock ajustado manualmente!');
             }
         }
-
         function promptBorrarStock(material) {
-            let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
-            const anterior = parseFloat(stock[material] || 0);
-            if (confirm(`🗑️ ¿ESTÁS SEGURO?\nEsto borrará permanentemente '${material}' de la vista de stock dejando un registro en ceros.`)) {
-                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
-                const hoy = document.getElementById('fecha').value || hoyLocalISO();
-
-                const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: getNumeroSemana(hoy), vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (AJUSTE MANUAL DESDE ${anterior} A 0)`, cantidad: 0, precio: 0, total: 0, capacidad: null, colorUI: material };
-                db.push(reg);
-                enviarNube(reg);
-
-                db = ordenarDBCronologicamente(db);
-                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-                reconstruirStockDesdeBD(db);
-                alert(`✅ Se ha borrado '${material}' del inventario con trazabilidad.`);
+            if (confirm(`🗑️ ¿ESTÁS SEGURO?\nEsto borrará permanentemente '${material}' de la vista de stock.\n(Si vuelves a capturar movimientos de este material, reaparecerá con saldo 0).`)) {
+                let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {}; delete stock[material]; localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock)); verStockActual(); alert(`✅ Se ha borrado '${material}' del inventario.`);
             }
         }
 
-        function resetearStock() { 
-            if(confirm("🚨 ¿Limpiar Almacén a CEROS? Se generará un registro de auditoría para cada material.")) {
-                let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
-                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
-                const hoy = document.getElementById('fecha').value || hoyLocalISO();
-                const sem = getNumeroSemana(hoy);
-
-                Object.keys(stock).forEach(material => {
-                    const valActual = parseFloat(stock[material]) || 0;
-                    if(valActual !== 0) {
-                        const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: sem, vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (RESETEADO A 0 DESDE ${valActual})`, cantidad: 0, precio: 0, total: 0, capacidad: null, colorUI: material };
-                        db.push(reg);
-                        enviarNube(reg);
-                    }
-                });
-
-                db = ordenarDBCronologicamente(db);
-                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-                reconstruirStockDesdeBD(db);
-                alert("✅ Stock en 0 con trazabilidad completa.");
-            }
-        }
+        function resetearStock() { if(confirm("🚨 ¿Limpiar Almacén a CEROS?")) { localStorage.removeItem('plastinova_stock_v1'); verStockActual(); } }
 
         let invTemp = [];
         function autoCompletarPesoInv() { const s = document.getElementById('invSeccion').value; document.getElementById('invPesoBulto').value = (s==='20kg'?20:(s==='24kg'?24:0)); }
@@ -1413,7 +1117,6 @@ function enviarNube(registro) {
 
         function guardarYGenerarPDFInventario() {
             if(!invTemp.length) return;
-            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
             let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
             let htmlTabla = `<table class="gen-table"><thead><tr><th>CATEGORÍA</th><th>MATERIAL</th><th>STOCK SISTEMA</th><th>FÍSICO (Real)</th><th>MERMA</th></tr></thead><tbody>`;
             let sF = 0, sS = 0, itemsH = [];
@@ -1424,10 +1127,8 @@ function enviarNube(registro) {
                 htmlTabla += `<tr><td>${i.seccion}</td><td style="text-align:left;">${i.material}</td><td>${teorico.toFixed(2)}</td><td>${i.totalKg.toFixed(2)}</td><td style="color:${dif<0?'red':(dif>0?'blue':'black')}">${dif>0?'+':''}${dif.toFixed(2)}</td></tr>`;
                 sF += i.totalKg; sS += teorico;
                 itemsH.push({ material: i.material, contado: i.totalKg, teorico: teorico, dif: dif });
-                
-                const reg = { id:Date.now()+Math.random(), fecha:f, semana:sem, vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${i.material} (DIF: ${dif.toFixed(2)})`, cantidad:i.totalKg, precio:0, total:0, capacidad:null, colorUI:i.material };
-                db.push(reg);
-                enviarNube(reg);
+                stock[i.material] = i.totalKg;
+                enviarNube({ id:Date.now()+Math.random(), fecha:f, semana:sem, vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${i.material} (DIF: ${dif.toFixed(2)})`, cantidad:i.totalKg, precio:0, total:0, capacidad:null, colorUI:i.material });
             });
             let dG = sF - sS;
             htmlTabla += `</tbody></table>
@@ -1437,9 +1138,7 @@ function enviarNube(registro) {
                 <strong style="font-size: 14px;">DIFERENCIA NETA: </strong> <span style="color:${dG<0?'red':(dG>0?'blue':'black')}">${dG>0?'+':''}${dG.toFixed(2)}</span>
             </div>`;
             
-            db = ordenarDBCronologicamente(db);
-            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-            reconstruirStockDesdeBD(db);
+            localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock));
             
             imprimirDocumento(htmlTabla, "REPORTE DE AUDITORÍA Y MERMAS");
             if(confirm("¿PDF generado? Limpiando carrito...")) { vaciarCarritoInv(); verStockActual(); }
@@ -1447,162 +1146,79 @@ function enviarNube(registro) {
 
         function cargarBD() {
             let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
-            db = db
-                .map((r, idx) => ({ ...r, _ord: idx }))
-                .sort((a, b) => {
-                    const ta = fechaOrdenValor(a.fecha);
-                    const tbv = fechaOrdenValor(b.fecha);
-                    if (ta !== tbv) return tbv - ta;
-                    return b._ord - a._ord;
-                })
-                .map(({ _ord, ...r }) => r);
-
+            db.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
             let tb = document.querySelector('#tablaBD tbody'); tb.innerHTML = '';
             db.forEach(r => { 
-                let pStr = parseFloat(r.precio) > 0 ? '$' + formato(r.precio) : '-';
-                let tStr = parseFloat(r.total) > 0 ? '$' + formato(r.total) : '-';
-                let cStr = parseFloat(r.cantidad) > 0 ? parseFloat(r.cantidad).toFixed(2) : '-';
-                tb.innerHTML += `<tr><td>${escHtml(r.fecha || '')}</td><td>${escHtml(r.vendedor || '')}</td><td><span class="badge-tipo">${escHtml(getTipoAmigable(r.tipo))}</span></td><td>${escHtml(r.concepto || '')}</td><td style="font-weight:bold;">${cStr}</td><td>${pStr}</td><td style="font-weight:bold; color:#1565C0;">${tStr}</td><td style="text-align:center;"><button onclick="borrarRegistro('${escJsStr(String(r.id))}')" style="background:#d32f2f; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">❌</button></td></tr>`; 
+                let pStr = parseFloat(r.precio) > 0 ? '$' + formato(r.precio) : '-'; let tStr = parseFloat(r.total) > 0 ? '$' + formato(r.total) : '-'; let cStr = parseFloat(r.cantidad) > 0 ? parseFloat(r.cantidad).toFixed(2) : '-';
+                tb.innerHTML += `<tr><td>${r.fecha}</td><td>${r.vendedor}</td><td><span class="badge-tipo">${getTipoAmigable(r.tipo)}</span></td><td>${r.concepto}</td><td style="font-weight:bold;">${cStr}</td><td>${pStr}</td><td style="font-weight:bold; color:#1565C0;">${tStr}</td><td style="text-align:center;"><button onclick="borrarRegistro(${r.id})" style="background:#d32f2f; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">❌</button></td></tr>`; 
             });
         }
 
         function borrarRegistro(id) {
-            if(confirm("¿Borrar este movimiento?\nAl borrarlo, los materiales de esta operación VOLVERÁN a la bodega de forma inteligente y los historiales se recalcularán automáticamente.")) {
+            if(confirm("¿Borrar este movimiento?\nAl borrarlo, los materiales o tinacos de esta operación VOLVERÁN a la bodega de forma inteligente y los historiales se recalcularán automáticamente.")) {
                 let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
-                db = db.filter(x => String(x.id) !== String(id)); 
-                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db)); 
-                reconstruirStockDesdeBD(db);
-                cargarBD(); 
+                let r = db.find(x => x.id === id);
+                let esCobro = r && r.tipo && r.tipo.includes('_COBRO');
+                if(r && (r.capacidad || r.tipo === 'COMPRA' || r.tipo === 'MERMA') && !esCobro) { let tipoBase = r.tipo.replace('_COBRO', ''); actualizarStockGlobal(tipoBase, r.capacidad, r.colorUI, r.cantidad, true); }
+                db = db.filter(x => x.id !== id); localStorage.setItem('plastinova_bd_v2', JSON.stringify(db)); cargarBD(); verStockActual();
             }
         }
+        function limpiarBD() { if(confirm("¿Borrar TODO el historial?")) { localStorage.removeItem('plastinova_bd_v2'); cargarBD(); } }
 
-        function limpiarBD() {
-            if(confirm("¿Borrar TODO el historial?")) {
-                localStorage.removeItem('plastinova_bd_v2');
-                localStorage.removeItem('plastinova_stock_v1');
-                cargarBD();
-                verStockActual();
-                renderGraficas();
-            }
-        }
-
-                function importarCSV(esRescate) {
+        function importarCSV(esRescate) {
             const input = document.getElementById('archivoCSV'); const file = input.files[0];
             if (!file) return alert("⚠️ Selecciona el archivo .csv descargado de Google Sheets.");
-            
-            if (!esRescate) {
-                if (!confirm("⚠️ Esto añadirá registros a la DB actual. Si el archivo ya fue importado antes, podrías duplicar movimientos. ¿Continuar?")) return;
-            } else {
-                if(!confirm("⚠️ PELIGRO: Vas a borrar toda la memoria del celular (Historial y Stock) para reconstruirla desde el archivo. ¿Continuar?")) return;
-            }
+            if(esRescate) { if(!confirm("⚠️ PELIGRO: Vas a borrar toda la memoria del celular (Historial y Stock) para reconstruirla desde el archivo. ¿Continuar?")) return; }
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const text = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                const lineas = text.split('\n');
-
+                const texto = e.target.result; const lineas = texto.split('\n');
                 let db = esRescate ? [] : (JSON.parse(localStorage.getItem('plastinova_bd_v2')) || []);
-                let registrosAImportar = [];
-                const seen = new Set();
+                if(esRescate) localStorage.removeItem('plastinova_stock_v1');
                 let contador = 0;
 
                 for (let i = 1; i < lineas.length; i++) {
-                    if (!lineas[i].trim()) continue;
-                    const cols = parseCSVLine(lineas[i]);
+                    if (lineas[i].trim() === '') continue;
+                    let cols = lineas[i].split(',');
+                    if (cols.length >= 7) {
+                        let fechaStr = cols[0].trim();
+                        if (fechaStr.includes('/')) {
+                            let partes = fechaStr.split('/'); let dia = partes[0].padStart(2, '0'); let mes = partes[1].padStart(2, '0'); let anio = partes[2];
+                            if (anio.length === 2) anio = "20" + anio; fechaStr = `${anio}-${mes}-${dia}`;
+                        }
+                        
+                        let sem = getNumeroSemana(fechaStr); 
+                        let tipoMov = cols[2].trim().toUpperCase(); let conceptoStr = cols[3].trim().toUpperCase();
+                        
+                        if (tipoMov === '') {
+                            if (conceptoStr.includes('TINACO')) tipoMov = 'VENTA_TINACO';
+                            else if (conceptoStr.includes('TAMBO') || conceptoStr.includes('235LT')) tipoMov = 'VENTA_TAMBO';
+                            else tipoMov = 'VENTA_TINACO'; 
+                        }
 
-                    let fechaStr = cols[0] ? cols[0].trim() : '';
-                    if (fechaStr.includes('/')) {
-                        let partes = fechaStr.split('/'); let dia = partes[0].padStart(2, '0'); let mes = partes[1].padStart(2, '0'); let anio = partes[2];
-                        if (anio.length === 2) anio = "20" + anio; fechaStr = `${anio}-${mes}-${dia}`;
+                        let cant = parseFloat(cols[4]) || 0; let cap = null; let col = null;
+                        if(conceptoStr.includes('1200LT')) cap = '1200LT';
+                        else if(conceptoStr.includes('1100LT')) cap = '1100LT';
+                        else if(conceptoStr.includes('750LT')) cap = '750LT';
+                        else if(conceptoStr.includes('235LT') || conceptoStr.includes('TAMBO')) cap = '235LT';
+                        else if(conceptoStr.includes('MACETA') && conceptoStr.includes('GRANDE')) cap = 'GRANDE';
+                        else if(conceptoStr.includes('MACETA') && conceptoStr.includes('CHICA')) cap = 'CHICA';
+                        
+                        const coloresBase = ['BEIGE', 'NEGRO', 'AZUL', 'ROJO', 'VERDE', 'BLANCO'];
+                        coloresBase.forEach(c => { if(conceptoStr.includes(c)) col = c; });
+
+                        const reg = { id: Date.now() + i, fecha: fechaStr, semana: sem, vendedor: cols[1].trim().toUpperCase(), tipo: tipoMov, concepto: conceptoStr, cantidad: cant, precio: parseFloat(cols[5]) || 0, total: parseFloat(cols[6]) || 0, capacidad: cap, colorUI: col || 'BEIGE' };
+                        let existe = db.find(x => x.fecha === reg.fecha && x.concepto === reg.concepto && x.cantidad === reg.cantidad);
+                        if(esRescate || !existe) {
+                            db.push(reg); 
+                            if(cap || tipoMov === 'COMPRA' || tipoMov === 'MERMA') { actualizarStockGlobal(tipoMov, cap, col || 'BEIGE', cant, false); }
+                            contador++;
+                        }
                     }
-
-                    const fechaObj = parseLocalDate(fechaStr);
-                    if (!fechaObj) continue;
-
-                    let sem = getNumeroSemana(fechaStr);
-                    let vendStr = cols[1] ? cols[1].trim().toUpperCase() : '';
-                    let tipoMov = cols[2] ? cols[2].trim().toUpperCase() : '';
-                    let conceptoStr = cols[3] ? cols[3].trim().toUpperCase() : '';
-                    let cant = parseFloat(cols[4]) || 0;
-                    let precioVal = parseFloat(cols[5]) || 0;
-                    let totalVal = parseFloat(cols[6]) || 0;
-
-                    if (tipoMov === '') {
-                        if (conceptoStr.includes('TINACO')) tipoMov = 'VENTA_TINACO';
-                        else if (conceptoStr.includes('TAMBO') || conceptoStr.includes('235LT')) tipoMov = 'VENTA_TAMBO';
-                        else tipoMov = 'VENTA_TINACO';
-                    }
-
-                    let cap = null; let col = null; let materialStock = null;
-                    if(conceptoStr.includes('1200LT')) cap = '1200LT';
-                    else if(conceptoStr.includes('1100LT')) cap = '1100LT';
-                    else if(conceptoStr.includes('750LT')) cap = '750LT';
-                    else if(conceptoStr.includes('235LT') || conceptoStr.includes('TAMBO')) cap = '235LT';
-                    else if(conceptoStr.includes('MACETA') && conceptoStr.includes('GRANDE')) cap = 'GRANDE';
-                    else if(conceptoStr.includes('MACETA') && conceptoStr.includes('CHICA')) cap = 'CHICA';
-
-                    if (tipoMov === 'COMPRA' || tipoMov === 'MERMA' || tipoMov === 'INVENTARIO_FISICO') materialStock = extraerMaterialDesdeConcepto(conceptoStr, tipoMov);
-                    else col = extraerColorDesdeConcepto(conceptoStr);
-
-                    const colorUIReconstruido = materialStock || col || '';
-
-                    const reg = {
-                        id: Date.now() + Math.random().toString(36).substr(2, 9) + i,
-                        _idx: i,
-                        fecha: fechaStr,
-                        semana: sem,
-                        vendedor: vendStr,
-                        tipo: tipoMov,
-                        concepto: conceptoStr,
-                        cantidad: cant,
-                        precio: precioVal,
-                        total: totalVal,
-                        capacidad: cap,
-                        colorUI: colorUIReconstruido
-                    };
-
-                    const key = [
-                        reg.fecha, reg.semana, reg.vendedor, reg.tipo,
-                        reg.concepto, reg.cantidad, reg.precio, reg.total,
-                        reg.capacidad || '', reg.colorUI || ''
-                    ].join('|');
-
-                    if (seen.has(key)) continue;
-                    seen.add(key);
-
-                    if (!esRescate) {
-                        let existe = db.find(x =>
-                            x.fecha === reg.fecha &&
-                            x.semana === reg.semana &&
-                            x.vendedor === reg.vendedor &&
-                            x.tipo === reg.tipo &&
-                            x.concepto === reg.concepto &&
-                            parseFloat(x.cantidad) === parseFloat(reg.cantidad) &&
-                            parseFloat(x.precio) === parseFloat(reg.precio) &&
-                            parseFloat(x.total) === parseFloat(reg.total) &&
-                            String(x.capacidad || '') === String(reg.capacidad || '') &&
-                            String(x.colorUI || '') === String(reg.colorUI || '')
-                        );
-                        if (existe) continue;
-                    }
-
-                    registrosAImportar.push(reg);
-                    contador++;
                 }
-
-                if (esRescate) {
-                    db = registrosAImportar;
-                } else {
-                    db.push(...registrosAImportar);
-                }
-
-                db = ordenarDBCronologicamente(db);
-                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
-                reconstruirStockDesdeBD(db);
-
-                cargarBD();
-                alert(`✅ ¡Importación Exitosa! Se insertaron ${contador} movimientos. Tu stock está cuadrado cronológicamente.`);
-                input.value = "";
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db)); cargarBD(); verStockActual();
+                alert(`✅ ¡Reconstrucción Exitosa! Se insertaron ${contador} movimientos. Tu stock está cuadrado.`);
+                input.value = ""; 
             };
             reader.readAsText(file);
         }
@@ -1715,16 +1331,15 @@ function enviarNube(registro) {
             let d_sem = getNumeroSemana(document.getElementById('fecha').value); 
             let d_mes = new Date().getMonth(); let d_anio = new Date().getFullYear(); 
             let v_ventas = {}; let v_prod = {}; let maxV = 0; let maxP = 0;
-
+            
             db.forEach(r => { 
-                let rD = parseLocalDate(r.fecha); 
-                if (!rD) return;
+                let rD = new Date(r.fecha + "T00:00:00"); 
                 let valid = (fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio) || (fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio) || (fTiempo==='anio'&&rD.getFullYear()==d_anio);
                 if(valid && (fVend==='TODOS'||r.vendedor===fVend)) { 
                     let isTin = (r.concepto||'').includes('TINACO'); let isTam = (r.concepto||'').includes('TAMBO') || (r.concepto||'').includes('235LT'); let isMac = (r.concepto||'').includes('MACETA');
                     let cant = parseFloat(r.cantidad)||0;
 
-                    if(esMovimientoConIngreso(r)) { 
+                    if(r.tipo.includes('VENTA') || r.tipo.includes('TRASPASO')) { 
                         if(!v_ventas[r.vendedor]) v_ventas[r.vendedor] = { totalDinero: 0, tin: 0, tam: 0, mac: 0 };
                         v_ventas[r.vendedor].totalDinero += parseFloat(r.total) || 0; 
                         if(isTin) v_ventas[r.vendedor].tin += cant; if(isTam) v_ventas[r.vendedor].tam += cant; if(isMac) v_ventas[r.vendedor].mac += cant;
@@ -1760,17 +1375,15 @@ function enviarNube(registro) {
 
         function imprimirReportePro() {
             let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || []; 
-            const fTiempo = document.getElementById('filtroTiempo').value, fVend = document.getElementById('filtroVendedorGrafica').value, selTiempo = document.getElementById('filtroTiempo');
+            const fTiempo = document.getElementById('filtroTiempo').value, fVend = document.getElementById('filtroVendedorGrafica').value, selTiempo = document.getElementById('filtroTiempo'), textoTiempo = selTiempo.options[selTiempo.selectedIndex].text;
             let d_sem = getNumeroSemana(document.getElementById('fecha').value), d_mes = new Date().getMonth(), d_anio = new Date().getFullYear(); 
             let r_ventas = {}, r_prod = {}, global = { tinVendidos: 0, tamVendidos: 0, tinProd: 0, tamProd: 0, macProd: 0, dinero: 0 };
 
             db.forEach(r => { 
-                let rD = parseLocalDate(r.fecha);
-                if (!rD) return;
-                let valid = (fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio) || (fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio) || (fTiempo==='anio'&&rD.getFullYear()==d_anio);
+                let rD = new Date(r.fecha + "T00:00:00"), valid = (fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio) || (fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio) || (fTiempo==='anio'&&rD.getFullYear()==d_anio);
                 if(valid && (fVend==='TODOS'||r.vendedor===fVend)) { 
                     const cant = parseFloat(r.cantidad) || 0, tot = parseFloat(r.total) || 0, conc = r.concepto || '';
-                    if(esMovimientoConIngreso(r)) { 
+                    if(r.tipo.includes('VENTA') || r.tipo.includes('TRASPASO')) { 
                         if(!r_ventas[r.vendedor]) r_ventas[r.vendedor] = { dinero: 0, tinacos: 0, tambos: 0 };
                         r_ventas[r.vendedor].dinero += tot; global.dinero += tot;
                         if(conc.includes('TINACO')) { r_ventas[r.vendedor].tinacos += cant; global.tinVendidos += cant; }
@@ -1787,12 +1400,12 @@ function enviarNube(registro) {
 
             let htmlVentas = `<h3 class="header-pdf">Tabla A: Ventas por Vendedor</h3><table class="gen-table"><thead><tr><th>Vendedor</th><th>Tinacos</th><th>Tambos</th><th>Ingreso Total</th></tr></thead><tbody>`;
             if(Object.keys(r_ventas).length === 0) htmlVentas += `<tr><td colspan="4">Sin ventas en este periodo.</td></tr>`;
-            else { for(let v in r_ventas) { htmlVentas += `<tr><td><b>${escHtml(v)}</b></td><td>${r_ventas[v].tinacos}</td><td>${r_ventas[v].tambos}</td><td>$${formato(r_ventas[v].dinero)}</td></tr>`; } }
+            else { for(let v in r_ventas) { htmlVentas += `<tr><td><b>${v}</b></td><td>${r_ventas[v].tinacos}</td><td>${r_ventas[v].tambos}</td><td>$${formato(r_ventas[v].dinero)}</td></tr>`; } }
             htmlVentas += `</tbody></table>`;
 
             let htmlProd = `<h3 class="header-pdf" style="margin-top:10px;">Tabla B: Producción por Productor</h3><table class="gen-table"><thead><tr><th>Productor</th><th>Tinacos</th><th>Tambos</th><th>Macetas</th></tr></thead><tbody>`;
             if(Object.keys(r_prod).length === 0) htmlProd += `<tr><td colspan="4">Sin producción en este periodo.</td></tr>`;
-            else { for(let p in r_prod) { htmlProd += `<tr><td><b>${escHtml(p)}</b></td><td>${r_prod[p].tinacos}</td><td>${r_prod[p].tambos}</td><td>${r_prod[p].macetas}</td></tr>`; } }
+            else { for(let p in r_prod) { htmlProd += `<tr><td><b>${p}</b></td><td>${r_prod[p].tinacos}</td><td>${r_prod[p].tambos}</td><td>${r_prod[p].macetas}</td></tr>`; } }
             htmlProd += `</tbody></table>`;
 
             let htmlGlobal = `<div style="border: 2px solid #2E7D32; padding: 5px; margin-top: 15px; text-align:center;">
@@ -1807,7 +1420,7 @@ function enviarNube(registro) {
             imprimirDocumento(htmlVentas + htmlProd + htmlGlobal, "REPORTE PRO - VENTAS VS PROD.");
         }
 
-                function actualizarFechasCorte() {
+        function actualizarFechasCorte() {
             const v = document.getElementById('vendedorCorte').value; 
             let d = new Date(); let diaActual = d.getDay() === 0 ? 7 : d.getDay(); 
             let fIni = new Date(d); let fFin = new Date(d);
@@ -1821,94 +1434,80 @@ function enviarNube(registro) {
             const vendedor = document.getElementById('vendedorCorte').value, mostrarTinacos = document.getElementById('chkTinacos').checked, mostrarTambos = document.getElementById('chkTambos').checked; 
             let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
             const startStr = document.getElementById('fechaDesde').value, endStr = document.getElementById('fechaHasta').value;
-
+            
+            // LA SEMANA SE CALCULA SEGÚN LA FECHA DE INICIO DEL CORTE
             const semanaCalculada = getNumeroSemana(startStr);
 
-            let registros = db
-                .filter(r => { 
-                    if (!r.fecha || !(r.fecha >= startStr && r.fecha <= endStr)) return false; 
-                    if (r.vendedor === vendedor) return true; 
-                    if (vendedor === 'FERNANDO' && r.vendedor === 'PEDRO' && (r.tipo || '').includes('PROD_EXTRA')) return true; 
-                    return false; 
-                })
-                .map((r, idx) => ({ ...r, _ord: idx }))
-                .sort((a, b) => {
-                    const ta = fechaOrdenValor(a.fecha);
-                    const tbv = fechaOrdenValor(b.fecha);
-                    if (ta !== tbv) return ta - tbv;
-                    return a._ord - b._ord;
-                })
-                .map(({ _ord, ...r }) => r);
-
+            let registros = db.filter(r => { 
+                if (!r.fecha || !(r.fecha >= startStr && r.fecha <= endStr)) return false; 
+                if (r.vendedor === vendedor) return true; 
+                if (vendedor === 'FERNANDO' && r.vendedor === 'PEDRO' && (r.tipo || '').includes('PROD_EXTRA')) return true; 
+                return false; 
+            });
+            
             let tTinacos = '', tTambos = '', tGastos = ''; 
-            let sumQTin = 0, sumDTin = 0, sumQTam = 0, sumDTam = 0, sumQExtTin = 0, sumQExtTam = 0, sumQExtTinPedro = 0, sumQExtTamPedro = 0, sumGastos = 0, sumComisionTinacos = 0, sumComisionTambos = 0;
+            let sumQTin = 0, sumPTin = 0, sumDTin = 0, sumQTam = 0, sumPTam = 0, sumDTam = 0, sumQExtTin = 0, sumQExtTam = 0, sumQExtTinPedro = 0, sumQExtTamPedro = 0, sumGastos = 0, sumComisionTinacos = 0, sumComisionTambos = 0;
             let hizoTambosExtra = false, hizoTinacosExtra = false, hizoTambosExtraPedro = false, hizoTinacosExtraPedro = false, countGastos = 0;
-
+            
             registros.forEach(r => {
                 const fechaFormat = r.fecha.split('-').reverse().join('/'), cantNum = parseFloat(r.cantidad) || 0, precioNum = parseFloat(r.precio) || 0, totalNum = parseFloat(r.total) || 0;
-                const conceptoSafe = escHtml(r.concepto || '');
-                const filaTin = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${conceptoSafe}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
-                const filaTam = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${conceptoSafe}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
+                // COLUMNAS: FOLIO(vacio), FECHA, CONCEPTO, #TINACO(vacio), CANTIDAD, PRECIO UNI, TOTAL
+                const filaTin = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${r.concepto}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
+                const filaTam = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${r.concepto}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
 
-                const concepto = String(r.concepto || '').toUpperCase();
-                const esSalidaSinIngreso = concepto.includes('ENTREGA CONSIGNACIÓN') || concepto.includes('TRASPASO SUCURSAL') || concepto.includes('GARANTÍA');
-                const esVentaValida = esMovimientoConIngreso(r);
+                const noPagaComision = precioNum === 0 && ((r.concepto || '').includes('GARANTÍA') || (r.concepto || '').includes('ENTREGA CONSIGNACIÓN') || (r.concepto || '').includes('TRASPASO SUCURSAL'));
 
                 if((r.tipo === 'VENTA_TINACO' || r.tipo === 'VENTA_TINACO_COBRO' || r.tipo === 'TRASPASO_TINACO' || r.tipo === 'TRASPASO_TINACO_COBRO') && mostrarTinacos) { 
-                    if (esVentaValida) {
-                        tTinacos += filaTin; sumQTin += cantNum; sumDTin += totalNum; 
-                        if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += (cantNum * 35);
-                    }
+                    tTinacos += filaTin; sumQTin += cantNum; sumPTin += precioNum; sumDTin += totalNum; 
+                    if(!noPagaComision && !r.tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += (cantNum * 35);
                 }
                 if((r.tipo === 'VENTA_TAMBO' || r.tipo === 'VENTA_TAMBO_COBRO' || r.tipo === 'TRASPASO_TAMBO' || r.tipo === 'TRASPASO_TAMBO_COBRO') && mostrarTambos) { 
-                    if (esVentaValida) {
-                        tTambos += filaTam; sumQTam += cantNum; sumDTam += totalNum; 
-                        if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += (cantNum * 10);
-                    }
+                    tTambos += filaTam; sumQTam += cantNum; sumPTam += precioNum; sumDTam += totalNum; 
+                    if(!noPagaComision && !r.tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += (cantNum * 10);
                 }
                 if((r.tipo || '').includes('PROD_EXTRA')) { 
                     let esTambo = r.tipo === 'PROD_EXTRA_TAMBO' || (r.concepto || '').includes('TAMBO') || (r.concepto || '').includes('235LT');
                     if (r.vendedor === 'PEDRO' && vendedor === 'FERNANDO') { if (esTambo) { sumQExtTamPedro += cantNum; hizoTambosExtraPedro = true; } else { sumQExtTinPedro += cantNum; hizoTinacosExtraPedro = true; } } 
                     else if (r.vendedor === vendedor) { if (esTambo) { sumQExtTam += cantNum; hizoTambosExtra = true; } else { sumQExtTin += cantNum; hizoTinacosExtra = true; } } 
                 }
-                if(r.tipo === 'GASTO') { tGastos += `<tr><td style="text-align:left;">${escHtml(r.concepto || '')}</td><td style="text-align:right;">${formato(totalNum)}</td></tr>`; sumGastos += totalNum; countGastos++; }
+                if(r.tipo === 'GASTO') { tGastos += `<tr><td style="text-align:left;">${r.concepto}</td><td style="text-align:right;">${formato(totalNum)}</td></tr>`; sumGastos += totalNum; countGastos++; }
             });
-
+            
             while(countGastos < 4) { tGastos += `<tr><td style="text-align:left;">&nbsp;</td><td style="text-align:right;">-</td></tr>`; countGastos++; }
             if(!tTinacos) tTinacos = '<tr><td colspan="7">Sin ventas registradas</td></tr>';
             if(!tTambos) tTambos = '<tr><td colspan="7">Sin ventas registradas</td></tr>';
 
             const granTotal = sumDTin + sumDTam, comExtPedro = (sumQExtTinPedro * 35) + (sumQExtTamPedro * 10), comExtVendedor = (sumQExtTin * 35) + (sumQExtTam * 10), totComs = comExtPedro + comExtVendedor + sumComisionTinacos + sumComisionTambos, subTotal = granTotal - sumGastos;
             const totalEfe = subTotal - totComs; 
-
+            
             let textoExtrasPedro = "TIN EXTRA PEDRO"; if (hizoTambosExtraPedro && !hizoTinacosExtraPedro) textoExtrasPedro = "TAM EXTRA PEDRO"; else if (hizoTambosExtraPedro && hizoTinacosExtraPedro) textoExtrasPedro = "TIN/TAM EXT PEDRO";
             let textoExtras = `TIN EXTRA ${vendedor}`; if (hizoTambosExtra && !hizoTinacosExtra) textoExtras = `TAM EXTRA ${vendedor}`; else if (hizoTambosExtra && hizoTinacosExtra) textoExtras = `TIN/TAM EXT ${vendedor}`;
 
-            let filaPedro = (vendedor === 'FERNANDO') ? `<tr><td style="text-align:center;">${sumQExtTinPedro + sumQExtTamPedro}</td><td>${escHtml(textoExtrasPedro)}</td><td style="text-align:right;">$${formato(comExtPedro)}</td></tr>` : '';
+            let filaPedro = (vendedor === 'FERNANDO') ? `<tr><td style="text-align:center;">${sumQExtTinPedro + sumQExtTamPedro}</td><td>${textoExtrasPedro}</td><td style="text-align:right;">$${formato(comExtPedro)}</td></tr>` : '';
 
             let htmlCorte = `
-                <div class="header-pdf">TINACOS PLASTINOVA<br>VENDEDOR: ${escHtml(vendedor)}<br>${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')} | SEMANA ${semanaCalculada}</div>
-
+                <div class="header-pdf">TINACOS PLASTINOVA<br>VENDEDOR: ${vendedor}<br>${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')} | SEMANA ${semanaCalculada}</div>
+                
                 <div class="subtitle-pdf">VENTAS TINACOS</div>
                 <table class="pdf-table">
                     <thead><tr><th>FOLIO</th><th>FECHA</th><th>CONCEPTO</th><th># TINACO</th><th>CANTIDAD</th><th>PRECIO UNI</th><th>TOTAL</th></tr></thead>
                     <tbody>${tTinacos}</tbody>
                     <tfoot><tr class="row-total"><td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL</td><td>${sumQTin.toFixed(2)}</td><td>-</td><td>$${formato(sumDTin)}</td></tr></tfoot>
                 </table>
-
+                
                 <div class="subtitle-pdf">VENTAS TAMBOS Y MACETAS</div>
                 <table class="pdf-table">
                     <thead><tr><th>FOLIO</th><th>FECHA</th><th>CONCEPTO</th><th># TAM/MAC</th><th>CANTIDAD</th><th>PRECIO UNI</th><th>TOTAL</th></tr></thead>
                     <tbody>${tTambos}</tbody>
                     <tfoot><tr class="row-total"><td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL</td><td>${sumQTam.toFixed(2)}</td><td>-</td><td>$${formato(sumDTam)}</td></tr></tfoot>
                 </table>
-
+                
                 <div class="bottom-container">
                     <div class="left-panel">
                         <table class="tabla-extras">
                             <tr><td style="width:10%; text-align:center;">0</td><td>HORAS EXTRAS</td><td style="text-align:right;">$0</td></tr>
                             ${filaPedro}
-                            <tr><td style="text-align:center;">${sumQExtTin + sumQExtTam}</td><td>${escHtml(textoExtras)}</td><td style="text-align:right;">$${formato(comExtVendedor)}</td></tr>
+                            <tr><td style="text-align:center;">${sumQExtTin + sumQExtTam}</td><td>${textoExtras}</td><td style="text-align:right;">$${formato(comExtVendedor)}</td></tr>
                             <tr><td style="text-align:center;">${(sumComisionTinacos / 35).toFixed(2)}</td><td>VENTAS TINACOS</td><td style="text-align:right;">$${formato(sumComisionTinacos)}</td></tr>
                             <tr><td style="text-align:center;">${(sumComisionTambos / 10).toFixed(2)}</td><td>VENTAS TAMBOS</td><td style="text-align:right;">$${formato(sumComisionTambos)}</td></tr>
                             <tr><td colspan="2" style="text-align:center; color:red;">TOTAL COMISIONES</td><td style="color:red; text-align:right;">$${formato(totComs)}</td></tr>
@@ -1922,31 +1521,14 @@ function enviarNube(registro) {
                             <tr><td style="width: 60%;">GASTOS $</td><td>$${formato(sumGastos)}</td></tr>
                             <tr><td>SUB TOTAL $</td><td>$${formato(subTotal)}</td></tr>
                             <tr><td>EXTRA TRABAJADORES</td><td>$${formato(totComs)}</td></tr>
-                            <tr><td style="color: red; font-weight: bold;">TOTAL FINAL $</td><td style="color: red; font-weight: bold;">$${formato(totalEfe)}</td></tr>
+                            <tr><td style="color: red; font-size: 13px;">TOTAL FINAL $</td><td style="color: red; font-size: 13px;">$${formato(totalEfe)}</td></tr>
                         </table>
                     </div>
                 </div>
             `;
 
-            const filasTinacosImpresas = (tTinacos.match(/<tr>/g) || []).length;
-            const filasTambosImpresas = (tTambos.match(/<tr>/g) || []).length;
-            const filasGastosImpresas = Math.max(countGastos, 4);
-            const filasComisiones = 5 + (vendedor === 'FERNANDO' ? 1 : 0);
-            const scoreImpresion = filasTinacosImpresas + filasTambosImpresas + Math.ceil(filasGastosImpresas * 1.15) + filasComisiones + 6;
-
-            let modoImpresion = 'spacious-mode';
-            let escalaImpresion = 1;
-
-            if (scoreImpresion > 24) { modoImpresion = 'compact-mode'; escalaImpresion = 0.96; }
-            if (scoreImpresion > 32) { modoImpresion = 'compact-mode'; escalaImpresion = 0.93; }
-            if (scoreImpresion > 40) { modoImpresion = 'compact-mode'; escalaImpresion = 0.90; }
-            if (scoreImpresion > 48) { modoImpresion = 'super-compact-mode'; escalaImpresion = 0.88; }
-            if (scoreImpresion > 56) { modoImpresion = 'super-compact-mode'; escalaImpresion = 0.86; }
-
-            imprimirDocumento(htmlCorte, "CORTE DE CAJA", modoImpresion, escalaImpresion);
+            imprimirDocumento(htmlCorte, "CORTE DE CAJA");
         }
-
-
     </script>
 </body>
 </html>

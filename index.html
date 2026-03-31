@@ -28,6 +28,7 @@
         .btn-green { background-color: #2E7D32; }
         .btn-orange { background-color: #EF6C00; }
         .btn-red { background-color: #d32f2f; }
+        .btn, .nav-tabs button, .cierre-toolbar button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         
         .checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #333; margin-bottom: 10px; padding: 10px; background: #e8f5e9; border-radius: 5px; border: 1px solid #c8e6c9;}
         .checkbox-group input { width: 20px; height: 20px; }
@@ -255,7 +256,7 @@
                     <div class="row">
                         <div class="form-group"><label>Fecha del Cierre</label><input type="date" id="cierreFecha"></div>
                         <div class="form-group"><label>Ubicación</label>
-                            <select id="cierreUbicacion" onchange="refrescarCategoriasCierreMensual(); renderCierreMensual();">
+                            <select id="cierreUbicacion" onchange="refrescarYCargarCierreMensual()">
                                 <option value="PLANTA">PLANTA</option>
                                 <option value="SUCURSAL">SUCURSAL</option>
                             </select>
@@ -494,12 +495,15 @@
             return m[cat] || cat || '';
         }
 
-        function refrescarCategoriasCierreMensual() {
+        async function refrescarCategoriasCierreMensual() {
             const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
             const select = document.getElementById('cierreCategoria');
             if (!select) return;
 
-            const items = getInventarioSupabaseLocal();
+            let items = getInventarioSupabaseLocal();
+            if (!items.length) {
+                items = await cargarInventarioDesdeSupabase();
+            }
             const categorias = [...new Set(items
                 .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
                 .map(x => String(x.categoria || '').toUpperCase())
@@ -690,7 +694,7 @@
 
         async function cargarInventarioCierreMensual(silencioso = false) {
             await cargarInventarioDesdeSupabase();
-            refrescarCategoriasCierreMensual();
+            await refrescarCategoriasCierreMensual();
             renderCierreMensual();
             renderHistorialCierresMensuales();
             if (!silencioso) alert('🔄 Stock del sistema cargado para cierre mensual.');
@@ -861,7 +865,21 @@
             "235LT":  { publico: 520,  mayoreo: 495,  distribuidor: 495,  segunda: 350,  consignacion_salida: 0, consignacion_cobro: 495,  garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 495 } 
         };
 
-        function cambiarTab(tab) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active')); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('btn-tab-' + tab).classList.add('active'); if(tab === 'bd') cargarBD(); if(tab === 'dashboard') renderGraficas(); if(tab === 'cortes') actualizarFechasCorte(); if(tab === 'inventario') verStockActual(); }
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+            const tabEl = document.getElementById('tab-' + tab);
+            const btnEl = document.getElementById('btn-tab-' + tab);
+            if (tabEl) tabEl.classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
+            if (tab === 'bd') cargarBD();
+            if (tab === 'dashboard') renderGraficas();
+            if (tab === 'cortes') actualizarFechasCorte();
+            if (tab === 'inventario') {
+                verStockActual();
+                inicializarModuloCierreMensual();
+            }
+        }
         
         function actualizarPrecios(tipoItem) { if(tipoItem === 'tinaco') { const cap = document.getElementById('capTinaco').value; const tipo = document.getElementById('tipoPrecioTinaco').value; document.getElementById('pTinaco').value = LISTA_PRECIOS[cap][tipo]; } else if (tipoItem === 'tambo') { const cap = document.getElementById('capTambo').value; const tipo = document.getElementById('tipoPrecioTambo').value; document.getElementById('pTambo').value = LISTA_PRECIOS[cap][tipo]; } }
         

@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Plastinova Gerencial Pro</title>
+    <style>
+        /* --- ESTILOS DE INTERFAZ WEB --- */
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .header { background-color: #2E7D32; color: white; padding: 15px; text-align: center; }
+        .header h1 { margin: 0; font-size: 20px; font-weight: 900; }
+        .nav-tabs { display: flex; background: #1B5E20; overflow-x: auto;}
+        .nav-tabs button { flex: 1; padding: 12px; background: none; border: none; color: white; font-weight: bold; font-size: 12px; cursor: pointer; opacity: 0.7; min-width: 80px; white-space: nowrap;}
+        .nav-tabs button.active { opacity: 1; border-bottom: 4px solid #FFEB3B; }
+        .container { padding: 10px; max-width: 800px; margin: auto; padding-bottom: 50px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; color: #2E7D32; border-bottom: 2px solid #e8f5e9; padding-bottom: 5px; font-size: 15px; display: flex; justify-content: space-between; align-items: center;}
+        .row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 30%; }
+        .form-group label { display: block; font-size: 11px; color: #555; font-weight: bold; margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; box-sizing: border-box; background-color: #f9f9f9; }
+        .input-precio { border: 2px solid #4CAF50 !important; font-weight: bold; color: #2E7D32; background-color: #e8f5e9 !important; }
+        
+        .btn { background-color: #1565C0; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .btn-green { background-color: #2E7D32; }
+        .btn-orange { background-color: #EF6C00; }
+        .btn-red { background-color: #d32f2f; }
+        
+        .checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #333; margin-bottom: 10px; padding: 10px; background: #e8f5e9; border-radius: 5px; border: 1px solid #c8e6c9;}
+        .checkbox-group input { width: 20px; height: 20px; }
+
+        table.db-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; white-space: nowrap;}
+        table.db-table th, table.db-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        table.db-table th { background-color: #2E7D32; color: white; }
+        .badge-tipo { font-size: 9px; background-color: #e0e0e0; color: #333; padding: 3px 6px; border-radius: 4px; font-weight: bold; letter-spacing: 0.5px;}
+        .lbl-unidad { font-size: 9px; color: #888; font-weight: bold; margin-left: 3px;}
+
+        .grafica-container { display: flex; align-items: flex-end; justify-content: space-around; height: 220px; padding: 10px 5px 0 5px; border-bottom: 2px solid #ccc; gap: 15px; margin-top: 10px; overflow-x: auto; }
+        .grafica-col { flex: 0 0 60px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+        .grafica-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.5s ease-in-out; display: flex; justify-content: center; align-items: flex-start; color: white; font-size: 10px; font-weight: bold; padding-top: 5px; overflow: hidden; box-shadow: 2px 0 5px rgba(0,0,0,0.2); }
+        .bar-ventas { background-color: #1565C0; }
+        .bar-prod { background-color: #EF6C00; }
+        .grafica-label { font-size: 9px; font-weight: bold; margin-top: 8px; text-align: center; color: #333; text-transform: uppercase;}
+        .info-arriba { font-size: 10px; font-weight: bold; text-align: center; margin-bottom: 4px; line-height: 1.2; }
+    </style>
+</head>
+<body>
+
+    <div id="app-ui">
+        <div class="header"><h1>PLASTINOVA GERENCIAL PRO</h1></div>
+        
+        <div class="nav-tabs">
+            <button id="btn-tab-registro" class="active" onclick="cambiarTab('registro')">📝 Diario</button>
+            <button id="btn-tab-bd" onclick="cambiarTab('bd')">🗄️ Historial</button>
+            <button id="btn-tab-dashboard" onclick="cambiarTab('dashboard')">📊 Gráficas</button>
+            <button id="btn-tab-cortes" onclick="cambiarTab('cortes')">✂️ Cortes</button>
+            <button id="btn-tab-inventario" onclick="cambiarTab('inventario')">📦 Inv.</button>
+        </div>
+
+        <div class="container">
+            <div id="tab-registro" class="tab-content active">
+                <div class="card">
+                    <div class="row">
+                        <div class="form-group"><label>Fecha</label><input type="date" id="fecha"></div>
+                        <div class="form-group"><label>Semana</label><input type="text" id="semana" readonly style="background:#eee;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Vendedor / Encargado</label>
+                        <select id="vendedor">
+                            <option value="FERNANDO">FERNANDO</option><option value="HUSAI" selected>HUSAI</option>
+                            <option value="ISIDRO">ISIDRO</option><option value="IVAN">IVAN</option>
+                            <option value="OFELIA">OFELIA</option><option value="PEDRO">PEDRO</option><option value="RAMON">RAMON</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📦 Venta / Traspaso Tinacos</h3>
+                    <div class="row">
+                        <div class="form-group"><label>Capacidad</label><select id="capTinaco" onchange="actualizarPrecios('tinaco')"><option value="1200LT">1200LT</option><option value="1100LT" selected>1100LT</option><option value="750LT">750LT</option></select></div>
+                        <div class="form-group"><label>Color</label><select id="colTinaco"><option value="BEIGE">BEIGE</option><option value="NEGRO" selected>NEGRO</option><option value="AZUL">AZUL</option><option value="ROJO">ROJO</option><option value="VERDE">VERDE</option><option value="NATURAL">NATURAL</option><option value="NARANJA">NARANJA</option><option value="CAFÉ">CAFÉ</option><option value="BLANCO">BLANCO</option><option value="VERDE INDUSTRIAL">VERDE INDUSTRIAL</option></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Operación / Precio</label>
+                            <select id="tipoPrecioTinaco" onchange="actualizarPrecios('tinaco')">
+                                <option value="publico">PÚBLICO</option><option value="mayoreo" selected>MAYOREO</option><option value="distribuidor">DISTRIBUIDOR</option><option value="segunda">SEGUNDA / REMATE</option><option value="consignacion_salida">SALIDA CONSIGNACIÓN ($0)</option><option value="consignacion_cobro">COBRO DE CONSIGNACIÓN</option><option value="garantia">CAMBIO GARANTÍA ($0)</option><option value="traspaso_sucursal">TRASPASO A SUCURSAL ($0)</option><option value="traspaso_cobro">COBRO DE TRASPASO</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Cantidad</label><input type="number" id="qTinaco" placeholder="0"></div>
+                        <div class="form-group"><label>Precio Uni ($)</label><input type="number" id="pTinaco" placeholder="0.00" class="input-precio"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🛢️ Venta / Traspaso Tambos</h3>
+                    <div class="row">
+                        <div class="form-group"><label>Capacidad</label><select id="capTambo" onchange="actualizarPrecios('tambo')"><option value="235LT">235LT</option></select></div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <select id="colTambo"><option value="AZUL" selected>AZUL</option><option value="NEGRO">NEGRO</option><option value="BEIGE">BEIGE</option><option value="ROJO">ROJO</option><option value="VERDE">VERDE</option><option value="NATURAL">NATURAL</option><option value="NARANJA">NARANJA</option><option value="VERDE INDUSTRIAL">VERDE INDUSTRIAL</option><option value="CAFÉ">CAFÉ</option><option value="BLANCO">BLANCO</option><option value="ROJO CON BLANCO">ROJO CON BLANCO</option><option value="VERDE CON BLANCO">VERDE CON BLANCO</option><option value="AZUL CON BLANCO">AZUL CON BLANCO</option><option value="TERRACOTA">TERRACOTA</option><option value="MENTA">MENTA</option><option value="PISTACHE">PISTACHE</option><option value="GRANITO BEIGE">GRANITO BEIGE</option><option value="GRANITO">GRANITO</option><option value="DUVALIN">DUVALIN</option><option value="UVA">UVA</option><option value="MELON">MELON</option><option value="OXFORD">OXFORD</option></select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Operación / Precio</label>
+                            <select id="tipoPrecioTambo" onchange="actualizarPrecios('tambo')">
+                                <option value="publico">PÚBLICO</option><option value="mayoreo" selected>MAYOREO</option><option value="distribuidor">DISTRIBUIDOR</option><option value="segunda">SEGUNDA / REMATE</option><option value="consignacion_salida">SALIDA CONSIGNACIÓN ($0)</option><option value="consignacion_cobro">COBRO DE CONSIGNACIÓN</option><option value="garantia">CAMBIO GARANTÍA ($0)</option><option value="traspaso_sucursal">TRASPASO A SUCURSAL ($0)</option><option value="traspaso_cobro">COBRO DE TRASPASO</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Cantidad</label><input type="number" id="qTambo" placeholder="0"></div>
+                        <div class="form-group"><label>Precio Uni ($)</label><input type="number" id="pTambo" placeholder="0.00" class="input-precio"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="border: 2px solid #d32f2f; background-color: #fff5f5;">
+                    <h3 style="color: #d32f2f;">🚨 Registro de Mermas / Daños</h3>
+                    <div class="row">
+                        <div class="form-group"><label>Categoría</label><select id="mermaCategoria" onchange="actualizarListaMermas()"><option value="POLVOS">POLVOS / MATERIA PRIMA</option><option value="ACCESORIOS">ACCESORIOS</option><option value="TERMINADOS">PRODUCTOS TERMINADOS</option></select></div>
+                        <div class="form-group"><label>Material o Producto</label><select id="mermaProducto" style="border: 2px solid #d32f2f;"></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label>Cantidad a descontar (KG o Pza)</label><input type="number" id="qMerma" placeholder="0"></div>
+                        <div class="form-group"><label>Causa o Motivo</label><input type="text" id="descMerma" placeholder="Ej. Pinchado, Derramado..."></div>
+                    </div>
+                    <button class="btn" style="background-color: #d32f2f;" onclick="registrarMerma()">⚠️ Descontar de Bodega</button>
+                </div>
+
+                <div class="card">
+                    <h3>🏭 Registro de Producción</h3>
+                    <div class="row">
+                        <div class="form-group"><label>Productor</label><select id="productor"><option value="PEDRO">PEDRO</option><option value="FERNANDO">FERNANDO</option><option value="IVAN">IVAN</option><option value="HUSAI">HUSAI</option></select></div>
+                        <div class="form-group"><label>Producto Fabricado</label><select id="tipoProdFabricado" onchange="autoCompletarCapacidadProd()"><option value="TINACO">TINACO</option><option value="TAMBO">TAMBO</option><option value="MACETA">MACETA CUADRADA</option></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label>Capacidad / Tamaño</label><select id="capProdFabricado"><option value="1200LT">1200LT</option><option value="1100LT" selected>1100LT</option><option value="750LT">750LT</option><option value="235LT">235LT (Tambo)</option><option value="GRANDE">GRANDE (Maceta)</option><option value="CHICA">CHICA (Maceta)</option></select></div>
+                        <div class="form-group"><label>Color</label><select id="colProdFabricado"><option value="AZUL" selected>AZUL</option><option value="NEGRO">NEGRO</option><option value="BEIGE">BEIGE</option><option value="ROJO">ROJO</option><option value="VERDE">VERDE</option><option value="NATURAL">NATURAL</option><option value="NARANJA">NARANJA</option><option value="VERDE INDUSTRIAL">VERDE INDUSTRIAL</option><option value="CAFÉ">CAFÉ</option><option value="BLANCO">BLANCO</option><option value="ROJO CON BLANCO">ROJO CON BLANCO</option><option value="VERDE CON BLANCO">VERDE CON BLANCO</option><option value="AZUL CON BLANCO">AZUL CON BLANCO</option><option value="TERRACOTA">TERRACOTA</option><option value="MENTA">MENTA</option><option value="PISTACHE">PISTACHE</option><option value="GRANITO BEIGE">GRANITO BEIGE</option><option value="GRANITO">GRANITO</option><option value="DUVALIN">DUVALIN</option><option value="UVA">UVA</option><option value="MELON">MELON</option><option value="OXFORD">OXFORD</option></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label>Cant. NORMAL (Pza)</label><input type="number" id="qProdNormal" placeholder="0"></div>
+                        <div class="form-group"><label>Cant. EXTRA (Pza)</label><input type="number" id="qProdExtra" placeholder="0" class="input-precio"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>💸 Gastos del Vendedor</h3>
+                    <div class="form-group"><label>Concepto (Ej. Gasolina)</label><input type="text" id="descGasto"></div>
+                    <div class="form-group"><label>Monto ($)</label><input type="number" id="montoGasto" placeholder="0"></div>
+                </div>
+
+                <button class="btn btn-green" onclick="guardarRegistro()">💾 Guardar Movimientos</button>
+            </div>
+
+            <div id="tab-bd" class="tab-content">
+                <div class="card" style="background-color: #e8f5e9; border-left: 4px solid #2E7D32;">
+                    <h3 style="color: #2E7D32; margin-top: 0; margin-bottom: 5px;">📥 Recuperación y Carga (Desde Nube)</h3>
+                    <p style="font-size: 11px; color: #555; margin-bottom: 10px; margin-top: 0;">Selecciona el CSV descargado de Google Sheets para añadir datos o reconstruir todo.</p>
+                    <div class="row"><input type="file" id="archivoCSV" accept=".csv" style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 5px; background: white;"></div>
+                    <div class="row">
+                        <button class="btn btn-green" style="flex: 1; padding: 10px;" onclick="importarCSV(false)">➕ Añadir a DB Actual</button>
+                        <button class="btn btn-orange" style="flex: 1; padding: 10px;" onclick="importarCSV(true)">☁️ Rescatar (Reconstruir Todo)</button>
+                    </div>
+                </div>
+                <div class="card" style="overflow-x: auto;">
+                    <h3>🗄️ Historial de Movimientos</h3>
+                    <table class="db-table" id="tablaBD"><thead><tr><th>Fecha</th><th>Resp.</th><th>Movimiento</th><th>Concepto</th><th>Cant.</th><th>P. Uni</th><th>Total</th><th>Borrar</th></tr></thead><tbody></tbody></table>
+                    <div style="display: flex; gap:10px; margin-top: 15px;">
+                        <button class="btn btn-orange" style="flex: 1;" onclick="imprimirReporteDirecto('tablaBD', 'REPORTE DE MOVIMIENTOS HISTÓRICOS')">🖨️ Imprimir Historial</button>
+                        <button class="btn" style="background-color: #d32f2f; flex: 1;" onclick="limpiarBD()">🗑️ Borrar Todo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-dashboard" class="tab-content">
+                <div class="card">
+                    <h3>📊 Filtros del Tablero</h3>
+                    <div class="row">
+                        <div class="form-group"><label>Periodo</label><select id="filtroTiempo" onchange="renderGraficas()"><option value="semana">Esta Semana Corriente</option><option value="mes">Este Mes</option><option value="anio">Este Año</option></select></div>
+                        <div class="form-group"><label>Vendedor/Productor</label><select id="filtroVendedorGrafica" onchange="renderGraficas()"><option value="TODOS">TODOS</option><option value="FERNANDO">FERNANDO</option><option value="HUSAI">HUSAI</option><option value="ISIDRO">ISIDRO</option><option value="IVAN">IVAN</option><option value="OFELIA">OFELIA</option><option value="PEDRO">PEDRO</option><option value="RAMON">RAMON</option></select></div>
+                    </div>
+                    <button class="btn" style="margin-top: 10px; background-color: #EF6C00; color: white;" onclick="imprimirReportePro()">🖨️ Generar Reporte Pro (Ventas VS Producción)</button>
+                </div>
+                <div class="card"><h3 style="color: #1565C0;">💰 Ingreso Ventas ($)</h3><div class="grafica-container" id="graficaVentas"></div></div>
+                <div class="card"><h3 style="color: #EF6C00;">🏭 Producción Total (PZAS)</h3><div class="grafica-container" id="graficaProd"></div></div>
+            </div>
+
+            <div id="tab-cortes" class="tab-content">
+                <div class="card">
+                    <h3>✂️ Generar Reporte de Corte</h3>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Vendedor a Cortar</label>
+                        <select id="vendedorCorte" onchange="actualizarFechasCorte()"><option value="FERNANDO">FERNANDO</option><option value="HUSAI">HUSAI</option><option value="ISIDRO">ISIDRO</option><option value="IVAN">IVAN</option><option value="OFELIA">OFELIA</option><option value="PEDRO">PEDRO</option><option value="RAMON">RAMON</option></select>
+                    </div>
+                    <div class="row" style="margin-bottom: 15px;">
+                        <div class="form-group"><label style="color:#1565C0;">Desde:</label><input type="date" id="fechaDesde"></div>
+                        <div class="form-group"><label style="color:#EF6C00;">Hasta:</label><input type="date" id="fechaHasta"></div>
+                    </div>
+                    <div class="checkbox-group"><input type="checkbox" id="chkTinacos" checked><label for="chkTinacos">Mostrar Ventas de Tinacos</label></div>
+                    <div class="checkbox-group"><input type="checkbox" id="chkTambos" checked><label for="chkTambos">Mostrar Ventas de Tambos</label></div>
+                    <button class="btn btn-orange" onclick="generarCortePDF()" style="margin-top: 15px;">📄 Crear PDF del Corte</button>
+                </div>
+            </div>
+
+            <div id="tab-inventario" class="tab-content">
+                <div class="card" style="border: 2px solid #8E24AA; background-color: #f3e5f5;">
+                    <h3 style="color: #8E24AA; margin-bottom: 5px;">🔍 Auditoría por Lotes (Método PEPS)</h3>
+                    <div class="row">
+                        <div class="form-group"><label style="color: #8E24AA; font-weight: bold;">Fecha de llegada de NUEVO lote</label><input type="date" id="fechaLoteNuevo" style="border: 2px solid #8E24AA;"></div>
+                    </div>
+                    <button class="btn" style="background-color: #8E24AA;" onclick="generarPDFFifo()">📄 Generar PDF de Lotes (FIFO)</button>
+                </div>
+
+                <div class="card" style="border: 2px solid #2E7D32;">
+                    <h3 style="color: #2E7D32; margin-bottom: 5px;">📊 Stock Actual (Bodega Planta)</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button class="btn btn-green" onclick="verStockActual()" style="padding: 10px; font-size: 14px; flex: 2;">🔄 Actualizar Vista</button>
+                        <button class="btn btn-orange" onclick="imprimirReporteDirecto('tablaStockActual', 'REPORTE DE INVENTARIO - STOCK ACTUAL')" style="padding: 10px; font-size: 14px; flex: 1;">🖨️ Imprimir</button>
+                        <button class="btn" onclick="resetearStock()" style="background-color: #d32f2f; color: white; padding: 10px; font-size: 14px; flex: 1;">🚨 Poner Ceros</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="db-table" id="tablaStockActual"><thead><tr><th>Material / Producto Terminado</th><th>Cantidad Restante</th><th>Acciones (Ajuste Manual)</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <div class="card" style="border: 2px solid #EF6C00;">
+                    <h3 style="color: #EF6C00; margin-bottom: 5px;">🚚 Mercancía en Ruta y Sucursal (Por Cobrar)</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button class="btn btn-orange" onclick="imprimirReporteDirecto('tablaStockRuta', 'REPORTE DE MERCANCÍA EN RUTA')" style="padding: 8px; font-size: 12px; flex: 1;">🖨️ Imprimir Reporte de Ruta</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="db-table" id="tablaStockRuta"><thead><tr><th>Responsable / Ubicación</th><th>Producto Pendiente</th><th>Cantidad</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+
+                <div class="card" style="border: 2px solid #1565C0;">
+                    <h3 style="color: #1565C0; margin-bottom: 5px;">📥 Entrada Directa (Compras o Punto Cero)</h3>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Material / Accesorio / Producto</label>
+                            <select id="compraMaterial" style="border: 2px solid #1565C0; padding: 10px; background-color: #f0f8ff;">
+                                <option value="" disabled selected>SELECCIONAR...</option>
+                                <optgroup label="MATERIA PRIMA (POLVO)">
+                                    <option value="ROTOFOAM NEGRO AR">ROTOFOAM NEGRO AR</option><option value="ROTOFOAM BLANCO AR">ROTOFOAM BLANCO AR</option>
+                                    <option value="ROTOLENE BEIGE">ROTOLENE BEIGE</option><option value="ROTOLENE NEGRO - BLACK">ROTOLENE NEGRO - BLACK</option>
+                                    <option value="ROTOLENE AZUL #5">ROTOLENE AZUL #5</option><option value="ROTOLENE VERDE #15">ROTOLENE VERDE #15</option><option value="ROTOLENE VERDE INDUST.">ROTOLENE VERDE INDUST.</option>
+                                    <option value="ROTOLENE BLANCO">ROTOLENE BLANCO</option><option value="RECICLADO / MERMA">RECICLADO / MERMA</option>
+                                    <option value="ROTOLENE ROJO 14">ROTOLENE ROJO 14</option><option value="ROTOLENE NATURAL">ROTOLENE NATURAL</option>
+                                    <option value="ROTOLENE CAFÉ">ROTOLENE CAFÉ</option><option value="ROTOLENE NARANJA II">ROTOLENE NARANJA II</option>
+                                </optgroup>
+                                <optgroup label="ACCESORIOS (KITS)">
+                                    <option value="KIT COMPLETO (PIEZAS)">KIT COMPLETO (PIEZAS)</option><option value="TAPA (PIEZAS)">TAPA (PIEZAS)</option>
+                                    <option value="VALVULA (PIEZAS)">VALVULA (PIEZAS)</option><option value="JARRO DE AIRE (PIEZAS)">JARRO DE AIRE (PIEZAS)</option>
+                                    <option value="BRIDA (PIEZAS)">BRIDA (PIEZAS)</option><option value="CAPUCHON (PIEZAS)">CAPUCHON (PIEZAS)</option>
+                                    <option value="FILTRO (PIEZAS)">FILTRO (PIEZAS)</option><option value="ETIQUETA (PIEZAS)">ETIQUETA (PIEZAS)</option>
+                                </optgroup>
+                                <optgroup label="PRODUCTO TERMINADO (INICIAL)">
+                                    <option value="TINACO 1100LT NEGRO">TINACO 1100LT NEGRO</option><option value="TINACO 1100LT BEIGE">TINACO 1100LT BEIGE</option>
+                                    <option value="TINACO 1200LT NEGRO">TINACO 1200LT NEGRO</option><option value="TINACO 1200LT BEIGE">TINACO 1200LT BEIGE</option>
+                                    <option value="TAMBO 235LT AZUL">TAMBO 235LT AZUL</option><option value="MACETA GRANDE NEGRO">MACETA GRANDE NEGRO</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Cantidad (KG o Piezas)</label><input type="number" id="compraCantidad" placeholder="Ej. 65" style="border: 2px solid #1565C0;"></div>
+                    </div>
+                    <button class="btn" style="background-color: #1565C0;" onclick="registrarCompra()">➕ Sumar al Stock</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: #EF6C00;">📝 Conteo Físico de Material (Auditoría Cierre)</h3>
+                    <div class="row" style="margin-bottom: 10px;">
+                        <div class="form-group"><label style="color: #EF6C00; font-size: 13px;">Fecha de Cierre Físico</label><input type="date" id="invFecha" style="border: 2px solid #EF6C00;"></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label>Categoría</label><select id="invSeccion" onchange="autoCompletarPesoInv()"><option value="20kg">Sacos de 20 KG</option><option value="24kg">Sacos de 24 KG</option><option value="mezclados">Mezclados / Sueltos / Pzas</option></select></div>
+                        <div class="form-group"><label>Material / Producto</label><select id="invMaterial" style="border: 2px solid #EF6C00; padding: 10px;"></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label>Bultos Enteros</label><input type="number" id="invBultos" placeholder="0"></div>
+                        <div class="form-group"><label>Peso de Bulto (KG)</label><input type="number" id="invPesoBulto" value="20" style="background:#eee;"></div>
+                        <div class="form-group"><label>Kilos Sueltos / Pzas</label><input type="number" id="invSueltos" placeholder="0"></div>
+                    </div>
+                    <button class="btn btn-orange" onclick="agregarAlInventario()">➕ Añadir a la Lista Físico</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: #666;">🛒 Lista Temporal de Cierre</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="db-table"><thead style="background-color: #666;"><tr><th>Cat</th><th>Material/Prod</th><th>Bultos</th><th>Sueltos</th><th>Total</th><th>X</th></tr></thead><tbody id="tablaInvTemp"></tbody></table>
+                    </div>
+                    <div style="text-align: right; margin-top: 10px; font-weight: bold;">TOTAL CERRADO: <span id="invGranTotalTemp" style="color:red;">0</span></div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="btn" style="background-color: #d32f2f; flex: 1;" onclick="vaciarCarritoInv()">🗑️ Vaciar</button>
+                        <button class="btn" style="background-color: #333; flex: 2;" onclick="guardarYGenerarPDFInventario()">📄 Generar Reporte Mermas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🟢 CONFIGURACIÓN DEL LOGO
+        // Pon el nombre exacto de tu archivo de imagen (Ej: logo.png) 
+        // en la MISMA CARPETA que esta app.
+        // ==========================================
+        const LOGO_PLASTINOVA = "logo.png"; 
+
+        const URL_GOOGLE_SHEETS = "https://script.google.com/macros/s/AKfycbzRpyFi3tp65WTEye3zV5q8iPPDPm8ZRmn-cX-Wqc9eQpYS1NGtjItSBy5Y6KEgR3iG/exec";
+
+
+        // ==========================================
+        // 🟦 SUPABASE - CONFIGURACIÓN BASE
+        // ==========================================
+        const SUPABASE_URL = "https://lngqpschtfbuekawjqpt.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_gjba1_03hWXH2bzSO01dhg_R8MOw7cI";
+
+        let supabaseClient = null;
+
+        async function cargarSDKSupabase() {
+            if (window.supabase) return true;
+
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+                script.onload = () => resolve(true);
+                script.onerror = () => reject(new Error("No se pudo cargar Supabase SDK"));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function initSupabase() {
+            if (supabaseClient) return supabaseClient;
+            await cargarSDKSupabase();
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            return supabaseClient;
+        }
+
+        async function sembrarCatalogoBaseDirecto() {
+            const sb = await initSupabase();
+            if (!sb) return { ok: false, sembrados: 0 };
+
+            const catalogo = catalogoInventarioBaseMinimo();
+            const { error } = await sb.from('inventario').insert(catalogo);
+            if (error) {
+                console.error('❌ Error sembrando catálogo base en Supabase:', error);
+                return { ok: false, sembrados: 0, error };
+            }
+            console.log(`✅ Catálogo base inicial cargado en Supabase: ${catalogo.length} registros.`);
+            return { ok: true, sembrados: catalogo.length };
+        }
+
+        async function recargarInventarioSupabaseALocal() {
+            const sb = await initSupabase();
+            if (!sb) return [];
+
+            const { data, error } = await sb
+                .from('inventario')
+                .select('*')
+                .order('ubicacion', { ascending: true })
+                .order('categoria', { ascending: true })
+                .order('producto', { ascending: true });
+
+            if (error) {
+                console.error('❌ Error cargando inventario desde Supabase:', error);
+                return [];
+            }
+
+            localStorage.setItem('plastinova_inventario_maestro_v1', JSON.stringify(data || []));
+            console.log(`🔄 Inventario sincronizado a localStorage: ${(data || []).length} registros.`);
+            return data || [];
+        }
+
+        async function asegurarCatalogoBase() {
+            const sb = await initSupabase();
+            if (!sb) return false;
+
+            const { data, error } = await sb
+                .from('inventario')
+                .select('id')
+                .limit(1);
+
+            if (error) {
+                console.error('❌ Error revisando inventario base:', error);
+                return false;
+            }
+
+            if (Array.isArray(data) && data.length > 0) {
+                console.log('ℹ️ Inventario ya tiene registros, no se sembró catálogo base.');
+                return true;
+            }
+
+            const res = await sembrarCatalogoBaseDirecto();
+            return !!res.ok;
+        }
+
+        async function probarConexionSupabase() {
+            try {
+                const sb = await initSupabase();
+                const { data, error } = await sb.from('inventario').select('*').limit(3);
+                if (error) {
+                    console.error('❌ Error leyendo tabla inventario en Supabase:', error);
+                    return false;
+                }
+                console.log('✅ Supabase conectado correctamente');
+                console.log('📦 Inventario leído correctamente:', data || []);
+
+                await asegurarCatalogoBase();
+                const fullReload = await recargarInventarioSupabaseALocal();
+                console.log(`📚 Registros finales inventario: ${fullReload.length}`);
+                return true;
+            } catch (e) {
+                console.error('❌ Error inicializando Supabase:', e);
+                return false;
+            }
+        }
+
+        async function forzarSemillaCatalogoBase() {
+            const sb = await initSupabase();
+            if (!sb) return;
+            const { error } = await sb.from('inventario').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) console.warn('⚠️ No se pudo limpiar inventario antes de resembra:', error);
+            await sembrarCatalogoBaseDirecto();
+            await recargarInventarioSupabaseALocal();
+            console.log('✅ Semilla forzada terminada.');
+        }
+
+function enviarNube(registro) {
+            fetch(URL_GOOGLE_SHEETS, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(registro) })
+            .catch(error => console.log("Aviso: Falló la conexión a la nube.", error));
+        }
+
+        // ==========================================
+        // 🟢 UTILIDADES GLOBALES (BLINDAJE DE SEGURIDAD)
+        // ==========================================
+        function parseLocalDate(fechaStr) {
+            if (!fechaStr) return null;
+            const [y, m, d] = String(fechaStr).split('-').map(Number);
+            if (!y || !m || !d) return null;
+            const dt = new Date(y, m - 1, d);
+            if (dt.getFullYear() !== y || dt.getMonth() !== (m - 1) || dt.getDate() !== d) return null;
+            return dt;
+        }
+
+        function hoyLocalISO() {
+            const d = new Date();
+            const offset = d.getTimezoneOffset();
+            const local = new Date(d.getTime() - offset * 60000);
+            return local.toISOString().split('T')[0];
+        }
+
+        function syncSemanaDesdeFecha() {
+            const fechaEl = document.getElementById('fecha');
+            const semanaEl = document.getElementById('semana');
+            if (!fechaEl || !semanaEl) return;
+            semanaEl.value = getNumeroSemana(fechaEl.value || hoyLocalISO());
+        }
+
+        function fechaOrdenValor(fechaStr) {
+            const d = parseLocalDate(fechaStr);
+            return d ? d.getTime() : 0;
+        }
+
+        function esMovimientoConIngreso(r) {
+            const tipo = String((r && r.tipo) || '').trim();
+            const concepto = String((r && r.concepto) || '').toUpperCase();
+
+            if (concepto.includes('ENTREGA CONSIGNACIÓN')) return false;
+            if (concepto.includes('TRASPASO SUCURSAL')) return false;
+            if (concepto.includes('GARANTÍA')) return false;
+
+            return (
+                tipo === 'VENTA_TINACO' ||
+                tipo === 'VENTA_TINACO_COBRO' ||
+                tipo === 'VENTA_TAMBO' ||
+                tipo === 'VENTA_TAMBO_COBRO' ||
+                tipo === 'TRASPASO_TINACO_COBRO' ||
+                tipo === 'TRASPASO_TAMBO_COBRO'
+            );
+        }
+
+        function escJsStr(str) { return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+        function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+        function parseCSVLine(line) {
+            const out = []; let cur = ''; let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = !inQuotes; }
+                } else if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; } else { cur += ch; }
+            }
+            out.push(cur); return out.map(v => v.trim());
+        }
+
+        function ordenarDBCronologicamente(db) {
+            return db.map((r, idx) => ({ ...r, _ord: idx }))
+                .sort((a, b) => {
+                    const da = parseLocalDate(a.fecha);
+                    const dbb = parseLocalDate(b.fecha);
+                    const ta = da ? da.getTime() : 0;
+                    const tb = dbb ? dbb.getTime() : 0;
+                    if (ta !== tb) return ta - tb;
+                    return a._ord - b._ord;
+                })
+                .map(({ _ord, ...r }) => r);
+        }
+
+        // ==========================================
+        // 🟢 MOTOR CENTRAL DE EVENT SOURCING Y B.O.M.
+        // Esto recalcula TODO el stock con las reglas de fábrica, sin errores.
+        // ==========================================
+        function reconstruirStockDesdeBD(db) {
+            let stock = {};
+            db.forEach(r => {
+                const cant = parseFloat(r.cantidad) || 0;
+                const tipo = String(r.tipo || '').trim();
+                const concepto = String(r.concepto || '').trim();
+
+                let cap = (r.capacidad || '').trim();
+                let col = (r.colorUI || '').trim();
+
+                // COBROS y GASTOS no tocan bodega
+                if (tipo.includes('_COBRO') || tipo === 'GASTO') return;
+
+                // INVENTARIO FÍSICO fija el stock total
+                if (tipo === 'INVENTARIO_FISICO') {
+                    let clave = col;
+                    if (!clave && concepto.startsWith('REAL: ')) clave = concepto.replace('REAL: ', '').split(' (')[0].trim();
+                    if (clave) stock[clave] = cant;
+                    return;
+                }
+
+                // COMPRA y MERMA (Materias primas puras)
+                if (tipo === 'COMPRA' || tipo === 'MERMA') {
+                    let clave = col;
+                    if (!clave) {
+                        if (concepto.startsWith('INGRESO: ')) clave = concepto.replace('INGRESO: ', '').split(' (')[0].trim();
+                        else if (concepto.startsWith('MERMA: ')) clave = concepto.replace('MERMA: ', '').split(' (')[0].trim();
+                    }
+                    if (clave) {
+                        let mod = tipo === 'MERMA' ? -1 : 1;
+                        stock[clave] = (stock[clave] || 0) + (cant * mod);
+                    }
+                    return;
+                }
+
+                // PRODUCTO TERMINADO (Con Explosión de Materiales - B.O.M.)
+                if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA')) {
+                    // Fallback para stock histórico sin color (No rompe el BOM normal)
+                    if (!col && cap) {
+                        let legacyKey = "";
+                        if (tipo.includes('TINACO')) legacyKey = `TINACO ${cap} [LEGACY]`;
+                        else if (tipo.includes('TAMBO')) legacyKey = `TAMBO ${cap} [LEGACY]`;
+
+                        if (legacyKey) {
+                            if (tipo.includes('PROD_')) stock[legacyKey] = (stock[legacyKey] || 0) + cant;
+                            else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[legacyKey] = (stock[legacyKey] || 0) - cant;
+                        }
+                        return; 
+                    }
+
+                    // Flujo Normal (Con descuenta de receta)
+                    if (col && cap) {
+                        let receta = obtenerRecetaMateriales(tipo, cap, col);
+                        for(let m in receta) {
+                            stock[m] = (stock[m] || 0) - (receta[m] * cant);
+                        }
+
+                        let fgName = null;
+                        if(tipo.includes('TINACO')) fgName = `TINACO ${cap} ${col}`;
+                        else if(tipo.includes('TAMBO')) fgName = `TAMBO ${cap} ${col}`;
+                        else if(tipo.includes('MACETA')) fgName = `MACETA ${cap} ${col}`;
+
+                        if (fgName) {
+                            if (tipo.includes('PROD_')) stock[fgName] = (stock[fgName] || 0) + cant;
+                            else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[fgName] = (stock[fgName] || 0) - cant;
+                        }
+                    }
+                }
+            });
+            localStorage.setItem('plastinova_stock_v1', JSON.stringify(stock));
+            verStockActual();
+        }
+
+        // ==========================================
+        // 🟢 MOTOR DE IMPRESIÓN SEGURO
+        // ==========================================
+        function imprimirDocumento(htmlContent, tituloDocumento, modoImpresion = 'spacious-mode', escalaImpresion = 1) {
+            let logoHTML = LOGO_PLASTINOVA ? `<img src="${LOGO_PLASTINOVA}" style="height:60px; max-width: 150px; object-fit: contain;">` : `<div style="height:60px; width:150px; background:#eee; display:flex; align-items:center; justify-content:center; border:1px dashed #999;"><b>[LOGO]</b></div>`;
+            let fStr = new Date().toLocaleString('es-MX');
+            const escalaSegura = Math.max(0.84, Math.min(parseFloat(escalaImpresion) || 1, 1));
+            const anchoEscala = (100 / escalaSegura).toFixed(2) + '%';
+
+            let printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>${tituloDocumento}</title>
+                    <style>
+                        @page { size: landscape; margin: 4mm 5mm; }
+
+                        html {
+                            -webkit-text-size-adjust: 100%;
+                            text-size-adjust: 100%;
+                        }
+
+                        html, body {
+                            margin: 0;
+                            padding: 0;
+                            width: 100%;
+                            background: #fff;
+                            overflow: visible !important;
+                        }
+
+                        :root,
+                        body,
+                        #print-master-zone {
+                            --logo-h: 46px;
+                            --logo-w: 120px;
+                            --header-info-size: 8.2px;
+                            --header-title-size: 12px;
+                            --doc-title-size: 10.8px;
+                            --sub-title-size: 9px;
+                            --th-size: 7px;
+                            --td-size: 7.6px;
+                            --mini-table-size: 7.7px;
+                            --cell-pad-v: 1px;
+                            --cell-pad-h: 3px;
+                            --gap: 4px;
+                            --line-tight: 1.02;
+                            --gasto-row-h: 12px;
+                        }
+
+                        body.spacious-mode,
+                        #print-master-zone.spacious-mode {
+                            --logo-h: 50px;
+                            --logo-w: 128px;
+                            --header-info-size: 8.8px;
+                            --header-title-size: 13px;
+                            --doc-title-size: 11.3px;
+                            --sub-title-size: 9.5px;
+                            --th-size: 7.3px;
+                            --td-size: 8px;
+                            --mini-table-size: 8px;
+                            --cell-pad-v: 1.5px;
+                            --cell-pad-h: 3px;
+                            --gap: 5px;
+                            --line-tight: 1.05;
+                            --gasto-row-h: 13px;
+                        }
+
+                        body.compact-mode,
+                        #print-master-zone.compact-mode {
+                            --logo-h: 40px;
+                            --logo-w: 108px;
+                            --header-info-size: 7px;
+                            --header-title-size: 10.3px;
+                            --doc-title-size: 9.2px;
+                            --sub-title-size: 7.8px;
+                            --th-size: 6.1px;
+                            --td-size: 6.6px;
+                            --mini-table-size: 6.7px;
+                            --cell-pad-v: 0.5px;
+                            --cell-pad-h: 2px;
+                            --gap: 2px;
+                            --line-tight: 0.98;
+                            --gasto-row-h: 9px;
+                        }
+
+                        body.super-compact-mode,
+                        #print-master-zone.super-compact-mode {
+                            --logo-h: 34px;
+                            --logo-w: 96px;
+                            --header-info-size: 6.2px;
+                            --header-title-size: 9px;
+                            --doc-title-size: 8px;
+                            --sub-title-size: 6.8px;
+                            --th-size: 5.4px;
+                            --td-size: 5.8px;
+                            --mini-table-size: 5.8px;
+                            --cell-pad-v: 0px;
+                            --cell-pad-h: 1px;
+                            --gap: 1px;
+                            --line-tight: 0.94;
+                            --gasto-row-h: 7px;
+                        }
+
+                        * {
+                            box-sizing: border-box;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+
+                        body {
+                            font-family: 'Arial Narrow', Arial, sans-serif;
+                            color: #000;
+                            font-size: 9px;
+                            line-height: var(--line-tight);
+                            word-spacing: -0.2px;
+                        }
+
+                        #print-master-zone {
+                            width: 100%;
+                            transform-origin: top left;
+                        }
+
+                        .btn-volver {
+                            display: block;
+                            width: 90%;
+                            margin: 10px auto 20px auto;
+                            padding: 15px;
+                            background-color: #d32f2f;
+                            color: white;
+                            text-align: center;
+                            font-size: 18px;
+                            text-decoration: none;
+                            font-weight: bold;
+                            border-radius: 8px;
+                            border: 2px solid #b71c1c;
+                        }
+
+                        .print-header-global,
+                        .header-pdf,
+                        .subtitle-pdf,
+                        .pdf-table,
+                        .gen-table,
+                        .fifo-table,
+                        .bottom-container,
+                        .left-panel,
+                        .right-panel,
+                        .tabla-extras,
+                        .tabla-resumen,
+                        .tabla-gastos,
+                        .firma,
+                        tbody,
+                        tfoot,
+                        tr {
+                            break-inside: avoid;
+                            page-break-inside: avoid;
+                        }
+
+                        .print-header-global {
+                            width: 100%;
+                            display: table;
+                            table-layout: fixed;
+                            border-bottom: 2px solid #2E7D32;
+                            padding-bottom: var(--gap);
+                            margin-bottom: var(--gap);
+                        }
+
+                        .print-header-global > :first-child,
+                        .print-header-global > :last-child {
+                            display: table-cell;
+                            vertical-align: middle;
+                        }
+
+                        .print-header-global > :first-child {
+                            width: var(--logo-w) !important;
+                            max-width: var(--logo-w) !important;
+                        }
+
+                        .print-header-global img {
+                            display: block;
+                            height: var(--logo-h) !important;
+                            max-height: var(--logo-h) !important;
+                            max-width: var(--logo-w) !important;
+                            width: auto;
+                            object-fit: contain;
+                        }
+
+                        .print-header-global > div:first-child {
+                            height: var(--logo-h) !important;
+                            width: var(--logo-w) !important;
+                        }
+
+                        .print-header-info {
+                            text-align: right;
+                            font-size: var(--header-info-size) !important;
+                            line-height: var(--line-tight);
+                        }
+
+                        .print-header-info h2 {
+                            margin: 0 0 1px 0;
+                            font-size: var(--header-title-size) !important;
+                            color: #2E7D32;
+                            text-transform: uppercase;
+                            line-height: 1;
+                        }
+
+                        .header-pdf {
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: var(--doc-title-size) !important;
+                            line-height: var(--line-tight);
+                            margin: 0 0 var(--gap) 0 !important;
+                            text-transform: uppercase;
+                        }
+
+                        .subtitle-pdf {
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: var(--sub-title-size) !important;
+                            line-height: 1;
+                            margin: var(--gap) 0 0 0;
+                            padding: 1px 2px;
+                            text-transform: uppercase;
+                            border: 1px solid #000;
+                            border-bottom: none;
+                        }
+
+                        .pdf-table,
+                        table.gen-table,
+                        table.fifo-table,
+                        .tabla-extras,
+                        .tabla-resumen,
+                        .tabla-gastos {
+                            width: 100%;
+                            border-collapse: collapse;
+                            table-layout: fixed;
+                            margin: 0 0 var(--gap) 0 !important;
+                            text-align: center;
+                        }
+
+                        .pdf-table th,
+                        .pdf-table td,
+                        table.gen-table th,
+                        table.gen-table td,
+                        table.fifo-table th,
+                        table.fifo-table td,
+                        .tabla-extras td,
+                        .tabla-resumen td,
+                        .tabla-gastos td {
+                            border: 1px solid #000;
+                            padding: var(--cell-pad-v) var(--cell-pad-h) !important;
+                            vertical-align: middle;
+                            line-height: 1;
+                            overflow: hidden;
+                            text-overflow: clip;
+                        }
+
+                        .pdf-table th,
+                        table.gen-table th,
+                        table.fifo-table th {
+                            background-color: #388E3C !important;
+                            color: white !important;
+                            font-size: var(--th-size) !important;
+                            font-weight: bold;
+                            white-space: nowrap;
+                        }
+
+                        .pdf-table td,
+                        table.gen-table td,
+                        table.fifo-table td {
+                            font-size: var(--td-size) !important;
+                            font-weight: bold;
+                        }
+
+                        table.gen-table th { background-color: #2E7D32 !important; }
+                        table.fifo-table th { background-color: #757575 !important; }
+                        table.fifo-table.nuevo th { background-color: #8E24AA !important; }
+                        table.fifo-table.resumen th { background-color: #2E7D32 !important; }
+
+                        .pdf-table th,
+                        .pdf-table td,
+                        .tabla-extras td,
+                        .tabla-resumen td,
+                        .tabla-gastos td {
+                            white-space: nowrap;
+                        }
+
+                        .pdf-table th:nth-child(1), .pdf-table td:nth-child(1) { width: 6%; }
+                        .pdf-table th:nth-child(2), .pdf-table td:nth-child(2) { width: 11%; }
+                        .pdf-table th:nth-child(3), .pdf-table td:nth-child(3) { width: 38%; }
+                        .pdf-table th:nth-child(4), .pdf-table td:nth-child(4) { width: 9%; }
+                        .pdf-table th:nth-child(5), .pdf-table td:nth-child(5) { width: 10%; }
+                        .pdf-table th:nth-child(6), .pdf-table td:nth-child(6) { width: 12%; }
+                        .pdf-table th:nth-child(7), .pdf-table td:nth-child(7) { width: 14%; }
+                        .pdf-table td:nth-child(3) { text-align: left; }
+
+                        .row-total td {
+                            color: red !important;
+                            font-weight: bold;
+                        }
+
+                        .bottom-container {
+                            width: 100%;
+                            display: table;
+                            table-layout: fixed;
+                            margin-top: var(--gap);
+                            border-spacing: 0;
+                        }
+
+                        .left-panel,
+                        .right-panel {
+                            display: table-cell;
+                            vertical-align: top;
+                        }
+
+                        .left-panel {
+                            width: 46%;
+                            padding-right: 4px;
+                        }
+
+                        .right-panel {
+                            width: 54%;
+                            padding-left: 4px;
+                        }
+
+                        .tabla-extras,
+                        .tabla-resumen,
+                        .tabla-gastos {
+                            font-size: var(--mini-table-size) !important;
+                            font-weight: bold;
+                        }
+
+                        .tabla-gastos td {
+                            height: var(--gasto-row-h) !important;
+                        }
+
+                        .firma {
+                            margin-top: 3px;
+                            font-size: var(--mini-table-size) !important;
+                            line-height: 1 !important;
+                            text-align: left;
+                            font-weight: normal;
+                            white-space: nowrap;
+                        }
+
+                        body.compact-mode *,
+                        #print-master-zone.compact-mode *,
+                        body.super-compact-mode *,
+                        #print-master-zone.super-compact-mode * {
+                            line-height: var(--line-tight) !important;
+                        }
+
+                        @media print {
+                            .btn-volver { display: none !important; }
+
+                            body {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                            }
+
+                            body.compact-mode #print-master-zone,
+                            #print-master-zone.compact-mode {
+                                zoom: var(--print-scale, 0.90);
+                            }
+
+                            body.super-compact-mode #print-master-zone,
+                            #print-master-zone.super-compact-mode {
+                                zoom: var(--print-scale, 0.78);
+                            }
+
+                            @supports not (zoom: 1) {
+                                body.compact-mode #print-master-zone,
+                                #print-master-zone.compact-mode,
+                                body.super-compact-mode #print-master-zone,
+                                #print-master-zone.super-compact-mode {
+                                    transform: scale(var(--print-scale, 1));
+                                    transform-origin: top left;
+                                    width: var(--print-scale-width, 100%);
+                                }
+                            }
+                        }
+                    </style>
+                </head>
+                <body class="${modoImpresion}" style="--print-scale:${escalaSegura}; --print-scale-width:${anchoEscala};">
+                    <a href="#" class="btn-volver" onclick="window.close(); return false;">❌ CERRAR VISTA PREVIA Y VOLVER A LA APP</a>
+                    
+                    <div id="print-master-zone" class="${modoImpresion}">
+                        <div class="print-header-global">
+                            ${logoHTML}
+                            <div class="print-header-info">
+                                <h2>${tituloDocumento}</h2>
+                                Generado: <b>${fStr}</b>
+                            </div>
+                        </div>
+                        <div>
+                            ${htmlContent}
+                        </div>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                        window.onafterprint = function() {
+                            window.close();
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // ==========================================
+        function getNumeroSemana(fechaInput) {
+            const d = parseLocalDate(fechaInput);
+            if (!d || isNaN(d.getTime())) return 0;
+            d.setHours(0, 0, 0, 0);
+            let diaSemana = d.getDay() || 7;
+            d.setDate(d.getDate() + 4 - diaSemana);
+            let yearStart = new Date(d.getFullYear(), 0, 1);
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function formato(num) { return parseFloat(num).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+        function getTipoAmigable(tipo) { 
+            const m = { 'VENTA_TINACO': 'VENTA', 'VENTA_TINACO_COBRO': 'COBRO CONSIG.', 'TRASPASO_TINACO': 'TRASPASO', 'TRASPASO_TINACO_COBRO': 'COBRO SUC.', 'VENTA_TAMBO': 'VENTA', 'VENTA_TAMBO_COBRO': 'COBRO CONSIG.', 'TRASPASO_TAMBO': 'TRASPASO', 'TRASPASO_TAMBO_COBRO': 'COBRO SUC.', 'PROD_NORMAL_TINACO': 'PROD. TINACO', 'PROD_NORMAL_TAMBO': 'PROD. TAMBO', 'PROD_NORMAL_MACETA': 'PROD. MACETA', 'PROD_EXTRA_TINACO': 'EXT. TINACO', 'PROD_EXTRA_TAMBO': 'EXT. TAMBO', 'PROD_EXTRA_MACETA': 'EXT. MACETA', 'GASTO': 'GASTO', 'COMPRA': 'COMPRA', 'INVENTARIO_FISICO': 'AUDITORIA', 'MERMA': 'MERMA' };
+            return m[tipo] || tipo; 
+        }
+
+        const LISTA_MATERIALES = {
+            "POLVOS": [
+                "ROTOFOAM NEGRO AR", "ROTOFOAM BLANCO AR", "ROTOLENE BEIGE", "ROTOLENE NEGRO - BLACK", 
+                "ROTOLENE AZUL #5", "ROTOLENE VERDE #15", "ROTOLENE VERDE INDUST.", "ROTOLENE BLANCO", "RECICLADO / MERMA", 
+                "ROTOLENE ROJO 14", "ROTOLENE NATURAL", "ROTOLENE CAFÉ", "ROTOLENE NARANJA II"
+            ],
+            "ACCESORIOS": [
+                "KIT COMPLETO (PIEZAS)", "TAPA (PIEZAS)", "VALVULA (PIEZAS)", "JARRO DE AIRE (PIEZAS)", 
+                "BRIDA (PIEZAS)", "CAPUCHON (PIEZAS)", "FILTRO (PIEZAS)", "ETIQUETA (PIEZAS)"
+            ],
+            "TERMINADOS": [] 
+        };
+
+        const capsTin = ["1200LT", "1100LT", "750LT"];
+        const colsTin = ["BEIGE", "NEGRO", "AZUL", "ROJO", "VERDE", "NATURAL", "NARANJA", "CAFÉ", "BLANCO", "VERDE INDUSTRIAL"];
+        capsTin.forEach(cap => colsTin.forEach(col => LISTA_MATERIALES["TERMINADOS"].push(`TINACO ${cap} ${col}`)));
+        const colsTam = ["AZUL", "NEGRO", "BEIGE", "ROJO", "VERDE", "NATURAL", "NARANJA", "VERDE INDUSTRIAL", "CAFÉ", "BLANCO", "ROJO CON BLANCO", "VERDE CON BLANCO", "AZUL CON BLANCO", "TERRACOTA", "MENTA", "PISTACHE", "GRANITO BEIGE", "GRANITO", "DUVALIN", "UVA", "MELON", "OXFORD"];
+        colsTam.forEach(col => LISTA_MATERIALES["TERMINADOS"].push(`TAMBO 235LT ${col}`));
+        colsTam.forEach(col => { LISTA_MATERIALES["TERMINADOS"].push(`MACETA GRANDE ${col}`); LISTA_MATERIALES["TERMINADOS"].push(`MACETA CHICA ${col}`); });
+
+        window.addEventListener('DOMContentLoaded', async (event) => {
+            const fechaLocal = hoyLocalISO();
+            document.getElementById('fecha').value = fechaLocal;
+            document.getElementById('invFecha').value = fechaLocal; 
+            syncSemanaDesdeFecha();
+            document.getElementById('fecha').addEventListener('change', syncSemanaDesdeFecha);
+
+            document.getElementById('invMaterial').innerHTML = document.getElementById('compraMaterial').innerHTML;
+            actualizarFechasCorte(); 
+            actualizarListaMermas();
+            autoCompletarPesoInv();
+            actualizarPrecios('tinaco');
+            actualizarPrecios('tambo');
+            verStockActual();
+            if (location.protocol === 'file:') {
+                console.warn('⚠️ Estás abriendo la app como archivo local (file://). El aviso “Unsafe attempt to load URL” es del navegador y no bloquea Supabase. Para evitarlo, luego conviene abrir la app desde un servidor local o GitHub Pages.');
+            }
+            probarConexionSupabase();
+        });
+
+        const LISTA_PRECIOS = { 
+            "1200LT": { publico: 1600, mayoreo: 1450, distribuidor: 1400, segunda: 1000, consignacion_salida: 0, consignacion_cobro: 1450, garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 1450 }, 
+            "1100LT": { publico: 1500, mayoreo: 1250, distribuidor: 1200, segunda: 900,  consignacion_salida: 0, consignacion_cobro: 1250, garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 1250 }, 
+            "750LT":  { publico: 1450, mayoreo: 1200, distribuidor: 1200, segunda: 850,  consignacion_salida: 0, consignacion_cobro: 1200, garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 1200 }, 
+            "235LT":  { publico: 520,  mayoreo: 495,  distribuidor: 495,  segunda: 350,  consignacion_salida: 0, consignacion_cobro: 495,  garantia: 0, traspaso_sucursal: 0, traspaso_cobro: 495 } 
+        };
+
+        const COLORES_UI_DETECTABLES = [...new Set([...colsTin, ...colsTam])].sort((a, b) => b.length - a.length);
+        const CATALOGO_STOCK_CANONICO = [...new Set([...LISTA_MATERIALES["POLVOS"], ...LISTA_MATERIALES["ACCESORIOS"], ...LISTA_MATERIALES["TERMINADOS"]])];
+
+        function normalizarTextoClave(txt) {
+            return String(txt || '')
+                .toUpperCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function normalizarColorUI(color) {
+            const buscado = normalizarTextoClave(color);
+            if (!buscado) return null;
+            return COLORES_UI_DETECTABLES.find(c => normalizarTextoClave(c) === buscado) || color;
+        }
+
+        function extraerColorDesdeConcepto(concepto) {
+            const conceptoNorm = normalizarTextoClave(concepto);
+            if (!conceptoNorm) return null;
+            const match = COLORES_UI_DETECTABLES.find(c => conceptoNorm.includes(normalizarTextoClave(c)));
+            return match || null;
+        }
+
+        function normalizarMaterialStock(material) {
+            const original = String(material || '').trim().toUpperCase();
+            if (!original) return null;
+            const normalizado = normalizarTextoClave(original);
+            const alias = {
+                'ROTOLENE VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.',
+                'ROTOLENE VERDE INDUST': 'ROTOLENE VERDE INDUST.',
+                'ROTOLENE VERDE INDUST.': 'ROTOLENE VERDE INDUST.',
+                'ROTOLENE VERDE INDUSTRIAL.': 'ROTOLENE VERDE INDUST.',
+                'ROTOLENE CAFE': 'ROTOLENE CAFÉ'
+            };
+            if (alias[normalizado]) return alias[normalizado];
+            const exacto = CATALOGO_STOCK_CANONICO.find(item => normalizarTextoClave(item) === normalizado);
+            return exacto || original;
+        }
+
+        function extraerMaterialDesdeConcepto(concepto, tipoMov) {
+            const raw = String(concepto || '').trim().toUpperCase();
+            if (!raw) return null;
+            if (tipoMov === 'COMPRA') return normalizarMaterialStock(raw.replace(/^INGRESO:\s*/, ''));
+            if (tipoMov === 'MERMA') {
+                const sinPrefijo = raw.replace(/^MERMA:\s*/, '').trim();
+                const matchMerma = sinPrefijo.match(/^(.*?)(\s*\([^()]*\))?\s*$/);
+                return normalizarMaterialStock(matchMerma ? matchMerma[1].trim() : sinPrefijo);
+            }
+            if (tipoMov === 'INVENTARIO_FISICO') {
+                const sinPrefijo = raw.replace(/^REAL:\s*/, '').trim();
+                const matchInv = sinPrefijo.match(/^(.*?)\s*\(DIF:\s*[-+]?\d+(?:\.\d+)?\)\s*$/);
+                return normalizarMaterialStock(matchInv ? matchInv[1].trim() : sinPrefijo);
+            }
+            return normalizarMaterialStock(raw);
+        }
+
+        function cambiarTab(tab) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active')); document.getElementById('tab-' + tab).classList.add('active'); document.getElementById('btn-tab-' + tab).classList.add('active'); if(tab === 'bd') cargarBD(); if(tab === 'dashboard') renderGraficas(); if(tab === 'cortes') actualizarFechasCorte(); if(tab === 'inventario') verStockActual(); }
+        
+        function actualizarPrecios(tipoItem) { if(tipoItem === 'tinaco') { const cap = document.getElementById('capTinaco').value; const tipo = document.getElementById('tipoPrecioTinaco').value; document.getElementById('pTinaco').value = LISTA_PRECIOS[cap][tipo]; } else if (tipoItem === 'tambo') { const cap = document.getElementById('capTambo').value; const tipo = document.getElementById('tipoPrecioTambo').value; document.getElementById('pTambo').value = LISTA_PRECIOS[cap][tipo]; } }
+        
+        function autoCompletarCapacidadProd() {
+            const t = document.getElementById('tipoProdFabricado').value;
+            const capSelect = document.getElementById('capProdFabricado');
+            if(t === 'TINACO') capSelect.innerHTML = '<option value="1200LT">1200LT</option><option value="1100LT" selected>1100LT</option><option value="750LT">750LT</option>';
+            else if(t === 'TAMBO') capSelect.innerHTML = '<option value="235LT">235LT (Tambo)</option>';
+            else if(t === 'MACETA') capSelect.innerHTML = '<option value="GRANDE" selected>GRANDE (Maceta)</option><option value="CHICA">CHICA (Maceta)</option>';
+        }
+
+        function obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI) {
+            let consumo = {};
+            colorUI = normalizarColorUI(colorUI);
+            const mapeoColor = { 'NEGRO': 'ROTOLENE NEGRO - BLACK', 'BEIGE': 'ROTOLENE BEIGE', 'AZUL': 'ROTOLENE AZUL #5', 'VERDE': 'ROTOLENE VERDE #15', 'NATURAL': 'ROTOLENE NATURAL', 'NARANJA': 'ROTOLENE NARANJA II', 'CAFÉ': 'ROTOLENE CAFÉ', 'BLANCO': 'ROTOLENE BLANCO', 'ROJO': 'ROTOLENE ROJO 14', 'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.' };
+            let matColorBase = mapeoColor[colorUI] || `ROTOLENE ${colorUI}`;
+            
+            if (!tipoMovimiento.includes('_COBRO') && (tipoMovimiento.includes('VENTA') || tipoMovimiento.includes('TRASPASO'))) {
+                if(tipoMovimiento.includes('TINACO')) { ['TAPA (PIEZAS)', 'JARRO DE AIRE (PIEZAS)', 'BRIDA (PIEZAS)', 'CAPUCHON (PIEZAS)', 'FILTRO (PIEZAS)', 'ETIQUETA (PIEZAS)', 'KIT COMPLETO (PIEZAS)', 'VALVULA (PIEZAS)'].forEach(m => consumo[m] = 1); }
+                else if(tipoMovimiento.includes('TAMBO')) { ['TAPA (PIEZAS)', 'BRIDA (PIEZAS)', 'ETIQUETA (PIEZAS)'].forEach(m => consumo[m] = 1); }
+            }
+            else if (tipoMovimiento.includes('PROD_')) {
+                const ignorar = ['GRANITO BEIGE', 'GRANITO', 'DUVALIN', 'TERRACOTA', 'MENTA', 'PISTACHE', 'UVA', 'MELON', 'OXFORD'];
+                if (!ignorar.includes(colorUI)) {
+                    if (capacidad === '1200LT') { consumo[matColorBase] = 6; consumo['ROTOFOAM NEGRO AR'] = 5; consumo['ROTOLENE BLANCO'] = 5; } 
+                    else if (capacidad === '1100LT') { consumo[matColorBase] = 5; consumo['ROTOFOAM NEGRO AR'] = 4.5; consumo['ROTOLENE BLANCO'] = 3.5; } 
+                    else if (capacidad === '750LT') { consumo[matColorBase] = 4.5; consumo['ROTOFOAM NEGRO AR'] = 4; consumo['ROTOLENE BLANCO'] = 3; } 
+                    else if (capacidad === '235LT') { if (colorUI.includes('CON BLANCO')) { let cPrimario = colorUI.split(' ')[0]; consumo['ROTOLENE BLANCO'] = 0.65; consumo[mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`] = 1.35; consumo['ROTOFOAM BLANCO AR'] = 2.5; } else { consumo[matColorBase] = 2; consumo['ROTOFOAM BLANCO AR'] = 2.5; } }
+                    else if (capacidad === 'GRANDE' || capacidad === 'CHICA') { 
+                        let isCombinada = colorUI.includes('CON BLANCO') || colorUI === 'MELON';
+                        let cPrimario = colorUI.split(' ')[0];
+                        let rotoleneSuelto = mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`;
+                        
+                        if(capacidad === 'GRANDE') {
+                            consumo['ROTOFOAM BLANCO AR'] = 1.0;
+                            if(isCombinada) { consumo[rotoleneSuelto] = 1.35; consumo['ROTOLENE BLANCO'] = 0.65; } else { consumo[matColorBase] = 2.0; }
+                        } else if(capacidad === 'CHICA') {
+                            consumo['ROTOFOAM BLANCO AR'] = 1.0;
+                            if(isCombinada) { consumo[rotoleneSuelto] = 0.675; consumo['ROTOLENE BLANCO'] = 0.325; } else { consumo[matColorBase] = 1.0; }
+                        }
+                    }
+                }
+            }
+            return consumo;
+        }
+
+        function obtenerDeudaConsignacion(vendedor, productoName) {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            let deuda = 0;
+            db.forEach(r => {
+                if (r.vendedor === vendedor) {
+                    if ((r.concepto || '').includes('ENTREGA CONSIGNACIÓN') && (r.concepto || '').includes(productoName)) deuda += parseFloat(r.cantidad);
+                    if ((r.concepto || '').includes('COBRO CONSIGNACIÓN') && (r.concepto || '').includes(productoName)) deuda -= parseFloat(r.cantidad);
+                }
+            });
+            return deuda;
+        }
+
+        function guardarRegistro() {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            const f = document.getElementById('fecha').value, sem = document.getElementById('semana').value, v = document.getElementById('vendedor').value, prod = document.getElementById('productor').value;
+            const add = (vend, tipo, conc, cant, p, tot, cap, col) => { 
+                const reg = { id: Date.now()+Math.floor(Math.random()*1000), fecha:f, semana:sem, vendedor:vend, tipo, concepto:conc, cantidad:cant, precio:p, total:tot, capacidad:cap, colorUI:col };
+                db.push(reg); enviarNube(reg); 
+            };
+            
+            const tipoOpTin = document.getElementById('tipoPrecioTinaco').value;
+            let qTin = parseFloat(document.getElementById('qTinaco').value)||0, pTin = parseFloat(document.getElementById('pTinaco').value)||0;
+            const capTin = document.getElementById('capTinaco').value, colTin = document.getElementById('colTinaco').value;
+            
+            if(qTin > 0 && tipoOpTin === 'consignacion_cobro') {
+                let deudaReal = obtenerDeudaConsignacion(v, `${capTin} ${colTin}`);
+                if(qTin > deudaReal) return alert(`🚨 ERROR: Intentas cobrar ${qTin} Tinacos ${capTin} ${colTin}, pero el vendedor ${v} solo tiene ${deudaReal} pendientes. Bloqueado.`);
+            }
+
+            if(qTin > 0) { 
+                let tipoRealTin = 'VENTA_TINACO'; let descTin = `TINACO ${capTin} ${colTin}`;
+                if (tipoOpTin === 'consignacion_salida') { descTin = `ENTREGA CONSIGNACIÓN: ${capTin} ${colTin}`; pTin = 0; }
+                else if (tipoOpTin === 'consignacion_cobro') { tipoRealTin = 'VENTA_TINACO_COBRO'; descTin = `COBRO CONSIGNACIÓN: ${capTin} ${colTin}`; }
+                else if (tipoOpTin === 'garantia') { descTin = `GARANTÍA (CAMBIO): ${capTin} ${colTin}`; pTin = 0; }
+                else if (tipoOpTin === 'segunda') { descTin = `SEGUNDA (REMATE): ${capTin} ${colTin}`; }
+                else if (tipoOpTin === 'traspaso_sucursal') { tipoRealTin = 'TRASPASO_TINACO'; descTin = `TRASPASO SUCURSAL: ${capTin} ${colTin}`; pTin = 0; }
+                else if (tipoOpTin === 'traspaso_cobro') { tipoRealTin = 'TRASPASO_TINACO_COBRO'; descTin = `COBRO SUCURSAL: ${capTin} ${colTin}`; }
+
+                add(v, tipoRealTin, descTin, qTin, pTin, qTin*pTin, capTin, colTin); 
+            }
+
+            const tipoOpTam = document.getElementById('tipoPrecioTambo').value;
+            let qTam = parseFloat(document.getElementById('qTambo').value)||0, pTam = parseFloat(document.getElementById('pTambo').value)||0;
+            const capTam = document.getElementById('capTambo').value, colTam = document.getElementById('colTambo').value;
+            
+            if(qTam > 0 && tipoOpTam === 'consignacion_cobro') {
+                let deudaReal = obtenerDeudaConsignacion(v, `${capTam} ${colTam}`);
+                if(qTam > deudaReal) return alert(`🚨 ERROR: Intentas cobrar ${qTam} Tambos ${capTam} ${colTam}, pero el vendedor ${v} solo tiene ${deudaReal} pendientes. Bloqueado.`);
+            }
+
+            if(qTam > 0) { 
+                let tipoRealTam = 'VENTA_TAMBO'; let descTam = `TAMBO ${capTam} ${colTam}`;
+                if (tipoOpTam === 'consignacion_salida') { descTam = `ENTREGA CONSIGNACIÓN: ${capTam} ${colTam}`; pTam = 0; }
+                else if (tipoOpTam === 'consignacion_cobro') { tipoRealTam = 'VENTA_TAMBO_COBRO'; descTam = `COBRO CONSIGNACIÓN: ${capTam} ${colTam}`; }
+                else if (tipoOpTam === 'garantia') { descTam = `GARANTÍA (CAMBIO): ${capTam} ${colTam}`; pTam = 0; }
+                else if (tipoOpTam === 'segunda') { descTam = `SEGUNDA (REMATE): ${capTam} ${colTam}`; }
+                else if (tipoOpTam === 'traspaso_sucursal') { tipoRealTam = 'TRASPASO_TAMBO'; descTam = `TRASPASO SUCURSAL: ${capTam} ${colTam}`; pTam = 0; }
+                else if (tipoOpTam === 'traspaso_cobro') { tipoRealTam = 'TRASPASO_TAMBO_COBRO'; descTam = `COBRO SUCURSAL: ${capTam} ${colTam}`; }
+
+                add(v, tipoRealTam, descTam, qTam, pTam, qTam*pTam, capTam, colTam); 
+            }
+
+            const tP = document.getElementById('tipoProdFabricado').value, cP = document.getElementById('capProdFabricado').value, coP = document.getElementById('colProdFabricado').value;
+            const qN = parseFloat(document.getElementById('qProdNormal').value)||0; 
+            if(qN > 0) { add(prod, `PROD_NORMAL_${tP}`, `NORMAL: ${tP} ${cP} ${coP}`, qN, 0, 0, cP, coP); }
+            
+            const qE = parseFloat(document.getElementById('qProdExtra').value)||0; 
+            if(qE > 0) { add(prod, `PROD_EXTRA_${tP}`, `EXTRA: ${tP} ${cP} ${coP}`, qE, 0, 0, cP, coP); }
+            
+            const g = parseFloat(document.getElementById('montoGasto').value)||0; 
+            if(g > 0) add(v, 'GASTO', document.getElementById('descGasto').value.toUpperCase(), 1, g, g, null, null);
+            
+            db = ordenarDBCronologicamente(db);
+            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+            reconstruirStockDesdeBD(db);
+
+            ['qTinaco', 'pTinaco', 'qTambo', 'pTambo', 'qProdNormal', 'qProdExtra', 'montoGasto', 'descGasto'].forEach(id => document.getElementById(id).value = '');
+            alert('¡Guardado en Teléfono y Google Sheets!');
+        }
+
+        function actualizarListaMermas() {
+            const cat = document.getElementById('mermaCategoria').value;
+            const select = document.getElementById('mermaProducto');
+            select.innerHTML = `<option value="" disabled selected>SELECCIONAR...</option>` +
+            LISTA_MATERIALES[cat].map(m => `<option value="${m}">${m}</option>`).join('');
+        }
+
+        function registrarMerma() {
+            const mat = document.getElementById('mermaProducto').value;
+            const cant = parseFloat(document.getElementById('qMerma').value) || 0;
+            const causa = document.getElementById('descMerma').value.toUpperCase() || 'DAÑO / MERMA';
+            if(!mat || cant <= 0) return alert("Ingresa cantidad válida.");
+            
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            const reg = { id: Date.now(), fecha: document.getElementById('fecha').value, semana: getNumeroSemana(document.getElementById('fecha').value), vendedor: 'SISTEMA', tipo: 'MERMA', concepto: `MERMA: ${mat} (${causa})`, cantidad: cant, precio: 0, total: 0, capacidad: null, colorUI: mat };
+            db.push(reg); enviarNube(reg); 
+            
+            db = ordenarDBCronologicamente(db);
+            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+            reconstruirStockDesdeBD(db);
+
+            document.getElementById('qMerma').value = ''; document.getElementById('descMerma').value = '';
+            alert(`⚠️ Registrada pérdida de ${cant} de ${mat}. Restado de inventario.`);
+        }
+
+        function registrarCompra() {
+            const mat = document.getElementById('compraMaterial').value, cant = parseFloat(document.getElementById('compraCantidad').value)||0;
+            if(!mat || cant <= 0) return alert("Datos inválidos.");
+            
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            const reg = { id: Date.now(), fecha: document.getElementById('invFecha').value, semana: getNumeroSemana(document.getElementById('invFecha').value), vendedor: 'SISTEMA/PROV', tipo: 'COMPRA', concepto: `INGRESO: ${mat}`, cantidad: cant, precio: 0, total: 0, capacidad: null, colorUI: mat };
+            db.push(reg); enviarNube(reg); 
+
+            db = ordenarDBCronologicamente(db);
+            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+            reconstruirStockDesdeBD(db);
+
+            document.getElementById('compraCantidad').value = '';
+            alert(`Sumados ${cant} de ${mat}.`);
+        }
+
+        function verStockRuta() {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            let deuda = {};
+            db.forEach(r => {
+                let isConsignaOut = (r.concepto || '').includes('ENTREGA CONSIGNACIÓN');
+                let isTraspasoOut = r.tipo === 'TRASPASO_TINACO' || r.tipo === 'TRASPASO_TAMBO';
+                let isCobroConsigna = r.tipo === 'VENTA_TINACO_COBRO' || r.tipo === 'VENTA_TAMBO_COBRO';
+                let isCobroTraspaso = r.tipo === 'TRASPASO_TINACO_COBRO' || r.tipo === 'TRASPASO_TAMBO_COBRO';
+                if (isConsignaOut || isTraspasoOut) {
+                    let itemName = (r.concepto || '').replace('ENTREGA CONSIGNACIÓN: ', '').replace('TRASPASO SUCURSAL: ', '');
+                    let key = r.vendedor + '|' + itemName;
+                    deuda[key] = (deuda[key] || 0) + parseFloat(r.cantidad);
+                }
+                if (isCobroConsigna || isCobroTraspaso) {
+                    let itemName = (r.concepto || '').replace('COBRO CONSIGNACIÓN: ', '').replace('COBRO SUCURSAL: ', '');
+                    let key = r.vendedor + '|' + itemName;
+                    deuda[key] = (deuda[key] || 0) - parseFloat(r.cantidad);
+                }
+            });
+            let tbody = document.querySelector('#tablaStockRuta tbody'); tbody.innerHTML = ''; let hasItems = false;
+            for (let k in deuda) {
+                if (deuda[k] > 0) {
+                    hasItems = true; let parts = k.split('|');
+                    tbody.innerHTML += `<tr><td style="font-weight:bold;">${parts[0]}</td><td>${parts[1]}<br><span style="font-size:9px; color:#555;">+ Accesorios correspondientes</span></td><td style="color:#d32f2f; font-weight:bold;">${deuda[k]} PZAS</td></tr>`;
+                }
+            }
+            if (!hasItems) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:10px;">Todo está cobrado. No hay mercancía pendiente en ruta.</td></tr>';
+        }
+
+        function verStockActual() {
+            let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
+            let tbody = document.querySelector('#tablaStockActual tbody'); tbody.innerHTML = '';
+            let sArray = Object.keys(stock).map(k => ({ m: k, q: stock[k] })).sort((a,b) => a.m.localeCompare(b.m));
+            if (!sArray.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:10px;">Stock en 0.</td></tr>'; }
+            else {
+                sArray.forEach(i => {
+                    let valorNum = parseFloat(i.q) || 0; 
+                    let esKg = i.m.includes('ROTO') || i.m.includes('MERMA'); 
+                    let unidadStr = esKg ? 'KG' : 'PZAS';
+                    let valorFmt = Number.isInteger(valorNum) ? valorNum : valorNum.toFixed(2);
+                    let colorVal = valorNum < 0 ? '#d32f2f' : (valorNum < 10 ? '#EF6C00' : 'black');
+                    tbody.innerHTML += `<tr><td style="font-weight:bold;">${escHtml(i.m)}</td><td style="color:${colorVal}; font-weight:bold;">${valorFmt} <span class="lbl-unidad">${unidadStr}</span></td><td style="text-align:center;"><button class="btn btn-small" style="background:#1976D2; padding: 4px 8px; margin-right:4px;" onclick="promptEditarStock('${escJsStr(i.m)}', ${valorNum}, '${unidadStr}')">✏️</button><button class="btn btn-small" style="background:#d32f2f; padding: 4px 8px;" onclick="promptBorrarStock('${escJsStr(i.m)}')">🗑️</button></td></tr>`;
+                });
+            }
+            verStockRuta();
+        }
+        
+        function promptEditarStock(material, actualVal, unidad) {
+            let newValStr = prompt(`✏️ AJUSTE MANUAL\nEl stock actual de '${material}' es ${actualVal} ${unidad}.\nIngrese la NUEVA cantidad exacta que hay físicamente:`, actualVal);
+            if (newValStr !== null) {
+                const nuevoVal = parseFloat(newValStr);
+                if (isNaN(nuevoVal) || nuevoVal < 0) return alert("Ingresa un valor numérico mayor o igual a 0.");
+
+                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+                const hoy = document.getElementById('fecha').value || hoyLocalISO();
+
+                const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: getNumeroSemana(hoy), vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (AJUSTE MANUAL DESDE ${actualVal} A ${nuevoVal})`, cantidad: nuevoVal, precio: 0, total: 0, capacidad: null, colorUI: material };
+                db.push(reg);
+                enviarNube(reg);
+
+                db = ordenarDBCronologicamente(db);
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+                reconstruirStockDesdeBD(db);
+                alert('✅ ¡Stock ajustado manualmente con trazabilidad!');
+            }
+        }
+
+        function promptBorrarStock(material) {
+            let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
+            const anterior = parseFloat(stock[material] || 0);
+            if (confirm(`🗑️ ¿ESTÁS SEGURO?\nEsto borrará permanentemente '${material}' de la vista de stock dejando un registro en ceros.`)) {
+                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+                const hoy = document.getElementById('fecha').value || hoyLocalISO();
+
+                const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: getNumeroSemana(hoy), vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (AJUSTE MANUAL DESDE ${anterior} A 0)`, cantidad: 0, precio: 0, total: 0, capacidad: null, colorUI: material };
+                db.push(reg);
+                enviarNube(reg);
+
+                db = ordenarDBCronologicamente(db);
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+                reconstruirStockDesdeBD(db);
+                alert(`✅ Se ha borrado '${material}' del inventario con trazabilidad.`);
+            }
+        }
+
+        function resetearStock() { 
+            if(confirm("🚨 ¿Limpiar Almacén a CEROS? Se generará un registro de auditoría para cada material.")) {
+                let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
+                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+                const hoy = document.getElementById('fecha').value || hoyLocalISO();
+                const sem = getNumeroSemana(hoy);
+
+                Object.keys(stock).forEach(material => {
+                    const valActual = parseFloat(stock[material]) || 0;
+                    if(valActual !== 0) {
+                        const reg = { id: Date.now() + Math.random().toString(36).substr(2, 9), fecha: hoy, semana: sem, vendedor: 'AJUSTE_MANUAL', tipo: 'INVENTARIO_FISICO', concepto: `REAL: ${material} (RESETEADO A 0 DESDE ${valActual})`, cantidad: 0, precio: 0, total: 0, capacidad: null, colorUI: material };
+                        db.push(reg);
+                        enviarNube(reg);
+                    }
+                });
+
+                db = ordenarDBCronologicamente(db);
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+                reconstruirStockDesdeBD(db);
+                alert("✅ Stock en 0 con trazabilidad completa.");
+            }
+        }
+
+        let invTemp = [];
+        function autoCompletarPesoInv() { const s = document.getElementById('invSeccion').value; document.getElementById('invPesoBulto').value = (s==='20kg'?20:(s==='24kg'?24:0)); }
+        function agregarAlInventario() {
+            const mat = document.getElementById('invMaterial').value, b = parseFloat(document.getElementById('invBultos').value)||0, p = parseFloat(document.getElementById('invPesoBulto').value)||0, s = parseFloat(document.getElementById('invSueltos').value)||0;
+            if(!mat) return alert("Selecciona material.");
+            const total = (b * p) + s; invTemp.push({ id: Date.now(), material: mat, bultos: b, sueltos: s, totalKg: total, seccion: document.getElementById('invSeccion').value }); renderInvTemp();
+        }
+        function renderInvTemp() {
+            const tb = document.getElementById('tablaInvTemp'); tb.innerHTML = ''; let g = 0;
+            invTemp.forEach(i => { g += i.totalKg; tb.innerHTML += `<tr><td>${i.seccion}</td><td>${i.material}</td><td>${i.bultos}</td><td>${i.sueltos}</td><td>${i.totalKg.toFixed(2)}</td><td><button onclick="invTemp=invTemp.filter(x=>x.id!==${i.id});renderInvTemp();">X</button></td></tr>`; });
+            document.getElementById('invGranTotalTemp').innerText = g.toFixed(2);
+        }
+        function vaciarCarritoInv() { invTemp = []; renderInvTemp(); }
+
+        function guardarYGenerarPDFInventario() {
+            if(!invTemp.length) return;
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            let stock = JSON.parse(localStorage.getItem('plastinova_stock_v1')) || {};
+            let htmlTabla = `<table class="gen-table"><thead><tr><th>CATEGORÍA</th><th>MATERIAL</th><th>STOCK SISTEMA</th><th>FÍSICO (Real)</th><th>MERMA</th></tr></thead><tbody>`;
+            let sF = 0, sS = 0, itemsH = [];
+            let f = document.getElementById('invFecha').value, sem = getNumeroSemana(f);
+
+            invTemp.forEach(i => {
+                let teorico = stock[i.material] || 0, dif = i.totalKg - teorico;
+                htmlTabla += `<tr><td>${i.seccion}</td><td style="text-align:left;">${i.material}</td><td>${teorico.toFixed(2)}</td><td>${i.totalKg.toFixed(2)}</td><td style="color:${dif<0?'red':(dif>0?'blue':'black')}">${dif>0?'+':''}${dif.toFixed(2)}</td></tr>`;
+                sF += i.totalKg; sS += teorico;
+                itemsH.push({ material: i.material, contado: i.totalKg, teorico: teorico, dif: dif });
+                
+                const reg = { id:Date.now()+Math.random(), fecha:f, semana:sem, vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${i.material} (DIF: ${dif.toFixed(2)})`, cantidad:i.totalKg, precio:0, total:0, capacidad:null, colorUI:i.material };
+                db.push(reg);
+                enviarNube(reg);
+            });
+            let dG = sF - sS;
+            htmlTabla += `</tbody></table>
+            <div style="margin-top: 15px; text-align: right; font-size: 12px;">
+                <strong>Total Físico: </strong> ${sF.toFixed(2)}<br>
+                <strong>Total Sistema: </strong> ${sS.toFixed(2)}<br>
+                <strong style="font-size: 14px;">DIFERENCIA NETA: </strong> <span style="color:${dG<0?'red':(dG>0?'blue':'black')}">${dG>0?'+':''}${dG.toFixed(2)}</span>
+            </div>`;
+            
+            db = ordenarDBCronologicamente(db);
+            localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+            reconstruirStockDesdeBD(db);
+            
+            imprimirDocumento(htmlTabla, "REPORTE DE AUDITORÍA Y MERMAS");
+            if(confirm("¿PDF generado? Limpiando carrito...")) { vaciarCarritoInv(); verStockActual(); }
+        }
+
+        function cargarBD() {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            db = db
+                .map((r, idx) => ({ ...r, _ord: idx }))
+                .sort((a, b) => {
+                    const ta = fechaOrdenValor(a.fecha);
+                    const tbv = fechaOrdenValor(b.fecha);
+                    if (ta !== tbv) return tbv - ta;
+                    return b._ord - a._ord;
+                })
+                .map(({ _ord, ...r }) => r);
+
+            let tb = document.querySelector('#tablaBD tbody'); tb.innerHTML = '';
+            db.forEach(r => { 
+                let pStr = parseFloat(r.precio) > 0 ? '$' + formato(r.precio) : '-';
+                let tStr = parseFloat(r.total) > 0 ? '$' + formato(r.total) : '-';
+                let cStr = parseFloat(r.cantidad) > 0 ? parseFloat(r.cantidad).toFixed(2) : '-';
+                tb.innerHTML += `<tr><td>${escHtml(r.fecha || '')}</td><td>${escHtml(r.vendedor || '')}</td><td><span class="badge-tipo">${escHtml(getTipoAmigable(r.tipo))}</span></td><td>${escHtml(r.concepto || '')}</td><td style="font-weight:bold;">${cStr}</td><td>${pStr}</td><td style="font-weight:bold; color:#1565C0;">${tStr}</td><td style="text-align:center;"><button onclick="borrarRegistro('${escJsStr(String(r.id))}')" style="background:#d32f2f; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">❌</button></td></tr>`; 
+            });
+        }
+
+        function borrarRegistro(id) {
+            if(confirm("¿Borrar este movimiento?\nAl borrarlo, los materiales de esta operación VOLVERÁN a la bodega de forma inteligente y los historiales se recalcularán automáticamente.")) {
+                let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+                db = db.filter(x => String(x.id) !== String(id)); 
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db)); 
+                reconstruirStockDesdeBD(db);
+                cargarBD(); 
+            }
+        }
+
+        function limpiarBD() {
+            if(confirm("¿Borrar TODO el historial?")) {
+                localStorage.removeItem('plastinova_bd_v2');
+                localStorage.removeItem('plastinova_stock_v1');
+                cargarBD();
+                verStockActual();
+                renderGraficas();
+            }
+        }
+
+                function importarCSV(esRescate) {
+            const input = document.getElementById('archivoCSV'); const file = input.files[0];
+            if (!file) return alert("⚠️ Selecciona el archivo .csv descargado de Google Sheets.");
+            
+            if (!esRescate) {
+                if (!confirm("⚠️ Esto añadirá registros a la DB actual. Si el archivo ya fue importado antes, podrías duplicar movimientos. ¿Continuar?")) return;
+            } else {
+                if(!confirm("⚠️ PELIGRO: Vas a borrar toda la memoria del celular (Historial y Stock) para reconstruirla desde el archivo. ¿Continuar?")) return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const lineas = text.split('\n');
+
+                let db = esRescate ? [] : (JSON.parse(localStorage.getItem('plastinova_bd_v2')) || []);
+                let registrosAImportar = [];
+                const seen = new Set();
+                let contador = 0;
+
+                for (let i = 1; i < lineas.length; i++) {
+                    if (!lineas[i].trim()) continue;
+                    const cols = parseCSVLine(lineas[i]);
+
+                    let fechaStr = cols[0] ? cols[0].trim() : '';
+                    if (fechaStr.includes('/')) {
+                        let partes = fechaStr.split('/'); let dia = partes[0].padStart(2, '0'); let mes = partes[1].padStart(2, '0'); let anio = partes[2];
+                        if (anio.length === 2) anio = "20" + anio; fechaStr = `${anio}-${mes}-${dia}`;
+                    }
+
+                    const fechaObj = parseLocalDate(fechaStr);
+                    if (!fechaObj) continue;
+
+                    let sem = getNumeroSemana(fechaStr);
+                    let vendStr = cols[1] ? cols[1].trim().toUpperCase() : '';
+                    let tipoMov = cols[2] ? cols[2].trim().toUpperCase() : '';
+                    let conceptoStr = cols[3] ? cols[3].trim().toUpperCase() : '';
+                    let cant = parseFloat(cols[4]) || 0;
+                    let precioVal = parseFloat(cols[5]) || 0;
+                    let totalVal = parseFloat(cols[6]) || 0;
+
+                    if (tipoMov === '') {
+                        if (conceptoStr.includes('TINACO')) tipoMov = 'VENTA_TINACO';
+                        else if (conceptoStr.includes('TAMBO') || conceptoStr.includes('235LT')) tipoMov = 'VENTA_TAMBO';
+                        else tipoMov = 'VENTA_TINACO';
+                    }
+
+                    let cap = null; let col = null; let materialStock = null;
+                    if(conceptoStr.includes('1200LT')) cap = '1200LT';
+                    else if(conceptoStr.includes('1100LT')) cap = '1100LT';
+                    else if(conceptoStr.includes('750LT')) cap = '750LT';
+                    else if(conceptoStr.includes('235LT') || conceptoStr.includes('TAMBO')) cap = '235LT';
+                    else if(conceptoStr.includes('MACETA') && conceptoStr.includes('GRANDE')) cap = 'GRANDE';
+                    else if(conceptoStr.includes('MACETA') && conceptoStr.includes('CHICA')) cap = 'CHICA';
+
+                    if (tipoMov === 'COMPRA' || tipoMov === 'MERMA' || tipoMov === 'INVENTARIO_FISICO') materialStock = extraerMaterialDesdeConcepto(conceptoStr, tipoMov);
+                    else col = extraerColorDesdeConcepto(conceptoStr);
+
+                    const colorUIReconstruido = materialStock || col || '';
+
+                    const reg = {
+                        id: Date.now() + Math.random().toString(36).substr(2, 9) + i,
+                        _idx: i,
+                        fecha: fechaStr,
+                        semana: sem,
+                        vendedor: vendStr,
+                        tipo: tipoMov,
+                        concepto: conceptoStr,
+                        cantidad: cant,
+                        precio: precioVal,
+                        total: totalVal,
+                        capacidad: cap,
+                        colorUI: colorUIReconstruido
+                    };
+
+                    const key = [
+                        reg.fecha, reg.semana, reg.vendedor, reg.tipo,
+                        reg.concepto, reg.cantidad, reg.precio, reg.total,
+                        reg.capacidad || '', reg.colorUI || ''
+                    ].join('|');
+
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+
+                    if (!esRescate) {
+                        let existe = db.find(x =>
+                            x.fecha === reg.fecha &&
+                            x.semana === reg.semana &&
+                            x.vendedor === reg.vendedor &&
+                            x.tipo === reg.tipo &&
+                            x.concepto === reg.concepto &&
+                            parseFloat(x.cantidad) === parseFloat(reg.cantidad) &&
+                            parseFloat(x.precio) === parseFloat(reg.precio) &&
+                            parseFloat(x.total) === parseFloat(reg.total) &&
+                            String(x.capacidad || '') === String(reg.capacidad || '') &&
+                            String(x.colorUI || '') === String(reg.colorUI || '')
+                        );
+                        if (existe) continue;
+                    }
+
+                    registrosAImportar.push(reg);
+                    contador++;
+                }
+
+                if (esRescate) {
+                    db = registrosAImportar;
+                } else {
+                    db.push(...registrosAImportar);
+                }
+
+                db = ordenarDBCronologicamente(db);
+                localStorage.setItem('plastinova_bd_v2', JSON.stringify(db));
+                reconstruirStockDesdeBD(db);
+
+                cargarBD();
+                alert(`✅ ¡Importación Exitosa! Se insertaron ${contador} movimientos. Tu stock está cuadrado cronológicamente.`);
+                input.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function generarPDFFifo() {
+            const fechaCorte = document.getElementById('fechaLoteNuevo').value;
+            if(!fechaCorte) return alert("Ingresa la fecha de llegada del nuevo lote para continuar.");
+            
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            db.sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+
+            let invViejo = {}; 
+            
+            db.forEach(r => {
+                let itemName = null;
+                if(r.concepto && (r.concepto.includes('TINACO') || r.concepto.includes('TAMBO') || r.concepto.includes('235LT') || r.concepto.includes('MACETA'))) {
+                     if(r.concepto.includes('TINACO')) itemName = `TINACO ${r.capacidad} ${r.colorUI}`;
+                     else if(r.concepto.includes('TAMBO') || r.concepto.includes('235LT')) itemName = `TAMBO ${r.capacidad} ${r.colorUI}`;
+                     else if(r.concepto.includes('MACETA')) itemName = `MACETA ${r.capacidad} ${r.colorUI}`;
+                } else if (r.tipo === 'COMPRA' || r.tipo === 'MERMA') {
+                     itemName = r.colorUI; 
+                }
+
+                if(!itemName) return;
+                let q = parseFloat(r.cantidad) || 0;
+                
+                if(r.fecha < fechaCorte) {
+                    if(r.tipo.includes('PROD_') || r.tipo === 'COMPRA') { invViejo[itemName] = (invViejo[itemName] || 0) + q; }
+                    else if((r.tipo.includes('VENTA') && !r.tipo.includes('_COBRO')) || r.tipo === 'MERMA' || (r.tipo.includes('TRASPASO') && !r.tipo.includes('_COBRO'))) { invViejo[itemName] = (invViejo[itemName] || 0) - q; }
+                }
+            });
+
+            let fotoInvViejo = JSON.parse(JSON.stringify(invViejo)); 
+            let tViejoHTML = ''; let tNuevoHTML = ''; let resumenViejo = {}; let resumenNuevo = {};
+
+            db.forEach(r => {
+                if(r.fecha >= fechaCorte && (r.tipo.includes('VENTA') || r.tipo.includes('TRASPASO')) && !r.tipo.includes('_COBRO')) {
+                    let itemName = null;
+                    if(r.concepto.includes('TINACO')) itemName = `TINACO ${r.capacidad} ${r.colorUI}`;
+                    else if(r.concepto.includes('TAMBO') || r.concepto.includes('235LT')) itemName = `TAMBO ${r.capacidad} ${r.colorUI}`;
+                    else if(r.concepto.includes('MACETA')) itemName = `MACETA ${r.capacidad} ${r.colorUI}`;
+                    
+                    if(!itemName) return;
+
+                    let qSolicitada = parseFloat(r.cantidad) || 0;
+                    let qDisponibleViejo = invViejo[itemName] || 0;
+
+                    if(qDisponibleViejo >= qSolicitada) {
+                        tViejoHTML += `<tr><td>${r.fecha.split('-').reverse().join('/')}</td><td>${r.vendedor}</td><td>${itemName}</td><td><b>${qSolicitada}</b></td></tr>`;
+                        invViejo[itemName] -= qSolicitada; resumenViejo[itemName] = (resumenViejo[itemName] || 0) + qSolicitada;
+                    } else if (qDisponibleViejo > 0) {
+                        let faltante = qSolicitada - qDisponibleViejo;
+                        tViejoHTML += `<tr><td>${r.fecha.split('-').reverse().join('/')}</td><td>${r.vendedor}</td><td>${itemName} <span style="color:#d32f2f; font-size:8px;">(Agotó lote)</span></td><td><b>${qDisponibleViejo}</b></td></tr>`;
+                        tNuevoHTML += `<tr><td>${r.fecha.split('-').reverse().join('/')}</td><td>${r.vendedor}</td><td>${itemName}</td><td><b>${faltante}</b></td></tr>`;
+                        resumenViejo[itemName] = (resumenViejo[itemName] || 0) + qDisponibleViejo; resumenNuevo[itemName] = (resumenNuevo[itemName] || 0) + faltante; invViejo[itemName] = 0;
+                    } else {
+                        tNuevoHTML += `<tr><td>${r.fecha.split('-').reverse().join('/')}</td><td>${r.vendedor}</td><td>${itemName}</td><td><b>${qSolicitada}</b></td></tr>`;
+                        resumenNuevo[itemName] = (resumenNuevo[itemName] || 0) + qSolicitada;
+                    }
+                }
+            });
+
+            if(!tViejoHTML) tViejoHTML = '<tr><td colspan="4">No hay salidas del lote viejo.</td></tr>';
+            if(!tNuevoHTML) tNuevoHTML = '<tr><td colspan="4">No hay salidas del lote nuevo.</td></tr>';
+
+            let tResumenHTML = '';
+            let keysProductos = [...new Set([...Object.keys(fotoInvViejo), ...Object.keys(resumenNuevo)])];
+            
+            keysProductos.forEach(p => {
+                let init = fotoInvViejo[p] || 0; let usedO = resumenViejo[p] || 0; let restO = init - usedO; let usedN = resumenNuevo[p] || 0;
+                if(init > 0 || usedN > 0 || usedO > 0) {
+                    tResumenHTML += `<tr><td><b>${p}</b></td><td>${init}</td><td style="color:#d32f2f;">-${usedO}</td><td style="font-weight:bold; color:${restO>0?'blue':'black'};">${restO}</td><td style="color:#8E24AA;">${usedN}</td></tr>`;
+                }
+            });
+
+            let htmlFIFO = `
+                <div style="text-align:center; margin-bottom: 10px; font-size: 14px;">
+                    Fecha de Llegada de Lote: <b style="color:#8E24AA">${fechaCorte.split('-').reverse().join('/')}</b>
+                </div>
+                <h3 class="header-pdf" style="color:#757575; font-size:12px; margin-bottom:2px;">📦 VENTAS DEL LOTE VIEJO</h3>
+                <table class="fifo-table" style="width:100%; border-collapse:collapse; text-align:center; font-size:10px; margin-bottom:10px;">
+                    <thead><tr><th>Fecha Venta</th><th>Vendedor</th><th>Producto</th><th>Cant. Descargada</th></tr></thead>
+                    <tbody>${tViejoHTML}</tbody>
+                </table>
+                <h3 class="header-pdf" style="color:#8E24AA; font-size:12px; margin-bottom:2px;">✨ VENTAS DEL LOTE NUEVO</h3>
+                <table class="fifo-table nuevo" style="width:100%; border-collapse:collapse; text-align:center; font-size:10px; margin-bottom:10px;">
+                    <thead><tr><th>Fecha Venta</th><th>Vendedor</th><th>Producto</th><th>Cant. Descargada</th></tr></thead>
+                    <tbody>${tNuevoHTML}</tbody>
+                </table>
+                <h3 class="header-pdf" style="color:#2E7D32; font-size:12px; margin-bottom:2px;">📋 RESUMEN MATEMÁTICO</h3>
+                <table class="fifo-table resumen" style="width:100%; border-collapse:collapse; text-align:center; font-size:10px;">
+                    <thead><tr><th>Producto</th><th>Inventario Previo (Viejo)</th><th>Ventas Asignadas (Viejo)</th><th>Saldo Lote Viejo</th><th>Ventas Tomadas Lote Nuevo</th></tr></thead>
+                    <tbody>${tResumenHTML}</tbody>
+                </table>
+            `;
+
+            imprimirDocumento(htmlFIFO, "REPORTE DE AUDITORÍA (FIFO/PEPS)");
+        }
+
+        function imprimirReporteDirecto(tablaId, titulo) {
+            let htmlTabla = document.getElementById(tablaId).outerHTML;
+            htmlTabla = htmlTabla.replace('class="db-table"', 'class="gen-table"');
+            imprimirDocumento(htmlTabla, titulo);
+        }
+
+        function renderGraficas() {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || []; 
+            const fTiempo = document.getElementById('filtroTiempo').value; 
+            const fVend = document.getElementById('filtroVendedorGrafica').value; 
+            let d_sem = getNumeroSemana(document.getElementById('fecha').value); 
+            let d_mes = new Date().getMonth(); let d_anio = new Date().getFullYear(); 
+            let v_ventas = {}; let v_prod = {}; let maxV = 0; let maxP = 0;
+
+            db.forEach(r => { 
+                let rD = parseLocalDate(r.fecha); 
+                if (!rD) return;
+                let valid = (fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio) || (fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio) || (fTiempo==='anio'&&rD.getFullYear()==d_anio);
+                if(valid && (fVend==='TODOS'||r.vendedor===fVend)) { 
+                    let isTin = (r.concepto||'').includes('TINACO'); let isTam = (r.concepto||'').includes('TAMBO') || (r.concepto||'').includes('235LT'); let isMac = (r.concepto||'').includes('MACETA');
+                    let cant = parseFloat(r.cantidad)||0;
+
+                    if(esMovimientoConIngreso(r)) { 
+                        if(!v_ventas[r.vendedor]) v_ventas[r.vendedor] = { totalDinero: 0, tin: 0, tam: 0, mac: 0 };
+                        v_ventas[r.vendedor].totalDinero += parseFloat(r.total) || 0; 
+                        if(isTin) v_ventas[r.vendedor].tin += cant; if(isTam) v_ventas[r.vendedor].tam += cant; if(isMac) v_ventas[r.vendedor].mac += cant;
+                        if(v_ventas[r.vendedor].totalDinero > maxV) maxV = v_ventas[r.vendedor].totalDinero; 
+                    } 
+                    if(r.tipo.includes('PROD')) { 
+                        if(!v_prod[r.vendedor]) v_prod[r.vendedor] = { total: 0, tin: 0, tam: 0, mac: 0 };
+                        v_prod[r.vendedor].total += cant;
+                        if(isTin) v_prod[r.vendedor].tin += cant; if(isTam) v_prod[r.vendedor].tam += cant; if(isMac) v_prod[r.vendedor].mac += cant;
+                        if(v_prod[r.vendedor].total > maxP) maxP = v_prod[r.vendedor].total; 
+                    } 
+                } 
+            });
+
+            document.getElementById('graficaVentas').innerHTML = Object.keys(v_ventas).map(v => {
+                let info = `<div class="info-arriba" style="color:#1565C0;">`;
+                if(v_ventas[v].tin > 0) info += `Tin: ${v_ventas[v].tin}<br>`;
+                if(v_ventas[v].tam > 0) info += `<span style="color:#EF6C00;">Tam: ${v_ventas[v].tam}</span><br>`;
+                if(v_ventas[v].mac > 0) info += `<span style="color:#2E7D32;">Mac: ${v_ventas[v].mac}</span>`;
+                info += `</div>`;
+                return `<div class="grafica-col">${info}<div class="grafica-bar bar-ventas" style="height:${maxV>0?(v_ventas[v].totalDinero/maxV)*100:0}%;">$${formato(v_ventas[v].totalDinero)}</div><div class="grafica-label">${v}</div></div>`;
+            }).join('') || '<p style="font-size:12px;color:#888;">Sin ventas.</p>';
+
+            document.getElementById('graficaProd').innerHTML = Object.keys(v_prod).map(p => {
+                let info = `<div class="info-arriba" style="color:#EF6C00;">`;
+                if(v_prod[p].tin > 0) info += `<span style="color:#1565C0;">Tin: ${v_prod[p].tin}</span><br>`;
+                if(v_prod[p].tam > 0) info += `Tam: ${v_prod[p].tam}<br>`;
+                if(v_prod[p].mac > 0) info += `<span style="color:#2E7D32;">Mac: ${v_prod[p].mac}</span>`;
+                info += `</div>`;
+                return `<div class="grafica-col">${info}<div class="grafica-bar bar-prod" style="height:${maxP>0?(v_prod[p].total/maxP)*100:0}%;">${v_prod[p].total} PZAS</div><div class="grafica-label">${p}</div></div>`;
+            }).join('') || '<p style="font-size:12px;color:#888;">Sin prod.</p>';
+        }
+
+        function imprimirReportePro() {
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || []; 
+            const fTiempo = document.getElementById('filtroTiempo').value, fVend = document.getElementById('filtroVendedorGrafica').value, selTiempo = document.getElementById('filtroTiempo');
+            let d_sem = getNumeroSemana(document.getElementById('fecha').value), d_mes = new Date().getMonth(), d_anio = new Date().getFullYear(); 
+            let r_ventas = {}, r_prod = {}, global = { tinVendidos: 0, tamVendidos: 0, tinProd: 0, tamProd: 0, macProd: 0, dinero: 0 };
+
+            db.forEach(r => { 
+                let rD = parseLocalDate(r.fecha);
+                if (!rD) return;
+                let valid = (fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio) || (fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio) || (fTiempo==='anio'&&rD.getFullYear()==d_anio);
+                if(valid && (fVend==='TODOS'||r.vendedor===fVend)) { 
+                    const cant = parseFloat(r.cantidad) || 0, tot = parseFloat(r.total) || 0, conc = r.concepto || '';
+                    if(esMovimientoConIngreso(r)) { 
+                        if(!r_ventas[r.vendedor]) r_ventas[r.vendedor] = { dinero: 0, tinacos: 0, tambos: 0 };
+                        r_ventas[r.vendedor].dinero += tot; global.dinero += tot;
+                        if(conc.includes('TINACO')) { r_ventas[r.vendedor].tinacos += cant; global.tinVendidos += cant; }
+                        else if(conc.includes('TAMBO') || conc.includes('235LT')) { r_ventas[r.vendedor].tambos += cant; global.tamVendidos += cant; }
+                    } 
+                    if(r.tipo.includes('PROD')) { 
+                        if(!r_prod[r.vendedor]) r_prod[r.vendedor] = { tinacos: 0, tambos: 0, macetas: 0 };
+                        if(conc.includes('TINACO')) { r_prod[r.vendedor].tinacos += cant; global.tinProd += cant; }
+                        else if(conc.includes('TAMBO') || conc.includes('235LT')) { r_prod[r.vendedor].tambos += cant; global.tamProd += cant; }
+                        else if(conc.includes('MACETA')) { r_prod[r.vendedor].macetas += cant; global.macProd += cant; }
+                    } 
+                } 
+            });
+
+            let htmlVentas = `<h3 class="header-pdf">Tabla A: Ventas por Vendedor</h3><table class="gen-table"><thead><tr><th>Vendedor</th><th>Tinacos</th><th>Tambos</th><th>Ingreso Total</th></tr></thead><tbody>`;
+            if(Object.keys(r_ventas).length === 0) htmlVentas += `<tr><td colspan="4">Sin ventas en este periodo.</td></tr>`;
+            else { for(let v in r_ventas) { htmlVentas += `<tr><td><b>${escHtml(v)}</b></td><td>${r_ventas[v].tinacos}</td><td>${r_ventas[v].tambos}</td><td>$${formato(r_ventas[v].dinero)}</td></tr>`; } }
+            htmlVentas += `</tbody></table>`;
+
+            let htmlProd = `<h3 class="header-pdf" style="margin-top:10px;">Tabla B: Producción por Productor</h3><table class="gen-table"><thead><tr><th>Productor</th><th>Tinacos</th><th>Tambos</th><th>Macetas</th></tr></thead><tbody>`;
+            if(Object.keys(r_prod).length === 0) htmlProd += `<tr><td colspan="4">Sin producción en este periodo.</td></tr>`;
+            else { for(let p in r_prod) { htmlProd += `<tr><td><b>${escHtml(p)}</b></td><td>${r_prod[p].tinacos}</td><td>${r_prod[p].tambos}</td><td>${r_prod[p].macetas}</td></tr>`; } }
+            htmlProd += `</tbody></table>`;
+
+            let htmlGlobal = `<div style="border: 2px solid #2E7D32; padding: 5px; margin-top: 15px; text-align:center;">
+                <h3 style="color:#2E7D32; margin:0;">Resumen Global</h3>
+                <div style="font-size:12px; font-weight:bold; margin-top:5px;">
+                    Tinacos Sold vs Prod: <span style="color:red;">${global.tinVendidos}</span> vs <span style="color:blue;">${global.tinProd}</span> | 
+                    Tambos Sold vs Prod: <span style="color:red;">${global.tamVendidos}</span> vs <span style="color:blue;">${global.tamProd}</span><br>
+                    Total Ingreso: <span style="color:red; font-size:14px;">$${formato(global.dinero)}</span>
+                </div>
+            </div>`;
+
+            imprimirDocumento(htmlVentas + htmlProd + htmlGlobal, "REPORTE PRO - VENTAS VS PROD.");
+        }
+
+                function actualizarFechasCorte() {
+            const v = document.getElementById('vendedorCorte').value; 
+            let d = new Date(); let diaActual = d.getDay() === 0 ? 7 : d.getDay(); 
+            let fIni = new Date(d); let fFin = new Date(d);
+            if (v === 'ISIDRO') { fIni.setDate(d.getDate() - diaActual - 1); fFin.setDate(d.getDate() - diaActual + 5); } 
+            else if (v === 'OFELIA') { fIni.setDate(d.getDate() - diaActual + 2); fFin.setDate(d.getDate() - diaActual + 7); } 
+            else { fIni.setDate(d.getDate() - diaActual + 1); fFin.setDate(d.getDate() - diaActual + 6); }
+            document.getElementById('fechaDesde').valueAsDate = fIni; document.getElementById('fechaHasta').valueAsDate = fFin;
+        }
+
+        function generarCortePDF() {
+            const vendedor = document.getElementById('vendedorCorte').value, mostrarTinacos = document.getElementById('chkTinacos').checked, mostrarTambos = document.getElementById('chkTambos').checked; 
+            let db = JSON.parse(localStorage.getItem('plastinova_bd_v2')) || [];
+            const startStr = document.getElementById('fechaDesde').value, endStr = document.getElementById('fechaHasta').value;
+
+            const semanaCalculada = getNumeroSemana(startStr);
+
+            let registros = db
+                .filter(r => { 
+                    if (!r.fecha || !(r.fecha >= startStr && r.fecha <= endStr)) return false; 
+                    if (r.vendedor === vendedor) return true; 
+                    if (vendedor === 'FERNANDO' && r.vendedor === 'PEDRO' && (r.tipo || '').includes('PROD_EXTRA')) return true; 
+                    return false; 
+                })
+                .map((r, idx) => ({ ...r, _ord: idx }))
+                .sort((a, b) => {
+                    const ta = fechaOrdenValor(a.fecha);
+                    const tbv = fechaOrdenValor(b.fecha);
+                    if (ta !== tbv) return ta - tbv;
+                    return a._ord - b._ord;
+                })
+                .map(({ _ord, ...r }) => r);
+
+            let tTinacos = '', tTambos = '', tGastos = ''; 
+            let sumQTin = 0, sumDTin = 0, sumQTam = 0, sumDTam = 0, sumQExtTin = 0, sumQExtTam = 0, sumQExtTinPedro = 0, sumQExtTamPedro = 0, sumGastos = 0, sumComisionTinacos = 0, sumComisionTambos = 0;
+            let hizoTambosExtra = false, hizoTinacosExtra = false, hizoTambosExtraPedro = false, hizoTinacosExtraPedro = false, countGastos = 0;
+
+            registros.forEach(r => {
+                const fechaFormat = r.fecha.split('-').reverse().join('/'), cantNum = parseFloat(r.cantidad) || 0, precioNum = parseFloat(r.precio) || 0, totalNum = parseFloat(r.total) || 0;
+                const conceptoSafe = escHtml(r.concepto || '');
+                const filaTin = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${conceptoSafe}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
+                const filaTam = `<tr><td></td><td>${fechaFormat}</td><td style="text-align:left;">${conceptoSafe}</td><td></td><td>${cantNum.toFixed(2)}</td><td>$${formato(precioNum)}</td><td>$${formato(totalNum)}</td></tr>`;
+
+                const concepto = String(r.concepto || '').toUpperCase();
+                const esSalidaSinIngreso = concepto.includes('ENTREGA CONSIGNACIÓN') || concepto.includes('TRASPASO SUCURSAL') || concepto.includes('GARANTÍA');
+                const esVentaValida = esMovimientoConIngreso(r);
+
+                if((r.tipo === 'VENTA_TINACO' || r.tipo === 'VENTA_TINACO_COBRO' || r.tipo === 'TRASPASO_TINACO' || r.tipo === 'TRASPASO_TINACO_COBRO') && mostrarTinacos) { 
+                    if (esVentaValida) {
+                        tTinacos += filaTin; sumQTin += cantNum; sumDTin += totalNum; 
+                        if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += (cantNum * 35);
+                    }
+                }
+                if((r.tipo === 'VENTA_TAMBO' || r.tipo === 'VENTA_TAMBO_COBRO' || r.tipo === 'TRASPASO_TAMBO' || r.tipo === 'TRASPASO_TAMBO_COBRO') && mostrarTambos) { 
+                    if (esVentaValida) {
+                        tTambos += filaTam; sumQTam += cantNum; sumDTam += totalNum; 
+                        if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += (cantNum * 10);
+                    }
+                }
+                if((r.tipo || '').includes('PROD_EXTRA')) { 
+                    let esTambo = r.tipo === 'PROD_EXTRA_TAMBO' || (r.concepto || '').includes('TAMBO') || (r.concepto || '').includes('235LT');
+                    if (r.vendedor === 'PEDRO' && vendedor === 'FERNANDO') { if (esTambo) { sumQExtTamPedro += cantNum; hizoTambosExtraPedro = true; } else { sumQExtTinPedro += cantNum; hizoTinacosExtraPedro = true; } } 
+                    else if (r.vendedor === vendedor) { if (esTambo) { sumQExtTam += cantNum; hizoTambosExtra = true; } else { sumQExtTin += cantNum; hizoTinacosExtra = true; } } 
+                }
+                if(r.tipo === 'GASTO') { tGastos += `<tr><td style="text-align:left;">${escHtml(r.concepto || '')}</td><td style="text-align:right;">${formato(totalNum)}</td></tr>`; sumGastos += totalNum; countGastos++; }
+            });
+
+            while(countGastos < 4) { tGastos += `<tr><td style="text-align:left;">&nbsp;</td><td style="text-align:right;">-</td></tr>`; countGastos++; }
+            if(!tTinacos) tTinacos = '<tr><td colspan="7">Sin ventas registradas</td></tr>';
+            if(!tTambos) tTambos = '<tr><td colspan="7">Sin ventas registradas</td></tr>';
+
+            const granTotal = sumDTin + sumDTam, comExtPedro = (sumQExtTinPedro * 35) + (sumQExtTamPedro * 10), comExtVendedor = (sumQExtTin * 35) + (sumQExtTam * 10), totComs = comExtPedro + comExtVendedor + sumComisionTinacos + sumComisionTambos, subTotal = granTotal - sumGastos;
+            const totalEfe = subTotal - totComs; 
+
+            let textoExtrasPedro = "TIN EXTRA PEDRO"; if (hizoTambosExtraPedro && !hizoTinacosExtraPedro) textoExtrasPedro = "TAM EXTRA PEDRO"; else if (hizoTambosExtraPedro && hizoTinacosExtraPedro) textoExtrasPedro = "TIN/TAM EXT PEDRO";
+            let textoExtras = `TIN EXTRA ${vendedor}`; if (hizoTambosExtra && !hizoTinacosExtra) textoExtras = `TAM EXTRA ${vendedor}`; else if (hizoTambosExtra && hizoTinacosExtra) textoExtras = `TIN/TAM EXT ${vendedor}`;
+
+            let filaPedro = (vendedor === 'FERNANDO') ? `<tr><td style="text-align:center;">${sumQExtTinPedro + sumQExtTamPedro}</td><td>${escHtml(textoExtrasPedro)}</td><td style="text-align:right;">$${formato(comExtPedro)}</td></tr>` : '';
+
+            let htmlCorte = `
+                <div class="header-pdf">TINACOS PLASTINOVA<br>VENDEDOR: ${escHtml(vendedor)}<br>${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')} | SEMANA ${semanaCalculada}</div>
+
+                <div class="subtitle-pdf">VENTAS TINACOS</div>
+                <table class="pdf-table">
+                    <thead><tr><th>FOLIO</th><th>FECHA</th><th>CONCEPTO</th><th># TINACO</th><th>CANTIDAD</th><th>PRECIO UNI</th><th>TOTAL</th></tr></thead>
+                    <tbody>${tTinacos}</tbody>
+                    <tfoot><tr class="row-total"><td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL</td><td>${sumQTin.toFixed(2)}</td><td>-</td><td>$${formato(sumDTin)}</td></tr></tfoot>
+                </table>
+
+                <div class="subtitle-pdf">VENTAS TAMBOS Y MACETAS</div>
+                <table class="pdf-table">
+                    <thead><tr><th>FOLIO</th><th>FECHA</th><th>CONCEPTO</th><th># TAM/MAC</th><th>CANTIDAD</th><th>PRECIO UNI</th><th>TOTAL</th></tr></thead>
+                    <tbody>${tTambos}</tbody>
+                    <tfoot><tr class="row-total"><td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL</td><td>${sumQTam.toFixed(2)}</td><td>-</td><td>$${formato(sumDTam)}</td></tr></tfoot>
+                </table>
+
+                <div class="bottom-container">
+                    <div class="left-panel">
+                        <table class="tabla-extras">
+                            <tr><td style="width:10%; text-align:center;">0</td><td>HORAS EXTRAS</td><td style="text-align:right;">$0</td></tr>
+                            ${filaPedro}
+                            <tr><td style="text-align:center;">${sumQExtTin + sumQExtTam}</td><td>${escHtml(textoExtras)}</td><td style="text-align:right;">$${formato(comExtVendedor)}</td></tr>
+                            <tr><td style="text-align:center;">${(sumComisionTinacos / 35).toFixed(2)}</td><td>VENTAS TINACOS</td><td style="text-align:right;">$${formato(sumComisionTinacos)}</td></tr>
+                            <tr><td style="text-align:center;">${(sumComisionTambos / 10).toFixed(2)}</td><td>VENTAS TAMBOS</td><td style="text-align:right;">$${formato(sumComisionTambos)}</td></tr>
+                            <tr><td colspan="2" style="text-align:center; color:red;">TOTAL COMISIONES</td><td style="color:red; text-align:right;">$${formato(totComs)}</td></tr>
+                        </table>
+                        <div class="firma">FIRMA RECIBIDO: _______________________</div>
+                    </div>
+                    <div class="right-panel">
+                        <table class="tabla-resumen"><tr><td style="width: 60%; color: red;">TOTAL VENTAS</td><td style="color: red;">$${formato(granTotal)}</td></tr></table>
+                        <table class="tabla-gastos"><tbody>${tGastos}</tbody></table>
+                        <table class="tabla-resumen">
+                            <tr><td style="width: 60%;">GASTOS $</td><td>$${formato(sumGastos)}</td></tr>
+                            <tr><td>SUB TOTAL $</td><td>$${formato(subTotal)}</td></tr>
+                            <tr><td>EXTRA TRABAJADORES</td><td>$${formato(totComs)}</td></tr>
+                            <tr><td style="color: red; font-weight: bold;">TOTAL FINAL $</td><td style="color: red; font-weight: bold;">$${formato(totalEfe)}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            const filasTinacosImpresas = (tTinacos.match(/<tr>/g) || []).length;
+            const filasTambosImpresas = (tTambos.match(/<tr>/g) || []).length;
+            const filasGastosImpresas = Math.max(countGastos, 4);
+            const filasComisiones = 5 + (vendedor === 'FERNANDO' ? 1 : 0);
+            const scoreImpresion = filasTinacosImpresas + filasTambosImpresas + Math.ceil(filasGastosImpresas * 1.15) + filasComisiones + 6;
+
+            let modoImpresion = 'spacious-mode';
+            let escalaImpresion = 1;
+
+            if (scoreImpresion > 24) { modoImpresion = 'compact-mode'; escalaImpresion = 0.96; }
+            if (scoreImpresion > 32) { modoImpresion = 'compact-mode'; escalaImpresion = 0.93; }
+            if (scoreImpresion > 40) { modoImpresion = 'compact-mode'; escalaImpresion = 0.90; }
+            if (scoreImpresion > 48) { modoImpresion = 'super-compact-mode'; escalaImpresion = 0.88; }
+            if (scoreImpresion > 56) { modoImpresion = 'super-compact-mode'; escalaImpresion = 0.86; }
+
+            imprimirDocumento(htmlCorte, "CORTE DE CAJA", modoImpresion, escalaImpresion);
+        }
+
+
+    </script>
+</body>
+</html>

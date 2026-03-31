@@ -454,11 +454,65 @@
         async function actualizarStockInventarioSupabase(row, nuevoStock) {
             const sb = await initSupabase();
             const stockNum = parseFloat(nuevoStock) || 0;
-            const { error } = await sb
-                .from('inventario')
-                .update({ stock: stockNum })
-                .eq('id', row.id);
-            if (error) throw error;
+
+            let rowId = row.id;
+            const esBase = !rowId || String(rowId).startsWith('base|');
+
+            if (esBase) {
+                const payload = {
+                    ubicacion: String(row.ubicacion || '').toUpperCase(),
+                    categoria: String(row.categoria || '').toUpperCase(),
+                    producto: String(row.producto || '').toUpperCase(),
+                    tipo: String(row.tipo || '').toUpperCase(),
+                    medida: String(row.medida || '').toUpperCase(),
+                    color: String(row.color || '').toUpperCase(),
+                    unidad: String(row.unidad || 'PZA').toUpperCase(),
+                    stock: stockNum
+                };
+
+                const { data: existing, error: errFind } = await sb
+                    .from('inventario')
+                    .select('*')
+                    .eq('ubicacion', payload.ubicacion)
+                    .eq('categoria', payload.categoria)
+                    .eq('producto', payload.producto)
+                    .eq('tipo', payload.tipo)
+                    .eq('medida', payload.medida)
+                    .eq('color', payload.color)
+                    .eq('unidad', payload.unidad)
+                    .limit(1);
+
+                if (errFind) throw errFind;
+
+                if (existing && existing.length) {
+                    rowId = existing[0].id;
+                    const { error: errUpdate } = await sb
+                        .from('inventario')
+                        .update({ stock: stockNum })
+                        .eq('id', rowId);
+                    if (errUpdate) throw errUpdate;
+                } else {
+                    const { data: inserted, error: errInsert } = await sb
+                        .from('inventario')
+                        .insert([payload])
+                        .select()
+                        .limit(1);
+                    if (errInsert) throw errInsert;
+                    rowId = inserted && inserted[0] ? inserted[0].id : rowId;
+                }
+
+                row.id = rowId;
+            } else {
+                const { error } = await sb
+                    .from('inventario')
+                    .update({ stock: stockNum })
+                    .eq('id', rowId);
+                if (error) throw error;
+            }
+
+            row.stock = stockNum;
+            row.stockSistema = stockNum;
+            return rowId;
         }
 
         async function registrarMovimientoInventarioSupabase(row, diferencia, referencia) {
@@ -478,6 +532,7 @@
             if (error) throw error;
         }
 
+        
         function categoriaInventarioLabel(cat) {
             const m = {
                 'MATERIA_PRIMA': 'MATERIA PRIMA',
@@ -495,64 +550,198 @@
             return m[cat] || cat || '';
         }
 
-        
-async function refrescarCategoriasCierreMensual() {
-    const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
-    const select = document.getElementById('cierreCategoria');
-    if (!select) return;
-
-    const fallback = {
-        'PLANTA': ['MATERIA_PRIMA', 'ACCESORIOS', 'TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS'],
-        'SUCURSAL': ['TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS', 'CASAS_PERRO', 'OTROS', 'ADITAMENTOS', 'ARTICULOS_JAGR']
-    };
-
-    let categorias = [];
-    try {
-        let items = getInventarioSupabaseLocal();
-        if (!items.length) {
-            items = await cargarInventarioDesdeSupabase();
+        function crearItemBaseCierre(ubicacion, categoria, producto, tipo = '', medida = '', color = '', unidad = 'PZA') {
+            const rawId = [ubicacion, categoria, producto, tipo, medida, color, unidad].join('|');
+            return {
+                id: `base|${rawId}`,
+                ubicacion,
+                categoria,
+                producto,
+                tipo,
+                medida,
+                color,
+                unidad,
+                stock: 0
+            };
         }
 
-        categorias = [...new Set((items || [])
-            .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
-            .map(x => String(x.categoria || '').toUpperCase().trim())
-            .filter(Boolean)
-        )].sort();
-    } catch (e) {
-        console.warn('Aviso cargando categorías de cierre mensual:', e);
-    }
+        function catalogoBaseCierreMensual(ubicacion, categoria) {
+            ubicacion = String(ubicacion || 'PLANTA').toUpperCase();
+            categoria = String(categoria || '').toUpperCase();
+            const out = [];
+            const add = (producto, tipo = '', medida = '', color = '', unidad = 'PZA') => {
+                out.push(crearItemBaseCierre(ubicacion, categoria, producto, tipo, medida, color, unidad));
+            };
 
-    const fallbackUbicacion = fallback[ubicacion] || [];
-    categorias = [...new Set([...(categorias || []), ...fallbackUbicacion])].filter(Boolean);
+            if (ubicacion === 'PLANTA') {
+                if (categoria === 'ACCESORIOS') {
+                    ['KIT COMPLETO', 'TAPA', 'VALVULA', 'JARRO DE AIRE', 'BRIDA', 'CAPUCHON', 'FILTRO', 'ETIQUETA']
+                        .forEach(p => add(p, '', '', '', 'PZA'));
+                } else if (categoria === 'MATERIA_PRIMA') {
+                    const mp20 = [
+                        ['ROTOFOAM','SACO','20 KG','NEGRO AR'], ['ROTOFOAM','SACO','20 KG','BLANCO AR'],
+                        ['ROTOLENE','SACO','20 KG','BEIGE'], ['ROTOLENE','SACO','20 KG','NEGRO - BLACK'],
+                        ['ROTOLENE','SACO','20 KG','AZUL #5'], ['ROTOLENE','SACO','20 KG','VERDE #15'],
+                        ['ROTOLENE','SACO','20 KG','VERDE INDUST.'], ['ROTOLENE','SACO','20 KG','NARANJA 2'],
+                        ['ROTOLENE','SACO','20 KG','ROJO 10'], ['ROTOLENE','SACO','20 KG','ROJO 14'],
+                        ['ROTOLENE','SACO','20 KG','ROJO INDUST.'], ['ROTOLENE','SACO','20 KG','CAFÉ'],
+                        ['ROTOLENE','SACO','20 KG','BLANCO'], ['ROTOLENE','SACO','20 KG','GRANITO 15'],
+                        ['ROTOLENE','SACO','20 KG','NATURAL'], ['ROTOLENE','SACO','20 KG','RECICLADO']
+                    ];
+                    const mp24 = [
+                        ['ROTOFOAM','SACO','24 KG','NEGRO AR'], ['ROTOFOAM','SACO','24 KG','BLANCO AR'],
+                        ['ROTOLENE','SACO','24 KG','BEIGE'], ['ROTOLENE','SACO','24 KG','NEGRO - BLACK'],
+                        ['ROTOLENE','SACO','24 KG','AZUL #5'], ['ROTOLENE','SACO','24 KG','VERDE #15'],
+                        ['ROTOLENE','SACO','24 KG','VERDE INDUST.'], ['ROTOLENE','SACO','24 KG','NARANJA II'],
+                        ['ROTOLENE','SACO','24 KG','ROJO 10'], ['ROTOLENE','SACO','24 KG','ROJO 14'],
+                        ['ROTOLENE','SACO','24 KG','ROJO INDUST.'], ['ROTOLENE','SACO','24 KG','CAFÉ'],
+                        ['ROTOLENE','SACO','24 KG','BLANCO'], ['ROTOLENE','SACO','24 KG','GRANITO 15'],
+                        ['ROTOLENE','SACO','24 KG','NATURAL'], ['ROTOLENE','SACO','24 KG','RECICLADO']
+                    ];
+                    const mezclados = ['GRANITO','TERRACOTA','GRANITO POLIF','MELON','GRANITO','AZUL C/BLANCO','TURQUESA','VERDE OSCURO','DUVALIN','POLIGRANITO - PPL','SOBRAS'];
+                    mp20.forEach(x => add(x[0], x[1], x[2], x[3], 'KG'));
+                    mp24.forEach(x => add(x[0], x[1], x[2], x[3], 'KG'));
+                    mezclados.forEach(color => add('ROTOLENE', 'SACO', 'MEZCLADO', color, 'KG'));
+                } else if (categoria === 'TINACOS') {
+                    const caps = ['1200LT','1100LT','750LT'];
+                    const colors = ['BEIGE','NEGRO','AZUL','ROJO','VERDE','NATURAL','NARANJA','CAFÉ','BLANCO','VERDE INDUSTRIAL'];
+                    caps.forEach(cap => colors.forEach(color => add('TINACO', '', cap, color, 'PZA')));
+                } else if (categoria === 'TAMBOS') {
+                    const colors = ['AZUL','NEGRO','BEIGE','ROJO','VERDE','NATURAL','NARANJA','VERDE INDUSTRIAL','CAFÉ','BLANCO','ROJO CON BLANCO','VERDE CON BLANCO','AZUL CON BLANCO','TERRACOTA','MENTA','PISTACHE','GRANITO BEIGE','GRANITO','DUVALIN','UVA','MELON','OXFORD'];
+                    colors.forEach(color => add('TAMBO', '', '235LT', color, 'PZA'));
+                } else if (categoria === 'MACETEROS') {
+                    const grande = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO'];
+                    const chico = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','UVA','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','ROJO C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'];
+                    grande.forEach(color => add('MACETERO', 'CUADRADOS', 'GRANDE', color, 'PZA'));
+                    chico.forEach(color => add('MACETERO', 'CUADRADOS', 'CHICO', color, 'PZA'));
+                } else if (categoria === 'BANCOS') {
+                    ['BEIGE','NEGRO','AZUL #5','GRANITO','NATURAL','BLANCO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO']
+                        .forEach(color => add('BANCO', 'CONICO', 'CHICO', color, 'PZA'));
+                    add('BANCO', 'CONICO', 'GRANDE', 'NATURAL', 'PZA');
+                } else if (categoria === 'LAMINAS') {
+                    ['BEIGE','NEGRO'].forEach(color => add('LAMINAS', 'TINACO', 'PIEZA', color, 'PZA'));
+                }
+            } else if (ubicacion === 'SUCURSAL') {
+                if (categoria === 'TINACOS') {
+                    const caps = ['1200LT','1100LT','750LT'];
+                    const colors = ['BEIGE','NEGRO','AZUL','ROJO','VERDE','NATURAL','NARANJA','CAFÉ','BLANCO','VERDE INDUSTRIAL'];
+                    caps.forEach(cap => colors.forEach(color => add('TINACO', '', cap, color, 'PZA')));
+                } else if (categoria === 'TAMBOS') {
+                    const colors = ['AZUL','NEGRO','BEIGE','ROJO','VERDE','NATURAL','NARANJA','VERDE INDUSTRIAL','CAFÉ','BLANCO','ROJO CON BLANCO','VERDE CON BLANCO','AZUL CON BLANCO','TERRACOTA','MENTA','PISTACHE','GRANITO BEIGE','GRANITO','DUVALIN','UVA','MELON','OXFORD'];
+                    colors.forEach(color => add('TAMBO', '', '235LT', color, 'PZA'));
+                } else if (categoria === 'MACETEROS') {
+                    const cuadradosG = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO'];
+                    const cuadradosC = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','UVA','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','ROJO C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'];
+                    cuadradosG.forEach(color => add('MACETERO', 'CUADRADOS', 'GRANDE', color, 'PZA'));
+                    cuadradosC.forEach(color => add('MACETERO', 'CUADRADOS', 'CHICO', color, 'PZA'));
+                    ['GRIS'].forEach(color => ['GRANDE','MEDIANO','CHICO','MINI'].forEach(med=>add('MACETERO','REDONDOS',med,color,'PZA')));
+                    [['MINI','CHOCOLATE'],['MINI','POLIGRANITO TERRACOTA'],['MINI','POLIGRANITO GRIS'],['MINI','GRIS'],
+                     ['CHICA','CHOCOLATE'],['CHICA','POLIGRANITO TERRACOTA'],['CHICA','POLIGRANITO GRIS'],['CHICA','CANTERA NEGRA'],
+                     ['MEDIANA','CHOCOLATE'],['MEDIANA','POLIGRANITO TERRACOTA'],['MEDIANA','POLIGRANITO GRIS']]
+                        .forEach(x => add('MACETERO','CONICA',x[0],x[1],'PZA'));
+                    add('MACETERO','CONICA C/LUZ','GRANDE','','PZA');
+                    add('MACETERO','CONO ESPECIAL','','CAFÉ','PZA');
+                    [['CHICA','GRIS'],['GRANDE','GRIS']].forEach(x=>add('MACETERO','OLLA MAYA',x[0],x[1],'PZA'));
+                    [['20X20','POLIGRANITO GRIS'],['20X20','CHOCOLATE']].forEach(x=>add('MACETERO','3D',x[0],x[1],'PZA'));
+                    add('MACETERO','PANERA','15-34','BLANCA','PZA');
+                } else if (categoria === 'LAMINAS') {
+                    [['2.10 X 1.20',['BLANCO','CRISTAL','AMARILLA','BARRO']],
+                     ['1.27 X 60',['BLANCO','CRISTAL','AMARILLA','BARRO']],
+                     ['3.05 X 1.20',['BLANCO','CRISTAL','AMARILLA','CHOCOLATE','BARRO']],
+                     ['2.54 X 1.20',['BLANCO','CRISTAL','AMARILLA','BARRO']],
+                     ['1.27 X 1.20',['BLANCO','CRISTAL','AMARILLA','BARRO']],
+                     ['4.20 X 1.20',['BLANCO','CRISTAL','AMARILLA','BARRO']]]
+                        .forEach(pair => pair[1].forEach(color => add('LAMINAS','ACANALADA',pair[0],color,'PZA')));
+                    ['AMARILLO','VERDE','BLANCO','CRISTAL','BARRO'].forEach(color => add('LAMINAS','LISA','METRO LINEAL',color,'ML'));
+                    ['BEIGE','NEGRO'].forEach(color => add('LAMINAS','TINACO','PIEZA',color,'PZA'));
+                } else if (categoria === 'BANCOS') {
+                    ['BEIGE','NEGRO','AZUL #5','GRANITO','NATURAL','BLANCO','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO']
+                        .forEach(color => add('BANCO','CONICO','CHICO',color,'PZA'));
+                    add('BANCO','CONICO','GRANDE','NATURAL','PZA');
+                } else if (categoria === 'CASAS_PERRO') {
+                    [['GRANDE','AZUL'],['GRANDE','CAFÉ'],['GRANDE','ROJO'],['GRANDE','ROSA'],['MEDIANA','AZUL'],['MEDIANA','ROSA'],['MEDIANA','CHOCOLATE'],['MEDIANA','ROJO']]
+                        .forEach(x => add('CASAS DE PERRO','',x[0],x[1],'PZA'));
+                } else if (categoria === 'OTROS') {
+                    ['ESFERA','CONTENEDOR','CARRITOS','SILLONES','LAVABO'].forEach(p=>add(p,'','','','PZA'));
+                } else if (categoria === 'ADITAMENTOS') {
+                    ['JUEGOS COMPLETOS','TAPA CON ARO','BRIDA REFORZADA','JARRON','FILTRO'].forEach(p=>add(p,'','','','PZA'));
+                } else if (categoria === 'ARTICULOS_JAGR') {
+                    ['ESFERA CHICA','BASE DE RATAN','MACETA INTERIOR','CONO ESQUINERO','FLORERO RESINA','LAMPARA CILINDRICA'].forEach(p=>add(p,'','','','PZA'));
+                }
+            }
+            return out;
+        }
 
-    select.innerHTML = '';
-    categorias.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = categoriaInventarioLabel(cat);
-        select.appendChild(opt);
-    });
+        function categoriasFallbackPorUbicacion(ubicacion) {
+            return (ubicacion === 'SUCURSAL'
+                ? ['TINACOS','TAMBOS','MACETEROS','LAMINAS','BANCOS','CASAS_PERRO','OTROS','ADITAMENTOS','ARTICULOS_JAGR']
+                : ['MATERIA_PRIMA','ACCESORIOS','TINACOS','TAMBOS','MACETEROS','LAMINAS','BANCOS']);
+        }
 
-    if (!categorias.length) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'SIN DATOS';
-        select.appendChild(opt);
-    }
+        async function refrescarCategoriasCierreMensual() {
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            const select = document.getElementById('cierreCategoria');
+            if (!select) return;
 
-    select.selectedIndex = 0;
-}
+            let categorias = [];
+            try {
+                let items = getInventarioSupabaseLocal();
+                if (!items.length) items = await cargarInventarioDesdeSupabase();
+                categorias = [...new Set((items || [])
+                    .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
+                    .map(x => String(x.categoria || '').toUpperCase().trim())
+                    .filter(Boolean)
+                )].sort();
+            } catch (e) {
+                console.warn('Aviso cargando categorías de cierre mensual:', e);
+            }
 
-function obtenerRowsCierreMensual() {
+            categorias = [...new Set([...(categorias || []), ...categoriasFallbackPorUbicacion(ubicacion)])].filter(Boolean);
+
+            const actual = (select.value || '').toUpperCase();
+            select.innerHTML = '';
+            categorias.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = categoriaInventarioLabel(cat);
+                select.appendChild(opt);
+            });
+
+            if (!categorias.length) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'SIN DATOS';
+                select.appendChild(opt);
+            } else if (actual && categorias.includes(actual)) {
+                select.value = actual;
+            } else {
+                select.selectedIndex = 0;
+            }
+        }
+
+        function obtenerRowsCierreMensual() {
             const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
             const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
             const items = getInventarioSupabaseLocal();
-
             const draft = JSON.parse(localStorage.getItem('plastinova_cierre_mensual_draft_v1') || '{}');
             const draftRows = draft.rows || {};
 
-            return items
+            const actuales = (items || [])
                 .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion && String(x.categoria || '').toUpperCase() === categoria)
+                .map(x => ({
+                    ...x,
+                    stockSistema: parseFloat(x.stock) || 0
+                }));
+
+            const existentesKeys = new Set(actuales.map(x => [x.producto || '', x.tipo || '', x.medida || '', x.color || '', x.unidad || ''].join('|').toUpperCase()));
+            const base = catalogoBaseCierreMensual(ubicacion, categoria)
+                .filter(x => !existentesKeys.has([x.producto || '', x.tipo || '', x.medida || '', x.color || '', x.unidad || ''].join('|').toUpperCase()))
+                .map(x => ({
+                    ...x,
+                    stockSistema: 0
+                }));
+
+            return [...actuales, ...base]
                 .sort((a, b) => {
                     const aa = `${a.producto || ''}|${a.tipo || ''}|${a.medida || ''}|${a.color || ''}`;
                     const bb = `${b.producto || ''}|${b.tipo || ''}|${b.medida || ''}|${b.color || ''}`;
@@ -560,14 +749,11 @@ function obtenerRowsCierreMensual() {
                 })
                 .map(x => {
                     const key = String(x.id);
-                    const fisico = draftRows[key] != null ? (parseFloat(draftRows[key]) || 0) : (parseFloat(x.stock) || 0);
-                    return {
-                        ...x,
-                        stockSistema: parseFloat(x.stock) || 0,
-                        stockFisico: fisico
-                    };
+                    const fisico = draftRows[key] != null ? (parseFloat(draftRows[key]) || 0) : (parseFloat(x.stockSistema) || 0);
+                    return { ...x, stockFisico: fisico };
                 });
         }
+
 
         function estadoCierre(diff) {
             const num = parseFloat(diff) || 0;

@@ -501,25 +501,29 @@ async function refrescarCategoriasCierreMensual() {
     const select = document.getElementById('cierreCategoria');
     if (!select) return;
 
-    let items = getInventarioSupabaseLocal();
-    if (!items.length) {
-        items = await cargarInventarioDesdeSupabase();
-    }
-
-    let categorias = [...new Set(items
-        .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
-        .map(x => String(x.categoria || '').toUpperCase())
-        .filter(Boolean)
-    )].sort();
-
     const fallback = {
         'PLANTA': ['MATERIA_PRIMA', 'ACCESORIOS', 'TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS'],
         'SUCURSAL': ['TINACOS', 'TAMBOS', 'MACETEROS', 'LAMINAS', 'BANCOS', 'CASAS_PERRO', 'OTROS', 'ADITAMENTOS', 'ARTICULOS_JAGR']
     };
 
-    if (!categorias.length) {
-        categorias = fallback[ubicacion] || [];
+    let categorias = [];
+    try {
+        let items = getInventarioSupabaseLocal();
+        if (!items.length) {
+            items = await cargarInventarioDesdeSupabase();
+        }
+
+        categorias = [...new Set((items || [])
+            .filter(x => String(x.ubicacion || '').toUpperCase() === ubicacion)
+            .map(x => String(x.categoria || '').toUpperCase().trim())
+            .filter(Boolean)
+        )].sort();
+    } catch (e) {
+        console.warn('Aviso cargando categorías de cierre mensual:', e);
     }
+
+    const fallbackUbicacion = fallback[ubicacion] || [];
+    categorias = [...new Set([...(categorias || []), ...fallbackUbicacion])].filter(Boolean);
 
     select.innerHTML = '';
     categorias.forEach(cat => {
@@ -536,12 +540,10 @@ async function refrescarCategoriasCierreMensual() {
         select.appendChild(opt);
     }
 
-    if (select.options.length) {
-        select.selectedIndex = 0;
-    }
+    select.selectedIndex = 0;
 }
 
-function obtenerRowsCierreMensualfunction obtenerRowsCierreMensual() {
+function obtenerRowsCierreMensual() {
             const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
             const categoria = (document.getElementById('cierreCategoria')?.value || '').toUpperCase();
             const items = getInventarioSupabaseLocal();
@@ -645,7 +647,27 @@ function obtenerRowsCierreMensualfunction obtenerRowsCierreMensual() {
             localStorage.setItem('plastinova_historial_cierres_mensuales_v1', JSON.stringify(items || []));
         }
 
-        function renderHistorialCierresMensuales() {
+        
+        function asegurarCategoriasCierreMensual() {
+            const select = document.getElementById('cierreCategoria');
+            const ubicacion = (document.getElementById('cierreUbicacion')?.value || 'PLANTA').toUpperCase();
+            if (!select) return;
+            if (select.options.length > 0) return;
+
+            const fallback = ubicacion === 'SUCURSAL'
+                ? ['TINACOS','TAMBOS','MACETEROS','LAMINAS','BANCOS','CASAS_PERRO','OTROS','ADITAMENTOS','ARTICULOS_JAGR']
+                : ['MATERIA_PRIMA','ACCESORIOS','TINACOS','TAMBOS','MACETEROS','LAMINAS','BANCOS'];
+
+            fallback.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = categoriaInventarioLabel(cat);
+                select.appendChild(opt);
+            });
+            if (select.options.length) select.selectedIndex = 0;
+        }
+
+function renderHistorialCierresMensuales() {
             const tbody = document.querySelector('#tablaHistorialCierresMensuales tbody');
             if (!tbody) return;
             const hist = getHistorialCierresMensuales()
@@ -900,6 +922,12 @@ function obtenerRowsCierreMensualfunction obtenerRowsCierreMensual() {
             if(tab === 'cortes') actualizarFechasCorte();
             if(tab === 'inventario') {
                 verStockActual();
+            const cierreCatEl = document.getElementById('cierreCategoria');
+            if (cierreCatEl) {
+                cierreCatEl.addEventListener('focus', asegurarCategoriasCierreMensual);
+                cierreCatEl.addEventListener('touchstart', asegurarCategoriasCierreMensual, { passive: true });
+                cierreCatEl.addEventListener('mousedown', asegurarCategoriasCierreMensual);
+            }
                 if (typeof inicializarModuloCierreMensual === 'function') {
                     inicializarModuloCierreMensual();
                 }

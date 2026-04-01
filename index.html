@@ -327,6 +327,7 @@
                 <div class="form-group"><label>Categoría</label><select id="invMensualCategoria"></select></div>
                 <div class="form-group"><label>Acción</label><button type="button" class="btn btn-primary btn-block" id="btnCargarInventarioMensual">🔄 Cargar renglones</button></div>
               </div>
+              <div class="mini-note" id="mpInventoryNote" style="display:none;margin-top:8px">En <strong>Materia Prima</strong> captura <strong>bultos</strong>, selecciona si son de <strong>20 KG</strong> o <strong>24 KG</strong> y agrega los <strong>kilos sueltos</strong>. El sistema convertirá todo a kilos automáticamente.</div>
               <div class="row print-hidden">
                 <button type="button" class="btn btn-secondary" id="btnGuardarCierreSinAplicar">💾 Guardar sin aplicar</button>
                 <button type="button" class="btn btn-success" id="btnAplicarCierre">✅ Confirmar y aplicar ajuste</button>
@@ -380,7 +381,11 @@
             <div class="card">
               <h3>📥 Entrada directa</h3>
               <div class="form-group"><label>Material / Accesorio / Producto</label><select id="compraMaterial"></select></div>
-              <div class="form-group"><label>Cantidad</label><input type="number" id="compraCantidad" min="0" step="0.01" placeholder="Ej. 65"></div>
+              <div class="row">
+                <div class="form-group"><label>Unidad de captura</label><select id="compraUnidad"></select></div>
+                <div class="form-group"><label>Cantidad</label><input type="number" id="compraCantidad" min="0" step="0.01" placeholder="Ej. 65"></div>
+              </div>
+              <div class="mini-note" id="compraUnidadNota">Para materia prima puedes capturar en <strong>KG</strong>, <strong>bultos de 20 KG</strong> o <strong>bultos de 24 KG</strong>. Para accesorios y productos terminados la captura es por <strong>pieza</strong>.</div>
               <button type="button" class="btn btn-primary btn-block" id="btnRegistrarCompra">➕ Sumar al stock</button>
             </div>
 
@@ -449,8 +454,8 @@
     const MONTHLY_CATALOG = {
       PLANTA: {
         MATERIA_PRIMA: [
-          ...['NEGRO AR','BLANCO AR'].map(c=>({producto:'ROTOFOAM',tipo:'SACO',medida:'20/24 KG',color:c,unidad:'KG',sourceName:`ROTOFOAM ${c}`})),
-          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #15','VERDE INDUST.','BLANCO','ROJO 14','NATURAL','CAFÉ','NARANJA II','RECICLADO / MERMA','GRANITO','TERRACOTA','GRANITO POLIF','MELON','AZUL C/BLANCO','TURQUESA','VERDE OSCURO','DUVALIN','POLIGRANITO - PPL','SOBRAS'].map(c=>({producto:'ROTOLENE',tipo:'SACO',medida:'MEZCLADO / BULTO',color:c,unidad:'KG',sourceName:c==='RECICLADO / MERMA' ? 'RECICLADO / MERMA' : `ROTOLENE ${c}`}))
+          ...['NEGRO AR','BLANCO AR'].map(c=>({producto:'ROTOFOAM',tipo:'SACO',medida:'BULTO / SUELTO',color:c,unidad:'KG',sourceName:`ROTOFOAM ${c}`})),
+          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #15','VERDE INDUST.','BLANCO','ROJO 14','NATURAL','CAFÉ','NARANJA II','RECICLADO / MERMA','GRANITO','TERRACOTA','GRANITO POLIF','MELON','AZUL C/BLANCO','TURQUESA','VERDE OSCURO','DUVALIN','POLIGRANITO - PPL','SOBRAS'].map(c=>({producto:'ROTOLENE',tipo:'SACO',medida:'BULTO / SUELTO',color:c,unidad:'KG',sourceName:c==='RECICLADO / MERMA' ? 'RECICLADO / MERMA' : `ROTOLENE ${c}`}))
         ],
         ACCESORIOS: LISTA_MATERIALES.ACCESORIOS.map(n=>({producto:n.replace(' (PIEZAS)',''),tipo:'',medida:'',color:'',unidad:'PZA',sourceName:n})),
         TINACOS: CAPS_TIN.flatMap(cap => COLS_TIN.map(color => ({producto:'TINACO',tipo:'',medida:cap,color,unidad:'PZA',sourceName:`TINACO ${cap} ${color}`}))),
@@ -709,9 +714,11 @@
         ...['TINACO 1100LT NEGRO','TINACO 1100LT BEIGE','TINACO 1200LT NEGRO','TINACO 1200LT BEIGE','TAMBO 235LT AZUL','MACETA GRANDE NEGRO'].map(v=>[v,v])
       ]);
       $('compraMaterial').value='';
+      populateSelect($('compraUnidad'), [['PZA','PIEZA']]); $('compraUnidad').value='PZA';
       updateCapProd();
       updateMermaProducts();
       updatePriceFields();
+      updateCompraUnits();
       updateMonthlyCategories();
     }
 
@@ -736,6 +743,25 @@
       $('pTambo').value = LISTA_PRECIOS[$('capTambo').value]?.[$('tipoPrecioTambo').value] ?? 0;
     }
 
+    function updateCompraUnits(){
+      const mat = $('compraMaterial').value || '';
+      const isPolvo = LISTA_MATERIALES.POLVOS.includes(mat);
+      const isAcc = LISTA_MATERIALES.ACCESORIOS.includes(mat);
+      let opts = [];
+      if(isPolvo){
+        opts = [['KG','KG'],['BULTO_20','BULTO 20 KG'],['BULTO_24','BULTO 24 KG']];
+      } else if(isAcc){
+        opts = [['PZA','PIEZA']];
+      } else {
+        opts = [['PZA','PIEZA'],['KG','KG']];
+      }
+      populateSelect($('compraUnidad'), opts);
+      $('compraUnidad').value = opts[0][0];
+      $('compraUnidadNota').innerHTML = isPolvo
+        ? 'Para materia prima puedes capturar en <strong>KG</strong>, <strong>bultos de 20 KG</strong> o <strong>bultos de 24 KG</strong>. El sistema lo convertirá a kilos.'
+        : (isAcc ? 'Para accesorios la captura es por <strong>pieza</strong>.' : 'Para productos terminados la captura normal es por <strong>pieza</strong>. Usa <strong>KG</strong> solo si realmente el material se controla por peso.');
+    }
+
     function updateMonthlyCategories(){
       const ubic=$('invMensualUbicacion').value || 'PLANTA';
       const cats=Object.keys(MONTHLY_CATALOG[ubic] || {});
@@ -754,38 +780,79 @@
     function loadMonthlyRows(){
       const ubic = $('invMensualUbicacion').value;
       const cat = $('invMensualCategoria').value;
+      const isMateriaPrima = cat === 'MATERIA_PRIMA';
+      $('mpInventoryNote').style.display = isMateriaPrima ? 'block' : 'none';
       const base = (MONTHLY_CATALOG[ubic] && MONTHLY_CATALOG[ubic][cat]) ? MONTHLY_CATALOG[ubic][cat] : [];
       state.monthlyRows = base.map((raw, idx) => {
-        const item = { ubicacion: ubic, categoria: cat, producto: raw.producto||'', tipo: raw.tipo||'', medida: raw.medida||'', color: raw.color||'', unidad: raw.unidad||'PZA', sourceName: raw.sourceName||'' };
+        const item = { ubicacion: ubic, categoria: cat, producto: raw.producto||'', tipo: raw.tipo||'', medida: raw.medida||'', color: raw.color||'', unidad: raw.unidad||'PZA', sourceName: raw.sourceName||'', isMateriaPrima };
         const sistema = getSystemStockForItem(item);
-        return { id:`row-${idx}-${Date.now()}`, ...item, sistema, fisico:sistema, diferencia:0, estado:'COINCIDE' };
+        return {
+          id:`row-${idx}-${Date.now()}`,
+          ...item,
+          sistema,
+          fisico:sistema,
+          diferencia:0,
+          estado:'COINCIDE',
+          bultos:0,
+          pesoBulto:20,
+          sueltos:sistema
+        };
       });
       renderMonthlyTable();
     }
 
-    function recalcMonthlyRow(index, value){
+    function recalcMonthlyRow(index, value, field='fisico'){
       const row = state.monthlyRows[index]; if(!row) return;
-      const fisico = parseFloat(value); row.fisico = isNaN(fisico) ? 0 : fisico;
+      if(row.isMateriaPrima){
+        if(field==='bultos') row.bultos = Math.max(0, parseFloat(value) || 0);
+        if(field==='pesoBulto') row.pesoBulto = parseFloat(value) === 24 ? 24 : 20;
+        if(field==='sueltos') row.sueltos = Math.max(0, parseFloat(value) || 0);
+        row.fisico = (parseFloat(row.bultos)||0) * (parseFloat(row.pesoBulto)||20) + (parseFloat(row.sueltos)||0);
+      } else {
+        const fisico = parseFloat(value); row.fisico = isNaN(fisico) ? 0 : fisico;
+      }
       row.diferencia = (row.fisico||0) - (parseFloat(row.sistema)||0);
       row.estado = row.diferencia === 0 ? 'COINCIDE' : (row.diferencia < 0 ? 'FALTA' : 'SOBRA');
       updateMonthlySummary();
     }
 
     function renderMonthlyTable(){
-      const tbody = $('tablaInventarioMensual').querySelector('tbody');
-      if(!state.monthlyRows.length){ tbody.innerHTML = '<tr><td colspan="8" class="subtle">Sin renglones para esta categoría.</td></tr>'; updateMonthlySummary(); return; }
-      tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
-        <td>${escHtml(r.producto)}</td>
-        <td>${escHtml(r.tipo||'-')}</td>
-        <td>${escHtml(r.medida||'-')}</td>
-        <td>${escHtml(r.color||'-')}</td>
-        <td>${(parseFloat(r.sistema)||0).toFixed(2)}</td>
-        <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.fisico)||0).toFixed(2)}" data-row-index="${idx}" class="inv-fisico-input"></td>
-        <td>${(parseFloat(r.diferencia)||0).toFixed(2)}</td>
-        <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
-      </tr>`).join('');
-      tbody.querySelectorAll('.inv-fisico-input').forEach(inp=>{
-        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value); renderMonthlyTable(); });
+      const table = $('tablaInventarioMensual');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      const isMateriaPrima = $('invMensualCategoria').value === 'MATERIA_PRIMA';
+      thead.innerHTML = isMateriaPrima
+        ? `<tr><th>Producto</th><th>Tipo</th><th>Color</th><th>Sistema (KG)</th><th>Bultos</th><th>Peso Bulto</th><th>Sueltos (KG)</th><th>Físico Total</th><th>Diferencia</th><th>Estado</th></tr>`
+        : `<tr><th>Producto</th><th>Tipo</th><th>Medida</th><th>Color</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Estado</th></tr>`;
+      if(!state.monthlyRows.length){ tbody.innerHTML = `<tr><td colspan="${isMateriaPrima?10:8}" class="subtle">Sin renglones para esta categoría.</td></tr>`; updateMonthlySummary(); return; }
+      if(isMateriaPrima){
+        tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
+          <td>${escHtml(r.producto)}</td>
+          <td>${escHtml(r.tipo||'-')}</td>
+          <td>${escHtml(r.color||'-')}</td>
+          <td><span class="inv-kg-badge">${(parseFloat(r.sistema)||0).toFixed(2)} KG</span></td>
+          <td><input type="number" step="1" min="0" value="${parseFloat(r.bultos||0).toFixed(0)}" data-row-index="${idx}" data-field="bultos" class="inv-fisico-input"></td>
+          <td><select data-row-index="${idx}" data-field="pesoBulto" class="inv-weight-select"><option value="20" ${parseFloat(r.pesoBulto)===20?'selected':''}>20 KG</option><option value="24" ${parseFloat(r.pesoBulto)===24?'selected':''}>24 KG</option></select></td>
+          <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.sueltos)||0).toFixed(2)}" data-row-index="${idx}" data-field="sueltos" class="inv-fisico-input"></td>
+          <td>${(parseFloat(r.fisico)||0).toFixed(2)} KG</td>
+          <td>${(parseFloat(r.diferencia)||0).toFixed(2)} KG</td>
+          <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
+        </tr>`).join('');
+      } else {
+        tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
+          <td>${escHtml(r.producto)}</td>
+          <td>${escHtml(r.tipo||'-')}</td>
+          <td>${escHtml(r.medida||'-')}</td>
+          <td>${escHtml(r.color||'-')}</td>
+          <td>${(parseFloat(r.sistema)||0).toFixed(2)}</td>
+          <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.fisico)||0).toFixed(2)}" data-row-index="${idx}" data-field="fisico" class="inv-fisico-input"></td>
+          <td>${(parseFloat(r.diferencia)||0).toFixed(2)}</td>
+          <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
+        </tr>`).join('');
+      }
+      tbody.querySelectorAll('.inv-fisico-input,.inv-weight-select').forEach(inp=>{
+        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
+        inp.addEventListener('change', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
       });
       updateMonthlySummary();
     }
@@ -881,7 +948,7 @@
     }
 
     function registerMerma(){ const mat=$('mermaProducto').value; const cant=parseFloat($('qMerma').value)||0; const causa=($('descMerma').value||'DAÑO / MERMA').toUpperCase(); if(!mat||cant<=0) return alert('Ingresa cantidad válida.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'SISTEMA', tipo:'MERMA', concepto:`MERMA: ${mat} (${causa})`, cantidad:cant, precio:0, total:0, capacidad:null, colorUI:mat }); $('qMerma').value=''; $('descMerma').value=''; alert('Merma registrada.'); }
-    function registerCompra(){ const mat=$('compraMaterial').value, cant=parseFloat($('compraCantidad').value)||0; if(!mat||cant<=0) return alert('Datos inválidos.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('invMensualFecha').value||hoyLocalISO(), semana:getNumeroSemana($('invMensualFecha').value||hoyLocalISO()), vendedor:'SISTEMA/PROV', tipo:'COMPRA', concepto:`INGRESO: ${mat}`, cantidad:cant, precio:0, total:0, capacidad:null, colorUI:mat }); $('compraCantidad').value=''; alert('Entrada sumada al stock.'); }
+    function registerCompra(){ const mat=$('compraMaterial').value; const cant=parseFloat($('compraCantidad').value)||0; const unidad=$('compraUnidad').value||'PZA'; if(!mat||cant<=0) return alert('Datos inválidos.'); let cantidadReal=cant; if(unidad==='BULTO_20') cantidadReal=cant*20; else if(unidad==='BULTO_24') cantidadReal=cant*24; const conceptoUnidad = unidad==='BULTO_20' ? 'BULTO 20 KG' : (unidad==='BULTO_24' ? 'BULTO 24 KG' : unidad); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('invMensualFecha').value||hoyLocalISO(), semana:getNumeroSemana($('invMensualFecha').value||hoyLocalISO()), vendedor:'SISTEMA/PROV', tipo:'COMPRA', concepto:`INGRESO: ${mat} [${conceptoUnidad}]`, cantidad:cantidadReal, precio:0, total:0, capacidad:null, colorUI:mat }); $('compraCantidad').value=''; alert(`Entrada sumada al stock. Registrado: ${cant} ${conceptoUnidad}${unidad.startsWith('BULTO') ? ` = ${cantidadReal.toFixed(2)} KG` : ''}.`); }
 
     function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); reconstructStockFromMovements(state.movements); renderAll(); }
     function editStockPrompt(material, actualVal, unidad){ let v=prompt(`Stock actual de ${material}: ${actualVal} ${unidad}.\nIngresa la nueva cantidad exacta:`, actualVal); if(v===null) return; const nuevo=parseFloat(v); if(isNaN(nuevo)||nuevo<0) return alert('Valor inválido.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL)`, cantidad:nuevo, precio:0, total:0, capacidad:null, colorUI:material }); }
@@ -905,7 +972,7 @@
       return { vendedor, semanaCalculada, rango:`${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')}`, tin, tam, gastos, sumQTin,sumDTin,sumQTam,sumDTam,sumGastos,sumComisionTinacos,sumComisionTambos,sumQExtTin,sumQExtTam,sumQExtTinPedro,sumQExtTamPedro,hizoTambosExtra,hizoTinacosExtra,hizoTambosExtraPedro,hizoTinacosExtraPedro,comExtPedro,comExtVendedor,totalPagosExtra,totalVentasGenerales,subtotalDespuesGastos,totalFinal };
     }
 
-    function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div>`; }
+    function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
     function printDocument(htmlContent, tituloDocumento){
       const logoHTML = `<div style="display:flex;align-items:center;gap:12px"><div style="width:62px;height:62px;border-radius:14px;background:linear-gradient(135deg,#0f4d8a,#3ea2ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:24px">PN</div><div><div style="font-weight:900;font-size:18px;color:#0f4278">PLASTINOVA</div><div style="font-size:12px;color:#38577f">Control gerencial</div></div></div>`;
@@ -916,15 +983,15 @@
         .wrap{padding:6px}
         .head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f4d8a;padding-bottom:8px;margin-bottom:10px}
         .title{text-align:right}.title h1{margin:0;font-size:18px;color:#0f4d8a}.title p{margin:4px 0 0;font-size:11px}
-        h2{margin:10px 0 4px;font-size:12px;color:#0f4d8a;text-transform:uppercase}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #111;padding:4px 5px;vertical-align:top}th{background:#0f4d8a;color:#fff;font-size:9px}td{font-size:9px} .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.total{color:#b11818;font-weight:900}.firma{margin-top:10px;font-size:10px}.right{text-align:right}
+        h2{margin:10px 0 4px;font-size:12px;color:#0f4d8a;text-transform:uppercase;background:#dcecff;padding:4px 6px;border-left:4px solid #0f4d8a}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #111;padding:4px 5px;vertical-align:top}th{background:#0f4d8a;color:#fff;font-size:9px;font-weight:800}td{font-size:9px} .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.total{color:#b11818;font-weight:900}.firma{margin-top:10px;font-size:10px}.right{text-align:right}
       </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
     }
 
     function generateCutPDF(){
       const c=buildCutData();
-      const gastosRows = (c.gastos.length?c.gastos:[{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0}]).slice(0,6).map(g=>`<tr><td>${escHtml(g.concepto||'&nbsp;')}</td><td class="right">${g.total?`$${formato(g.total)}`:'-'}</td></tr>`).join('');
+      const gastosRows = (c.gastos.length?c.gastos:[{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0}]).slice(0,6).map(g=>`<tr><td>${g.concepto?escHtml(g.concepto):''}</td><td class="right">${g.total?`$${formato(g.total)}`:'-'}</td></tr>`).join('');
       const tinRows = (c.tin.length?c.tin:[{fecha:'',concepto:'Sin ventas registradas',cantidad:0,precio:0,total:0}]).map(r=>`<tr><td>${escHtml(r.fecha)}</td><td>${escHtml(r.concepto)}</td><td class="right">${r.cantidad.toFixed(2)}</td><td class="right">$${formato(r.precio)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('');
       const tamRows = (c.tam.length?c.tam:[{fecha:'',concepto:'Sin ventas registradas',cantidad:0,precio:0,total:0}]).map(r=>`<tr><td>${escHtml(r.fecha)}</td><td>${escHtml(r.concepto)}</td><td class="right">${r.cantidad.toFixed(2)}</td><td class="right">$${formato(r.precio)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('');
       let textoExtrasPedro='TIN EXTRA PEDRO'; if(c.hizoTambosExtraPedro && !c.hizoTinacosExtraPedro) textoExtrasPedro='TAM EXTRA PEDRO'; else if(c.hizoTambosExtraPedro && c.hizoTinacosExtraPedro) textoExtrasPedro='TIN/TAM EXT PEDRO';
@@ -976,7 +1043,7 @@
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
       $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows);
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
-      $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnRegistrarCompra').addEventListener('click', registerCompra);
+      $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
       $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } });
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', ()=>printDocument(`<h2>Resumen global</h2><div>${$('graficaVentas').outerHTML}${$('graficaProd').outerHTML}</div>`, 'REPORTE PRO - VENTAS VS PRODUCCIÓN'));

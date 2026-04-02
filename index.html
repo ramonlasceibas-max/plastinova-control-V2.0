@@ -332,17 +332,6 @@
                 <div class="form-group"><label>Acción</label><button type="button" class="btn btn-primary btn-block" id="btnCargarInventarioMensual">🔄 Cargar renglones</button></div>
               </div>
               <div class="mini-note" id="mpInventoryNote" style="display:none;margin-top:8px">En <strong>Materia Prima</strong> captura <strong>bultos</strong>, selecciona si cada bulto es de <strong>20 KG</strong> o <strong>24 KG</strong> y agrega los <strong>kilos sueltos</strong>. El sistema calculará solo el <strong>físico total en KG</strong>.</div>
-              <div class="manual-add-box">
-                <div class="mini-note">Si un producto no aparece en la lista de la categoría, agrégalo aquí sin tocar el código. Se agregará a este cierre y, si aplicas el ajuste, quedará guardado en inventario.</div>
-                <div class="inventory-header">
-                  <div class="form-group"><label>Producto manual</label><input type="text" id="manualInvProducto" placeholder="Ej. MACETERO"></div>
-                  <div class="form-group"><label>Tipo</label><input type="text" id="manualInvTipo" placeholder="Ej. CONICA"></div>
-                  <div class="form-group"><label>Medida / Capacidad</label><input type="text" id="manualInvMedida" placeholder="Ej. CHICO / 3.05 X 1.20"></div>
-                  <div class="form-group"><label>Color</label><input type="text" id="manualInvColor" placeholder="Ej. CHOCOLATE"></div>
-                  <div class="form-group"><label>Unidad</label><select id="manualInvUnidad"><option value="PZA">PIEZA</option><option value="KG">KG</option><option value="ML">METRO LINEAL</option></select></div>
-                  <div class="form-group"><label>Acción</label><button type="button" class="btn btn-secondary btn-block" id="btnAgregarRenglonManual">➕ Agregar renglón manual</button></div>
-                </div>
-              </div>
               <div class="row print-hidden">
                 <button type="button" class="btn btn-secondary" id="btnGuardarCierreSinAplicar">💾 Guardar sin aplicar</button>
                 <button type="button" class="btn btn-success" id="btnAplicarCierre">✅ Confirmar y aplicar ajuste</button>
@@ -534,8 +523,8 @@
           {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'GENERAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE'}
         ],
         CASAS_PERRO: [
-          {producto:'CASA DE PERRO',tipo:'',medida:'MEDIANA',color:'GENERAL',unidad:'PZA'},
-          {producto:'CASA DE PERRO',tipo:'',medida:'GRANDE',color:'GENERAL',unidad:'PZA'}
+          ...['ROJO','AZUL','CHOCOLATE','ROSA'].map(c=>({producto:'CASA DE PERRO',tipo:'',medida:'MEDIANA',color:c,unidad:'PZA',sourceName:`CASA DE PERRO MEDIANA ${c}`})),
+          ...['ROJO','AZUL','CHOCOLATE','ROSA'].map(c=>({producto:'CASA DE PERRO',tipo:'',medida:'GRANDE',color:c,unidad:'PZA',sourceName:`CASA DE PERRO GRANDE ${c}`}))
         ],
         OTROS: [
           'ESFERA','CONTENEDOR 750 LT','CARRITO','SILLON','LAVABO','JARRON','FILTRO'
@@ -783,12 +772,9 @@
 
     function updateMonthlyCategories(){
       const ubic=$('invMensualUbicacion').value || 'PLANTA';
-      const staticCats=Object.keys(MONTHLY_CATALOG[ubic] || {});
-      const cacheCats=(state.inventoryCache||[]).filter(x=>textoSeguro(x.ubicacion)===textoSeguro(ubic)).map(x=>textoSeguro(x.categoria)).filter(Boolean);
-      const cats=[...new Set([...staticCats, ...cacheCats])].sort();
+      const cats=Object.keys(MONTHLY_CATALOG[ubic] || {});
       populateSelect($('invMensualCategoria'), cats.map(c=>[c,c.replaceAll('_',' ')]));
       if(cats.length) $('invMensualCategoria').value = cats[0];
-      updateManualRowDefaults();
       loadMonthlyRows();
     }
 
@@ -799,34 +785,14 @@
       return 0;
     }
 
-    function rowSourceNameFromFields(item){
-      const parts = [item.producto, item.tipo, item.medida, item.color].filter(Boolean).map(v=>textoSeguro(v));
-      return parts.join(' ').trim();
-    }
-
     function loadMonthlyRows(){
       const ubic = $('invMensualUbicacion').value;
       const cat = $('invMensualCategoria').value;
       const isMateriaPrima = cat === 'MATERIA_PRIMA';
       $('mpInventoryNote').style.display = isMateriaPrima ? 'block' : 'none';
-      updateManualRowDefaults();
-
-      const staticBase = (MONTHLY_CATALOG[ubic] && MONTHLY_CATALOG[ubic][cat]) ? MONTHLY_CATALOG[ubic][cat] : [];
-      const cacheBase = (state.inventoryCache || []).filter(x => textoSeguro(x.ubicacion)===textoSeguro(ubic) && textoSeguro(x.categoria)===textoSeguro(cat))
-        .map(x => ({
-          producto:x.producto||'', tipo:x.tipo||'', medida:x.medida||'', color:x.color||'', unidad:x.unidad||'PZA',
-          sourceName: rowSourceNameFromFields(x)
-        }));
-
-      const merged = new Map();
-      [...staticBase, ...cacheBase].forEach(raw => {
-        const item = { ubicacion: ubic, categoria: cat, producto: raw.producto||'', tipo: raw.tipo||'', medida: raw.medida||'', color: raw.color||'', unidad: raw.unidad||'PZA' };
-        merged.set(inventoryVariantKey(item), { ...raw });
-      });
-
-      const base = Array.from(merged.values());
+      const base = (MONTHLY_CATALOG[ubic] && MONTHLY_CATALOG[ubic][cat]) ? MONTHLY_CATALOG[ubic][cat] : [];
       state.monthlyRows = base.map((raw, idx) => {
-        const item = { ubicacion: ubic, categoria: cat, producto: raw.producto||'', tipo: raw.tipo||'', medida: raw.medida||'', color: raw.color||'', unidad: raw.unidad||'PZA', sourceName: raw.sourceName||rowSourceNameFromFields(raw), isMateriaPrima, isCustom: !!raw.isCustom };
+        const item = { ubicacion: ubic, categoria: cat, producto: raw.producto||'', tipo: raw.tipo||'', medida: raw.medida||'', color: raw.color||'', unidad: raw.unidad||'PZA', sourceName: raw.sourceName||'', isMateriaPrima };
         const sistema = getSystemStockForItem(item);
         return {
           id:`row-${idx}-${Date.now()}`,
@@ -845,63 +811,17 @@
 
     function recalcMonthlyRow(index, value, field='fisico'){
       const row = state.monthlyRows[index]; if(!row) return;
-      if(field==='producto' || field==='tipo' || field==='medida' || field==='color' || field==='unidad'){
-        row[field] = String(value || '').toUpperCase();
-        row.sourceName = rowSourceNameFromFields(row);
-      }
       if(row.isMateriaPrima){
         if(field==='bultos') row.bultos = Math.max(0, parseFloat(value) || 0);
         if(field==='pesoBulto') row.pesoBulto = parseFloat(value) === 24 ? 24 : 20;
         if(field==='sueltos') row.sueltos = Math.max(0, parseFloat(value) || 0);
         row.fisico = (parseFloat(row.bultos)||0) * (parseFloat(row.pesoBulto)||20) + (parseFloat(row.sueltos)||0);
-      } else if(field==='fisico') {
+      } else {
         const fisico = parseFloat(value); row.fisico = isNaN(fisico) ? 0 : fisico;
       }
       row.diferencia = (row.fisico||0) - (parseFloat(row.sistema)||0);
       row.estado = row.diferencia === 0 ? 'COINCIDE' : (row.diferencia < 0 ? 'FALTA' : 'SOBRA');
       updateMonthlySummary();
-    }
-
-    function removeMonthlyRow(index){
-      state.monthlyRows.splice(index, 1);
-      renderMonthlyTable();
-    }
-
-    function updateManualRowDefaults(){
-      const cat = $('invMensualCategoria').value || '';
-      if(cat==='MATERIA_PRIMA') $('manualInvUnidad').value = 'KG';
-      else if(cat==='LAMINAS') $('manualInvUnidad').value = 'ML';
-      else $('manualInvUnidad').value = 'PZA';
-    }
-
-    function addManualMonthlyRow(){
-      const ubic = $('invMensualUbicacion').value || 'PLANTA';
-      const cat = $('invMensualCategoria').value || '';
-      const producto = textoSeguro($('manualInvProducto').value);
-      const tipo = textoSeguro($('manualInvTipo').value);
-      const medida = textoSeguro($('manualInvMedida').value);
-      const color = textoSeguro($('manualInvColor').value);
-      const unidad = textoSeguro($('manualInvUnidad').value || (cat==='MATERIA_PRIMA' ? 'KG' : 'PZA'));
-      if(!producto) return alert('Escribe al menos el nombre del producto manual.');
-      const baseItem = { ubicacion: ubic, categoria: cat, producto, tipo, medida, color, unidad, sourceName: rowSourceNameFromFields({producto,tipo,medida,color}), isMateriaPrima: cat==='MATERIA_PRIMA', isCustom:true };
-      const sistema = getSystemStockForItem(baseItem);
-      state.monthlyRows.push({
-        id:`manual-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        ...baseItem,
-        sistema,
-        fisico:sistema,
-        diferencia:0,
-        estado:'COINCIDE',
-        bultos:0,
-        pesoBulto:20,
-        sueltos:sistema
-      });
-      $('manualInvProducto').value='';
-      $('manualInvTipo').value='';
-      $('manualInvMedida').value='';
-      $('manualInvColor').value='';
-      updateManualRowDefaults();
-      renderMonthlyTable();
     }
 
     function renderMonthlyTable(){
@@ -910,14 +830,14 @@
       const tbody = table.querySelector('tbody');
       const isMateriaPrima = $('invMensualCategoria').value === 'MATERIA_PRIMA';
       thead.innerHTML = isMateriaPrima
-        ? `<tr><th>Producto</th><th>Tipo</th><th>Color</th><th>Sistema (KG)</th><th>Bultos</th><th>Peso Bulto</th><th>Sueltos (KG)</th><th>Físico Total</th><th>Diferencia</th><th>Estado</th><th>Acción</th></tr>`
-        : `<tr><th>Producto</th><th>Tipo</th><th>Medida</th><th>Color</th><th>Unidad</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Estado</th><th>Acción</th></tr>`;
-      if(!state.monthlyRows.length){ tbody.innerHTML = `<tr><td colspan="${isMateriaPrima?11:10}" class="subtle">Sin renglones para esta categoría. Usa el botón manual si te falta alguno.</td></tr>`; updateMonthlySummary(); return; }
+        ? `<tr><th>Producto</th><th>Tipo</th><th>Color</th><th>Sistema (KG)</th><th>Bultos</th><th>Peso Bulto</th><th>Sueltos (KG)</th><th>Físico Total</th><th>Diferencia</th><th>Estado</th></tr>`
+        : `<tr><th>Producto</th><th>Tipo</th><th>Medida</th><th>Color</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Estado</th></tr>`;
+      if(!state.monthlyRows.length){ tbody.innerHTML = `<tr><td colspan="${isMateriaPrima?10:8}" class="subtle">Sin renglones para esta categoría.</td></tr>`; updateMonthlySummary(); return; }
       if(isMateriaPrima){
         tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.producto)}" data-row-index="${idx}" data-field="producto" class="inv-fisico-input">` : escHtml(r.producto)}</td>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.tipo||'')}" data-row-index="${idx}" data-field="tipo" class="inv-fisico-input">` : escHtml(r.tipo||'-')}</td>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.color||'')}" data-row-index="${idx}" data-field="color" class="inv-fisico-input">` : escHtml(r.color||'-')}</td>
+          <td>${escHtml(r.producto)}</td>
+          <td>${escHtml(r.tipo||'-')}</td>
+          <td>${escHtml(r.color||'-')}</td>
           <td><span class="inv-kg-badge">${(parseFloat(r.sistema)||0).toFixed(2)} KG</span></td>
           <td><input type="number" step="1" min="0" value="${parseFloat(r.bultos||0).toFixed(0)}" data-row-index="${idx}" data-field="bultos" class="inv-fisico-input"></td>
           <td><select data-row-index="${idx}" data-field="pesoBulto" class="inv-weight-select"><option value="20" ${parseFloat(r.pesoBulto)===20?'selected':''}>20 KG</option><option value="24" ${parseFloat(r.pesoBulto)===24?'selected':''}>24 KG</option></select></td>
@@ -925,27 +845,23 @@
           <td>${(parseFloat(r.fisico)||0).toFixed(2)} KG</td>
           <td>${(parseFloat(r.diferencia)||0).toFixed(2)} KG</td>
           <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
-          <td>${r.isCustom ? `<button type="button" class="btn btn-danger btn-mini" data-remove-row="${idx}">🗑️</button>` : '<span class="subtle">-</span>'}</td>
         </tr>`).join('');
       } else {
         tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.producto)}" data-row-index="${idx}" data-field="producto" class="inv-fisico-input">` : escHtml(r.producto)}</td>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.tipo||'')}" data-row-index="${idx}" data-field="tipo" class="inv-fisico-input">` : escHtml(r.tipo||'-')}</td>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.medida||'')}" data-row-index="${idx}" data-field="medida" class="inv-fisico-input">` : escHtml(r.medida||'-')}</td>
-          <td>${r.isCustom ? `<input type="text" value="${escHtml(r.color||'')}" data-row-index="${idx}" data-field="color" class="inv-fisico-input">` : escHtml(r.color||'-')}</td>
-          <td>${r.isCustom ? `<select data-row-index="${idx}" data-field="unidad" class="inv-weight-select"><option value="PZA" ${r.unidad==='PZA'?'selected':''}>PIEZA</option><option value="KG" ${r.unidad==='KG'?'selected':''}>KG</option><option value="ML" ${r.unidad==='ML'?'selected':''}>METRO LINEAL</option></select>` : escHtml(r.unidad||'PZA')}</td>
+          <td>${escHtml(r.producto)}</td>
+          <td>${escHtml(r.tipo||'-')}</td>
+          <td>${escHtml(r.medida||'-')}</td>
+          <td>${escHtml(r.color||'-')}</td>
           <td>${(parseFloat(r.sistema)||0).toFixed(2)}</td>
           <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.fisico)||0).toFixed(2)}" data-row-index="${idx}" data-field="fisico" class="inv-fisico-input"></td>
           <td>${(parseFloat(r.diferencia)||0).toFixed(2)}</td>
           <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
-          <td>${r.isCustom ? `<button type="button" class="btn btn-danger btn-mini" data-remove-row="${idx}">🗑️</button>` : '<span class="subtle">-</span>'}</td>
         </tr>`).join('');
       }
       tbody.querySelectorAll('.inv-fisico-input,.inv-weight-select').forEach(inp=>{
         inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
         inp.addEventListener('change', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
       });
-      tbody.querySelectorAll('[data-remove-row]').forEach(btn=> btn.addEventListener('click', e=>{ removeMonthlyRow(parseInt(e.currentTarget.dataset.removeRow,10)); }));
       updateMonthlySummary();
     }
 
@@ -964,7 +880,7 @@
       const ubicacion = $('invMensualUbicacion').value;
       const categoria = $('invMensualCategoria').value;
       const drafts = getMonthlyDrafts();
-      const entry = { id: Date.now()+Math.random(), fecha, ubicacion, categoria, rows: state.monthlyRows.map(r=>({producto:r.producto,tipo:r.tipo,medida:r.medida,color:r.color,sistema:r.sistema,fisico:r.fisico,diferencia:r.diferencia,estado:r.estado,unidad:r.unidad,sourceName:r.sourceName||'',bultos:r.bultos||0,pesoBulto:r.pesoBulto||20,sueltos:r.sueltos||0,isMateriaPrima:!!r.isMateriaPrima,isCustom:!!r.isCustom})) };
+      const entry = { id: Date.now()+Math.random(), fecha, ubicacion, categoria, rows: state.monthlyRows.map(r=>({producto:r.producto,tipo:r.tipo,medida:r.medida,color:r.color,sistema:r.sistema,fisico:r.fisico,diferencia:r.diferencia,estado:r.estado,unidad:r.unidad,sourceName:r.sourceName||''})) };
       drafts.unshift(entry); saveMonthlyDrafts(drafts); renderMonthlyClosures();
       if(!applyChanges){ alert('Cierre guardado sin aplicar.'); return; }
       let db = getMovements();
@@ -972,11 +888,8 @@
         const item = { ubicacion, categoria, producto:row.producto, tipo:row.tipo, medida:row.medida, color:row.color, unidad:row.unidad };
         const up = await upsertInventoryVariant(item, row.fisico);
         await logInventoryMovement(up.id || null, 'AJUSTE_CIERRE', row.diferencia, `${fecha} ${ubicacion} ${categoria}`);
-        if(ubicacion==='PLANTA'){
-          const sourceName = row.sourceName || rowSourceNameFromFields(row);
-          if(sourceName){
-            db.push({ id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${sourceName} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:sourceName });
-          }
+        if(ubicacion==='PLANTA' && row.sourceName){
+          db.push({ id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${row.sourceName} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:row.sourceName });
         }
       }
       db = ordenarDBCronologicamente(db); saveMovements(db); state.movements = db; await loadInventoryCacheFromSupabase(); reconstructStockFromMovements(db); renderAll();
@@ -1160,8 +1073,7 @@
       $('fecha').addEventListener('change', syncSemanaDesdeFecha);
       $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
-      $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', ()=>{ updateManualRowDefaults(); loadMonthlyRows(); }); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows);
-      $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
+      $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows);
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
       $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
@@ -1175,7 +1087,7 @@
 
     async function init(){
       updateDateDefaults(); fillStaticSelectors(); bindEvents(); state.movements = getMovements(); reconstructStockFromMovements(state.movements); seedInitialInventoryCacheIfEmpty(); state.inventoryCache = getInventoryCache(); renderAll(); updateCutDates();
-      await pingSupabase(); await loadInventoryCacheFromSupabase(); updateManualRowDefaults(); loadMonthlyRows(); renderAll();
+      await pingSupabase(); await loadInventoryCacheFromSupabase(); loadMonthlyRows(); renderAll();
     }
     document.addEventListener('DOMContentLoaded', init);
   </script>

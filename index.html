@@ -22,8 +22,8 @@
       --radius:16px;
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-    body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#dfeaf7 100%);color:var(--text);overflow-x:hidden;}
-    .app-shell{max-width:1280px;margin:0 auto;min-height:100vh;display:flex;gap:16px;padding:16px;overflow-x:hidden;}
+    body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#dfeaf7 100%);color:var(--text);overflow-x:hidden;padding-top:env(safe-area-inset-top);}
+    .app-shell{max-width:1280px;margin:0 auto;min-height:100vh;display:flex;gap:16px;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));overflow-x:hidden;}
     .side-nav{width:250px;background:linear-gradient(180deg,#0b2e57,#114780 65%,#15589e);border-radius:24px;padding:18px;color:#fff;box-shadow:var(--shadow);display:flex;flex-direction:column;position:sticky;top:16px;height:calc(100vh - 32px)}
     .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.14)}
     .brand-badge{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#61b8ff,#d9edff);display:flex;align-items:center;justify-content:center;color:#0b3c72;font-weight:900;box-shadow:inset 0 2px 8px rgba(255,255,255,.6)}
@@ -99,7 +99,7 @@
 
     .manual-add-box{margin-top:12px;padding:12px;border:1px dashed #c6d8ed;border-radius:14px;background:#f8fbff}
     .manual-add-title{font-size:12px;font-weight:900;color:var(--brand);margin:0 0 8px}
-    .table-wrap table{min-width:760px}
+    .table-wrap table{min-width:640px}
     .print-hidden{}
     @media (max-width: 1024px){
       .app-shell{padding:10px;display:block}
@@ -119,7 +119,24 @@
       .row>.btn{width:100%}
       .inventory-table th,.inventory-table td,.db-table th,.db-table td{font-size:11px;padding:8px 6px}
       .inventory-table input,.inventory-table select{width:100%;min-width:74px}
-      .table-wrap{max-width:100vw}
+      .table-wrap{max-width:100vw;overflow-x:auto}
+      .table-wrap table{min-width:0 !important;width:100%}
+      #tablaStockActual th,#tablaStockActual td,#tablaStockRuta th,#tablaStockRuta td{white-space:normal}
+      #tablaInventarioMensual thead{display:none}
+      #tablaInventarioMensual, #tablaInventarioMensual tbody{display:block;width:100%}
+      #tablaInventarioMensual tr{display:block;width:100%;background:#fff;border:1px solid #dce7f5;border-radius:16px;margin:0 0 12px;padding:6px 0;box-shadow:0 4px 14px rgba(10,31,68,.06)}
+      #tablaInventarioMensual td{display:block;width:100%;padding:10px 12px;border-bottom:1px solid #eef3f9;white-space:normal}
+      #tablaInventarioMensual td::before{content:attr(data-label);display:block;font-weight:900;color:var(--brand);margin-bottom:6px}
+      #tablaInventarioMensual td:last-child{border-bottom:none}
+      #tablaInventarioMensual td input,#tablaInventarioMensual td select{max-width:none;width:100%;font-size:16px}
+      .manual-add-box .row{display:block}
+      .manual-add-box .form-group{margin-bottom:10px}
+      .topbar{padding-top:calc(20px + env(safe-area-inset-top))}
+      .mobile-tabs{padding-bottom:4px;overflow-x:auto;scroll-snap-type:x proximity}
+      .mobile-tab{scroll-snap-align:start;min-width:132px}
+      .summary-box{grid-template-columns:1fr 1fr}
+      .table-wrap{overflow:visible}
+      .inventory-table{border-collapse:separate;border-spacing:0}
     }
     @media print{
       body{background:#fff}
@@ -342,7 +359,7 @@
                 <button type="button" class="btn btn-success" id="btnAplicarCierre">✅ Confirmar y aplicar ajuste</button>
               </div>
               <div class="manual-add-box print-hidden">
-                <div class="manual-add-title">➕ Agregar producto nuevo al cierre</div>
+                <div class="manual-add-title">➕ Agregar producto nuevo al cierre</div><div class="subtle" style="margin-bottom:8px">Úsalo si una pieza no aparece en la lista de la categoría. Quedará guardada para futuros cierres.</div>
                 <div class="row">
                   <div class="form-group"><label>Producto</label><input type="text" id="invManualProducto" placeholder="Ej. MACETERO"></div>
                   <div class="form-group"><label>Tipo</label><input type="text" id="invManualTipo" placeholder="Ej. CUADRADO"></div>
@@ -479,6 +496,7 @@
     const PLANTA_MACETA_GRANDE_COLORES = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO'];
     const PLANTA_MACETA_CHICA_COLORES = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','UVA','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','ROJO C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'];
     const BANCOS_CHICO_COLORES = ['BEIGE','NEGRO','AZUL #5','GRANITO','NATURAL','BLANCO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO'];
+    const ALL_BANCO_SUCURSAL_COLORES = [...new Set([...PLANTA_MACETA_GRANDE_COLORES, ...PLANTA_MACETA_CHICA_COLORES, 'NEGRO'])];
     const SUCURSAL_CONOS = [
       ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','GRIS'].map(c=>({producto:'CONO',tipo:'CONICA',medida:'MINI',color:c,unidad:'PZA'})),
       ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','CANTERA NEGRA'].map(c=>({producto:'CONO',tipo:'CONICA',medida:'CHICA',color:c,unidad:'PZA'})),
@@ -514,6 +532,12 @@
           ...PLANTA_MACETA_GRANDE_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'GRANDE',color:c,unidad:'PZA'})),
           ...PLANTA_MACETA_CHICA_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'CHICO',color:c,unidad:'PZA'})),
           ...['GRANDE','MEDIANO','CHICO','MINI'].map(m=>({producto:'MACETERO',tipo:'REDONDO',medida:m,color:'GRIS',unidad:'PZA'})),
+          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','GRIS'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'MINI',color:c,unidad:'PZA'})),
+          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','CANTERA NEGRA'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'CHICA',color:c,unidad:'PZA'})),
+          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'MEDIANA',color:c,unidad:'PZA'})),
+          {producto:'MACETERO',tipo:'CONICA C/LUZ',medida:'GRANDE',color:'NATURAL',unidad:'PZA'},
+          {producto:'MACETERO',tipo:'CONICA C/LUZ',medida:'GRANDE',color:'TRASLÚCIDA',unidad:'PZA'},
+          {producto:'MACETERO',tipo:'CONO ESPECIAL',medida:'UNICO',color:'CAFÉ',unidad:'PZA'},
           {producto:'MACETERO',tipo:'OLLA MAYA',medida:'CHICA',color:'GRIS',unidad:'PZA'},
           {producto:'MACETERO',tipo:'OLLA MAYA',medida:'GRANDE',color:'GRIS',unidad:'PZA'},
           {producto:'MACETERO',tipo:'3D',medida:'20X20',color:'POLIGRANITO GRIS',unidad:'PZA'},
@@ -540,10 +564,10 @@
           ...['AMARILLO','VERDE','BLANCO','CRISTAL','BARRO'].map(c=>({producto:'LAMINA',tipo:'LISA',medida:'METRO LINEAL',color:c,unidad:'ML'})),
           ...['BEIGE','NEGRO'].map(c=>({producto:'LAMINA TINACO',tipo:'',medida:'PZA',color:c,unidad:'PZA'}))
         ],
-        CONOS: SUCURSAL_CONOS, 
+        CONOS: SUCURSAL_CONOS,
         BANCOS: [
-          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO','UVA','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'].map(c=>({producto:'BANCO',tipo:'CONICO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`BANCO CONICO CHICO ${c}`})),
-          {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'GENERAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE'}
+          ...ALL_BANCO_SUCURSAL_COLORES.map(c=>({producto:'BANCO',tipo:'CONICO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`BANCO CONICO CHICO ${c}`})),
+          {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'NATURAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE NATURAL'}
         ],
         CASAS_PERRO: [
           ...['ROJO','AZUL','CHOCOLATE','ROSA'].map(c=>({producto:'CASA DE PERRO',tipo:'',medida:'MEDIANA',color:c,unidad:'PZA',sourceName:`CASA DE PERRO MEDIANA ${c}`})),
@@ -557,10 +581,9 @@
           {producto:'CARRITO',tipo:'',medida:'UNICO',color:'AMARILLO',unidad:'PZA'},
           {producto:'SILLON',tipo:'',medida:'UNICO',color:'NATURAL',unidad:'PZA'},
           {producto:'LAVABO',tipo:'',medida:'UNICO',color:'NATURAL',unidad:'PZA'},
-          {producto:'JARRON',tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'},
-          {producto:'FILTRO',tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'}
+          ...['AGUILA','OSO','RINO','LEON','TIGRE','LOBO','JIRAFA','ELEFANTE','REX','SANTA CLAUS','CORONA','BOTA'].map(t=>({producto:'CABEZA',tipo:t,medida:'UNICO',color:'GENERAL',unidad:'PZA'}))
         ],
-        ADITAMENTOS: ['JUEGOS COMPLETOS','TAPA CON ARO','BRIDA REFORZADA'].map(p=>({producto:p,tipo:'ADITAMENTOS',medida:'UNICO',color:'GENERAL',unidad:'PZA'})),
+        ADITAMENTOS: ['JUEGOS COMPLETOS','TAPA CON ARO','BRIDA REFORZADA','JARRO DE AIRE','FILTRO','ETIQUETA'].map(p=>({producto:p,tipo:'ADITAMENTOS',medida:'UNICO',color:'GENERAL',unidad:'PZA'})),
         ARTICULOS_JAGR: ['ESFERA CHICA','BASE DE RATAN','MACETA INTERIOR','CONO ESQUINERO','FLORERO RESINA','LAMPARA CILINDRICA'].map(p=>({producto:p,tipo:'JAGR',medida:'UNICO',color:'GENERAL',unidad:'PZA'}))
       }
     };
@@ -866,27 +889,27 @@
       if(!state.monthlyRows.length){ tbody.innerHTML = `<tr><td colspan="${isMateriaPrima?10:8}" class="subtle">Sin renglones para esta categoría.</td></tr>`; updateMonthlySummary(); return; }
       if(isMateriaPrima){
         tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
-          <td>${escHtml(r.producto)}</td>
-          <td>${escHtml(r.tipo||'-')}</td>
-          <td>${escHtml(r.color||'-')}</td>
-          <td><span class="inv-kg-badge">${(parseFloat(r.sistema)||0).toFixed(2)} KG</span></td>
-          <td><input type="number" step="1" min="0" value="${parseFloat(r.bultos||0).toFixed(0)}" data-row-index="${idx}" data-field="bultos" class="inv-fisico-input"></td>
-          <td><select data-row-index="${idx}" data-field="pesoBulto" class="inv-weight-select"><option value="20" ${parseFloat(r.pesoBulto)===20?'selected':''}>20 KG</option><option value="24" ${parseFloat(r.pesoBulto)===24?'selected':''}>24 KG</option></select></td>
-          <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.sueltos)||0).toFixed(2)}" data-row-index="${idx}" data-field="sueltos" class="inv-fisico-input"></td>
-          <td>${(parseFloat(r.fisico)||0).toFixed(2)} KG</td>
-          <td>${(parseFloat(r.diferencia)||0).toFixed(2)} KG</td>
-          <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
+          <td data-label="Producto">${escHtml(r.producto)}</td>
+          <td data-label="Tipo">${escHtml(r.tipo||'-')}</td>
+          <td data-label="Color">${escHtml(r.color||'-')}</td>
+          <td data-label="Sistema (KG)"><span class="inv-kg-badge">${(parseFloat(r.sistema)||0).toFixed(2)} KG</span></td>
+          <td data-label="Bultos"><input type="number" step="1" min="0" value="${parseFloat(r.bultos||0).toFixed(0)}" data-row-index="${idx}" data-field="bultos" class="inv-fisico-input"></td>
+          <td data-label="Peso Bulto"><select data-row-index="${idx}" data-field="pesoBulto" class="inv-weight-select"><option value="20" ${parseFloat(r.pesoBulto)===20?'selected':''}>20 KG</option><option value="24" ${parseFloat(r.pesoBulto)===24?'selected':''}>24 KG</option></select></td>
+          <td data-label="Sueltos (KG)"><input type="number" step="0.01" min="0" value="${(parseFloat(r.sueltos)||0).toFixed(2)}" data-row-index="${idx}" data-field="sueltos" class="inv-fisico-input"></td>
+          <td data-label="Físico Total">${(parseFloat(r.fisico)||0).toFixed(2)} KG</td>
+          <td data-label="Diferencia">${(parseFloat(r.diferencia)||0).toFixed(2)} KG</td>
+          <td data-label="Estado" class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
         </tr>`).join('');
       } else {
         tbody.innerHTML = state.monthlyRows.map((r,idx)=>`<tr>
-          <td>${escHtml(r.producto)}</td>
-          <td>${escHtml(r.tipo||'-')}</td>
-          <td>${escHtml(r.medida||'-')}</td>
-          <td>${escHtml(r.color||'-')}</td>
-          <td>${(parseFloat(r.sistema)||0).toFixed(2)}</td>
-          <td><input type="number" step="0.01" min="0" value="${(parseFloat(r.fisico)||0).toFixed(2)}" data-row-index="${idx}" data-field="fisico" class="inv-fisico-input"></td>
-          <td>${(parseFloat(r.diferencia)||0).toFixed(2)}</td>
-          <td class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
+          <td data-label="Producto">${escHtml(r.producto)}</td>
+          <td data-label="Tipo">${escHtml(r.tipo||'-')}</td>
+          <td data-label="Medida">${escHtml(r.medida||'-')}</td>
+          <td data-label="Color">${escHtml(r.color||'-')}</td>
+          <td data-label="Sistema">${(parseFloat(r.sistema)||0).toFixed(2)}</td>
+          <td data-label="Físico"><input type="number" step="0.01" min="0" value="${(parseFloat(r.fisico)||0).toFixed(2)}" data-row-index="${idx}" data-field="fisico" class="inv-fisico-input"></td>
+          <td data-label="Diferencia">${(parseFloat(r.diferencia)||0).toFixed(2)}</td>
+          <td data-label="Estado" class="${r.estado==='COINCIDE'?'status-ok':(r.estado==='FALTA'?'status-bad':'status-low')}">${r.estado}</td>
         </tr>`).join('');
       }
       tbody.querySelectorAll('.inv-fisico-input,.inv-weight-select').forEach(inp=>{

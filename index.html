@@ -34,7 +34,7 @@
     .nav-btn.active,.nav-btn:hover{background:rgba(255,255,255,.18);transform:translateY(-1px)}
     .nav-hint{margin-top:auto;background:rgba(255,255,255,.08);padding:14px;border-radius:16px;font-size:12px;color:#dcecff;line-height:1.4}
     .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
-    .topbar{background:linear-gradient(120deg,#0e4178,#175b9e 65%,#2778c7);color:#fff;border-radius:24px;padding:18px 20px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .topbar{display:none}
     .topbar h2{margin:0;font-size:24px;font-weight:900;letter-spacing:.3px}
     .topbar p{margin:6px 0 0;color:#d7ebff;font-size:13px}
     .pill-row{display:flex;gap:10px;flex-wrap:wrap}
@@ -150,7 +150,7 @@
   <div class="app-shell">
     <aside class="side-nav print-hidden">
       <div class="brand">
-        <div class="brand-badge">PN</div>
+        <div class="brand-badge"><img src="LOGO_PLASTINOVA_BASE64.jpeg" alt="Logo Plastinova" style="width:100%;height:100%;object-fit:contain;border-radius:12px"></div>
         <div>
           <h1>PLASTINOVA<br>GERENCIAL PRO</h1>
           <small>Control operativo integral</small>
@@ -443,7 +443,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const LOGO_PLASTINOVA = 'logo.png';
+    const LOGO_PLASTINOVA = 'LOGO_PLASTINOVA_BASE64.jpeg';
     const URL_GOOGLE_SHEETS = 'https://script.google.com/macros/s/AKfycbzRpyFi3tp65WTEye3zV5q8iPPDPm8ZRmn-cX-Wqc9eQpYS1NGtjItSBy5Y6KEgR3iG/exec';
     const SUPABASE_URL = 'https://lngqpschtfbuekawjqpt.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_gjba1_03hWXH2bzSO01dhg_R8MOw7cI';
@@ -628,7 +628,7 @@
         const ignorar = ['GRANITO BEIGE','GRANITO','DUVALIN','TERRACOTA','MENTA','PISTACHE','UVA','MELON','OXFORD'];
         if (!ignorar.includes(colorUI)) {
           if (capacidad === '1200LT') { consumo[matColorBase] = 6; consumo['ROTOFOAM NEGRO AR'] = 5; consumo['ROTOLENE BLANCO'] = 5; }
-          else if (capacidad === '1100LT') { consumo[matColorBase] = 5; consumo['ROTOFOAM NEGRO AR'] = 4.5; consumo['ROTOLENE BLANCO'] = 3.5; }
+          else if (capacidad === '1100LT') { consumo[matColorBase] = 5; consumo['ROTOFOAM NEGRO AR'] = 5; consumo['ROTOLENE BLANCO'] = 4; }
           else if (capacidad === '750LT') { consumo[matColorBase] = 4.5; consumo['ROTOFOAM NEGRO AR'] = 4; consumo['ROTOLENE BLANCO'] = 3; }
           else if (capacidad === '235LT') {
             if (colorUI.includes('CON BLANCO')) { let cPrimario = colorUI.split(' ')[0]; consumo['ROTOLENE BLANCO'] = 0.65; consumo[mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`] = 1.35; consumo['ROTOFOAM BLANCO AR'] = 2.5; }
@@ -678,7 +678,7 @@
           }
           return;
         }
-        if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA')) {
+        if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO')) {
           if (!col && cap) {
             let legacyKey = '';
             if (tipo.includes('TINACO')) legacyKey = `TINACO ${cap} [LEGACY]`;
@@ -696,6 +696,7 @@
             if (tipo.includes('TINACO')) fgName = `TINACO ${cap} ${col}`;
             else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} ${col}`;
             else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} ${col}`;
+            else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} ${col}`;
             if (fgName) {
               if (tipo.includes('PROD_')) stock[fgName] = (stock[fgName] || 0) + cant;
               else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[fgName] = (stock[fgName] || 0) - cant;
@@ -757,6 +758,29 @@
 
     async function logInventoryMovement(productoId, tipo_movimiento, cantidad, referencia=''){ if(!supabaseClient) return; await supabaseClient.from('movimientos_inventario').insert([{producto_id:productoId||null,tipo_movimiento,cantidad,fecha:new Date().toISOString(),vendedor:'SISTEMA',origen:'APP',referencia}]); }
 
+    async function syncOperationalMovementToSupabase(reg, action='UPSERT'){
+      if(!supabaseClient || !reg) return;
+      try{
+        await supabaseClient.from('movimientos_inventario').insert([{
+          producto_id:null,
+          tipo_movimiento:`OPERACION_${action}_${String(reg.tipo||'SIN_TIPO').toUpperCase()}`,
+          cantidad:parseFloat(reg.cantidad)||0,
+          fecha:(reg.fecha ? `${reg.fecha}T12:00:00` : new Date().toISOString()),
+          vendedor:textoSeguro(reg.vendedor||'SISTEMA'),
+          origen:'APP',
+          referencia:JSON.stringify({
+            id:reg.id||null,
+            fecha:reg.fecha||'',
+            tipo:reg.tipo||'',
+            concepto:reg.concepto||'',
+            capacidad:reg.capacidad||'',
+            colorUI:reg.colorUI||'',
+            total:parseFloat(reg.total)||0
+          })
+        }]);
+      }catch(_e){}
+    }
+
     function populateSelect(select, items, placeholder=null){ select.innerHTML=''; if(placeholder){ const op=document.createElement('option'); op.value=''; op.textContent=placeholder; select.appendChild(op); }
       items.forEach(([value,label])=>{ const op=document.createElement('option'); op.value=value; op.textContent=label ?? value; select.appendChild(op); }); }
 
@@ -772,7 +796,7 @@
       populateSelect($('colTambo'), COLS_TAM.map(v=>[v,v])); $('colTambo').value='AZUL';
       populateSelect($('tipoPrecioTinaco'), OPS_PRECIO); $('tipoPrecioTinaco').value='mayoreo';
       populateSelect($('tipoPrecioTambo'), OPS_PRECIO); $('tipoPrecioTambo').value='mayoreo';
-      populateSelect($('tipoProdFabricado'), [['TINACO','TINACO'],['TAMBO','TAMBO'],['MACETA','MACETA CUADRADA']]);
+      populateSelect($('tipoProdFabricado'), [['TINACO','TINACO'],['TAMBO','TAMBO'],['MACETA','MACETA CUADRADA'],['BANCO','BANCO']]);
       populateSelect($('mermaCategoria'), [['POLVOS','POLVOS / MATERIA PRIMA'],['ACCESORIOS','ACCESORIOS'],['TERMINADOS','PRODUCTOS TERMINADOS']]);
       populateSelect($('invMensualUbicacion'), [['PLANTA','PLANTA'],['SUCURSAL','SUCURSAL']]);
       populateSelect($('compraMaterial'), [['','SELECCIONAR...'],
@@ -794,9 +818,11 @@
       let opts=[];
       if(t==='TINACO') opts=CAPS_TIN.map(v=>[v,v]);
       else if(t==='TAMBO') opts=[['235LT','235LT (Tambo)']];
-      else opts=[['GRANDE','GRANDE (Maceta)'],['CHICA','CHICA (Maceta)']];
+      else if(t==='MACETA') opts=[['GRANDE','GRANDE (Maceta)'],['CHICA','CHICA (Maceta)']];
+      else opts=[['CHICO','CHICO (Banco)'],['GRANDE','GRANDE (Banco)']];
       populateSelect($('capProdFabricado'), opts);
       if(t==='TINACO') populateSelect($('colProdFabricado'), COLS_TIN.map(v=>[v,v]));
+      else if(t==='BANCO') populateSelect($('colProdFabricado'), [...new Set([...BANCOS_CHICO_COLORES,'NATURAL'])].map(v=>[v,v]));
       else populateSelect($('colProdFabricado'), COLS_TAM.map(v=>[v,v]));
     }
 
@@ -957,7 +983,15 @@
         const up = await upsertInventoryVariant(item, row.fisico);
         await logInventoryMovement(up.id || null, 'AJUSTE_CIERRE', row.diferencia, `${fecha} ${ubicacion} ${categoria}`);
         if(ubicacion==='PLANTA' && row.sourceName){
-          db.push({ id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${row.sourceName} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:row.sourceName });
+          const regAud = { id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${row.sourceName} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:row.sourceName };
+          db.push(regAud);
+          enviarNube(regAud);
+          syncOperationalMovementToSupabase(regAud,'UPSERT');
+        } else {
+          const etiqueta = `${row.producto} ${row.tipo||''} ${row.medida||''} ${row.color||''}`.replace(/\s+/g,' ').trim();
+          const regAud = { id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${ubicacion} ${categoria} ${etiqueta} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:etiqueta };
+          enviarNube(regAud);
+          syncOperationalMovementToSupabase(regAud,'UPSERT');
         }
       }
       db = ordenarDBCronologicamente(db); saveMovements(db); state.movements = db; await loadInventoryCacheFromSupabase(); reconstructStockFromMovements(db); renderAll();
@@ -1007,7 +1041,7 @@
 
     function obtenerDeudaConsignacion(vendedor, productoName){ let deuda=0; state.movements.forEach(r=>{ if(r.vendedor===vendedor){ if((r.concepto||'').includes('ENTREGA CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda += parseFloat(r.cantidad)||0; if((r.concepto||'').includes('COBRO CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda -= parseFloat(r.cantidad)||0; }}); return deuda; }
 
-    function addMovementToDB(reg){ state.movements.push(reg); state.movements = ordenarDBCronologicamente(state.movements); saveMovements(state.movements); enviarNube(reg); reconstructStockFromMovements(state.movements); renderAll(); }
+    function addMovementToDB(reg){ state.movements.push(reg); state.movements = ordenarDBCronologicamente(state.movements); saveMovements(state.movements); enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); reconstructStockFromMovements(state.movements); renderAll(); }
 
     function saveDailyRecord(){
       const f=$('fecha').value || hoyLocalISO(), sem=getNumeroSemana(f), v=$('vendedor').value, prod=$('productor').value;
@@ -1050,7 +1084,7 @@
       alert(`Entrada sumada al stock. Registrado: ${cant} ${conceptoUnidad}${unidad.startsWith('BULTO') ? ` = ${cantidadReal.toFixed(2)} KG` : ''}.`);
     }
 
-    function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); reconstructStockFromMovements(state.movements); renderAll(); }
+    function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; const removed = state.movements.find(x=>String(x.id)===String(id)); state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); if(removed){ enviarNube({...removed, tipo:`BORRADO_${removed.tipo||''}`}); syncOperationalMovementToSupabase(removed,'DELETE'); } reconstructStockFromMovements(state.movements); renderAll(); }
     function editStockPrompt(material, actualVal, unidad){ let v=prompt(`Stock actual de ${material}: ${actualVal} ${unidad}.\nIngresa la nueva cantidad exacta:`, actualVal); if(v===null) return; const nuevo=parseFloat(v); if(isNaN(nuevo)||nuevo<0) return alert('Valor inválido.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL)`, cantidad:nuevo, precio:0, total:0, capacidad:null, colorUI:material }); }
     function deleteStockPrompt(material){ if(!confirm(`¿Borrar ${material} del inventario operativo dejándolo en cero?`)) return; addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL A 0)`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material }); }
     function resetearStock(){ if(!confirm('¿Poner todo el stock operativo en cero?')) return; Object.keys(state.stock).forEach(material=>{ const actual=parseFloat(state.stock[material])||0; if(actual!==0){ state.movements.push({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (RESETEADO A 0 DESDE ${actual})`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material }); } }); state.movements = ordenarDBCronologicamente(state.movements); saveMovements(state.movements); reconstructStockFromMovements(state.movements); renderAll(); }

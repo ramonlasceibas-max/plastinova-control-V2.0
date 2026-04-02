@@ -47,7 +47,7 @@
     .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
     .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
     .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;overflow:hidden}
-    .card h3{margin:0 0 12px;color:var(--brand);font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .card h3{margin:0 0 12px;color:var(--brand);font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
     .subtle{font-size:12px;color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
     .form-group{flex:1;min-width:180px}
@@ -96,6 +96,10 @@
     .section-title{margin:14px 0 10px;font-size:13px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.5px}
     .history-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
     .history-item{border:1px solid #dbe6f4;background:#f8fbff;padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.4}
+
+    .manual-add-box{margin-top:12px;padding:12px;border:1px dashed #c6d8ed;border-radius:14px;background:#f8fbff}
+    .manual-add-title{font-size:12px;font-weight:900;color:var(--brand);margin:0 0 8px}
+    .table-wrap table{min-width:760px}
     .print-hidden{}
     @media (max-width: 1024px){
       .app-shell{padding:10px;display:block}
@@ -108,6 +112,7 @@
       .topbar{border-radius:18px;padding:16px}
       .topbar h2{font-size:20px}
       .card{padding:14px}
+      .card h3 .subtle{width:100%;display:block}
       .form-group{min-width:100%}
       .stats,.summary-box,.inventory-header{grid-template-columns:1fr}
       .btn{width:100%}
@@ -336,6 +341,17 @@
                 <button type="button" class="btn btn-secondary" id="btnGuardarCierreSinAplicar">💾 Guardar sin aplicar</button>
                 <button type="button" class="btn btn-success" id="btnAplicarCierre">✅ Confirmar y aplicar ajuste</button>
               </div>
+              <div class="manual-add-box print-hidden">
+                <div class="manual-add-title">➕ Agregar producto nuevo al cierre</div>
+                <div class="row">
+                  <div class="form-group"><label>Producto</label><input type="text" id="invManualProducto" placeholder="Ej. MACETERO"></div>
+                  <div class="form-group"><label>Tipo</label><input type="text" id="invManualTipo" placeholder="Ej. CUADRADO"></div>
+                  <div class="form-group"><label>Medida</label><input type="text" id="invManualMedida" placeholder="Ej. CHICO / 1100LT"></div>
+                  <div class="form-group"><label>Color</label><input type="text" id="invManualColor" placeholder="Ej. ROJO"></div>
+                  <div class="form-group"><label>Unidad</label><select id="invManualUnidad"><option value="PZA">PIEZA</option><option value="KG">KG</option><option value="ML">ML</option></select></div>
+                </div>
+                <button type="button" class="btn btn-primary" id="btnAgregarRenglonManual">➕ Agregar renglón manual</button>
+              </div>
               <div class="table-wrap" style="margin-top:12px">
                 <table class="inventory-table" id="tablaInventarioMensual">
                   <thead>
@@ -460,6 +476,18 @@
       historyFilter: { vendedor: 'TODOS', texto: '' }
     };
 
+    const PLANTA_MACETA_GRANDE_COLORES = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO'];
+    const PLANTA_MACETA_CHICA_COLORES = ['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','UVA','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','ROJO C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'];
+    const BANCOS_CHICO_COLORES = ['BEIGE','NEGRO','AZUL #5','GRANITO','NATURAL','BLANCO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO'];
+    const SUCURSAL_CONOS = [
+      ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','GRIS'].map(c=>({producto:'CONO',tipo:'CONICA',medida:'MINI',color:c,unidad:'PZA'})),
+      ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','CANTERA NEGRA'].map(c=>({producto:'CONO',tipo:'CONICA',medida:'CHICA',color:c,unidad:'PZA'})),
+      ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS'].map(c=>({producto:'CONO',tipo:'CONICA',medida:'MEDIANA',color:c,unidad:'PZA'})),
+      {producto:'CONO',tipo:'CONICA C/LUZ',medida:'GRANDE',color:'NATURAL',unidad:'PZA'},
+      {producto:'CONO',tipo:'CONICA C/LUZ',medida:'GRANDE',color:'TRASLÚCIDA',unidad:'PZA'},
+      {producto:'CONO',tipo:'CONO ESPECIAL',medida:'UNICO',color:'CAFÉ',unidad:'PZA'}
+    ];
+
     const MONTHLY_CATALOG = {
       PLANTA: {
         MATERIA_PRIMA: [
@@ -470,24 +498,22 @@
         TINACOS: CAPS_TIN.flatMap(cap => COLS_TIN.map(color => ({producto:'TINACO',tipo:'',medida:cap,color,unidad:'PZA',sourceName:`TINACO ${cap} ${color}`}))),
         TAMBOS: COLS_TAM.map(color => ({producto:'TAMBO',tipo:'',medida:'235LT',color,unidad:'PZA',sourceName:`TAMBO 235LT ${color}`})),
         MACETEROS: [
-          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO'].map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'GRANDE',color:c,unidad:'PZA',sourceName:`MACETA GRANDE ${c}`})),
-          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','UVA','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','ROJO C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'].map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`MACETA CHICA ${c}`}))
+          ...PLANTA_MACETA_GRANDE_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'GRANDE',color:c,unidad:'PZA',sourceName:`MACETA GRANDE ${c}`})),
+          ...PLANTA_MACETA_CHICA_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`MACETA CHICA ${c}`}))
         ],
         LAMINAS: ['BEIGE','NEGRO'].map(c=>({producto:'LAMINA TINACO',tipo:'',medida:'PZA',color:c,unidad:'PZA',sourceName:`LAMINA TINACO ${c}`})),
         BANCOS: [
-          {producto:'BANCO',tipo:'CONICO',medida:'CHICO',color:'GENERAL',unidad:'PZA',sourceName:'BANCO CONICO CHICO'},
-          {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'GENERAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE'}
+          ...BANCOS_CHICO_COLORES.map(c=>({producto:'BANCO',tipo:'CONICO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`BANCO CONICO CHICO ${c}`})),
+          {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'NATURAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE NATURAL'}
         ]
       },
       SUCURSAL: {
         TINACOS: CAPS_TIN.flatMap(cap => COLS_TIN.map(color => ({producto:'TINACO',tipo:'',medida:cap,color,unidad:'PZA'}))),
         TAMBOS: COLS_TAM.map(color => ({producto:'TAMBO',tipo:'',medida:'235LT',color,unidad:'PZA'})),
         MACETEROS: [
+          ...PLANTA_MACETA_GRANDE_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'GRANDE',color:c,unidad:'PZA'})),
+          ...PLANTA_MACETA_CHICA_COLORES.map(c=>({producto:'MACETERO',tipo:'CUADRADO',medida:'CHICO',color:c,unidad:'PZA'})),
           ...['GRANDE','MEDIANO','CHICO','MINI'].map(m=>({producto:'MACETERO',tipo:'REDONDO',medida:m,color:'GRIS',unidad:'PZA'})),
-          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','GRIS'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'MINI',color:c,unidad:'PZA'})),
-          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS','CANTERA NEGRA'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'CHICA',color:c,unidad:'PZA'})),
-          ...['CHOCOLATE','POLIGRANITO TERRACOTA','POLIGRANITO GRIS'].map(c=>({producto:'MACETERO',tipo:'CONICA',medida:'MEDIANA',color:c,unidad:'PZA'})),
-          {producto:'MACETERO',tipo:'CONO ESPECIAL',medida:'UNICO',color:'CAFÉ',unidad:'PZA'},
           {producto:'MACETERO',tipo:'OLLA MAYA',medida:'CHICA',color:'GRIS',unidad:'PZA'},
           {producto:'MACETERO',tipo:'OLLA MAYA',medida:'GRANDE',color:'GRIS',unidad:'PZA'},
           {producto:'MACETERO',tipo:'3D',medida:'20X20',color:'POLIGRANITO GRIS',unidad:'PZA'},
@@ -498,8 +524,8 @@
           ...['NEGRO','OXFORD','BLANCO'].map(c=>({producto:'MACETERO',tipo:'MINIMALISTA',medida:'UNICO',color:c,unidad:'PZA'})),
           {producto:'MACETERO',tipo:'ESFERA C/LUZ',medida:'UNICO',color:'NATURAL',unidad:'PZA'},
           ...['BEIGE','CHOCOLATE','CAFÉ','BLANCA','NEGRA'].map(c=>({producto:'MACETERO',tipo:'JARDINERA',medida:'UNICO',color:c,unidad:'PZA'})),
-          {producto:'MACETERO',tipo:'LUCERO',medida:'CHICA',color:'GENERAL',unidad:'PZA'},
-          {producto:'MACETERO',tipo:'LUCERO',medida:'GRANDE',color:'GENERAL',unidad:'PZA'},
+          {producto:'MACETERO',tipo:'LUCERO',medida:'CHICA',color:'UNICO',unidad:'PZA'},
+          {producto:'MACETERO',tipo:'LUCERO',medida:'GRANDE',color:'UNICO',unidad:'PZA'},
           {producto:'MACETERO',tipo:'CILINDRO',medida:'MINI',color:'BLANCO',unidad:'PZA'},
           {producto:'MACETERO',tipo:'CILINDRO',medida:'MINI',color:'NEGRO',unidad:'PZA'},
           {producto:'MACETERO',tipo:'CILINDRO',medida:'MEDIANO',color:'NEGRO',unidad:'PZA'},
@@ -514,10 +540,7 @@
           ...['AMARILLO','VERDE','BLANCO','CRISTAL','BARRO'].map(c=>({producto:'LAMINA',tipo:'LISA',medida:'METRO LINEAL',color:c,unidad:'ML'})),
           ...['BEIGE','NEGRO'].map(c=>({producto:'LAMINA TINACO',tipo:'',medida:'PZA',color:c,unidad:'PZA'}))
         ],
-        CONOS: [
-          {producto:'CONO',tipo:'',medida:'GRANDE',color:'TRASLÚCIDA',unidad:'PZA',sourceName:'CONO GRANDE TRASLÚCIDA'},
-          {producto:'CONO',tipo:'',medida:'GRANDE',color:'NATURAL',unidad:'PZA',sourceName:'CONO GRANDE NATURAL'}
-        ],
+        CONOS: SUCURSAL_CONOS, 
         BANCOS: [
           ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #5','VERDE #15','VERDE INDUST.','NARANJA 2','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','BLANCO','GRANITO 4','GRANITO 15','NATURAL','GRANITO','TERRACOTA','DUVALIN','PISTACHE','MENTA','AZUL GRANITO','ROSA','MELON','ROJO C/BLANCO','VERDE GRANITO','VERDE OSCURO','UVA','OXFORD','TURQUESA','VINO','AMARILLO','VERDE C/BLANCO','TURQUESA-GRANITO','AZUL C/BLANCO'].map(c=>({producto:'BANCO',tipo:'CONICO',medida:'CHICO',color:c,unidad:'PZA',sourceName:`BANCO CONICO CHICO ${c}`})),
           {producto:'BANCO',tipo:'CONICO',medida:'GRANDE',color:'GENERAL',unidad:'PZA',sourceName:'BANCO CONICO GRANDE'}
@@ -527,10 +550,18 @@
           ...['ROJO','AZUL','CHOCOLATE','ROSA'].map(c=>({producto:'CASA DE PERRO',tipo:'',medida:'GRANDE',color:c,unidad:'PZA',sourceName:`CASA DE PERRO GRANDE ${c}`}))
         ],
         OTROS: [
-          'ESFERA','CONTENEDOR 750 LT','CARRITO','SILLON','LAVABO','JARRON','FILTRO'
-        ].map(p=>({producto:p,tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'})),
-        ADITAMENTOS: ['JUEGO COMPLETO','TAPA CON ARO','BRIDA REFORZADA'].map(p=>({producto:p,tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'})),
-        ARTICULOS_JAGR: ['AGUILA','OSO','RINO','LEON','TIGRE','LOBO','JIRAFA','ELEFANTE','REX','SANTA CLAUS','CORONA','BOTA'].map(p=>({producto:p,tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'}))
+          {producto:'ESFERA',tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'},
+          {producto:'CONTENEDOR',tipo:'',medida:'750 LT',color:'BLANCO',unidad:'PZA'},
+          {producto:'CONTENEDOR',tipo:'',medida:'750 LT',color:'CAFÉ',unidad:'PZA'},
+          {producto:'CONTENEDOR',tipo:'',medida:'750 LT',color:'AZUL',unidad:'PZA'},
+          {producto:'CARRITO',tipo:'',medida:'UNICO',color:'AMARILLO',unidad:'PZA'},
+          {producto:'SILLON',tipo:'',medida:'UNICO',color:'NATURAL',unidad:'PZA'},
+          {producto:'LAVABO',tipo:'',medida:'UNICO',color:'NATURAL',unidad:'PZA'},
+          {producto:'JARRON',tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'},
+          {producto:'FILTRO',tipo:'',medida:'UNICO',color:'GENERAL',unidad:'PZA'}
+        ],
+        ADITAMENTOS: ['JUEGOS COMPLETOS','TAPA CON ARO','BRIDA REFORZADA'].map(p=>({producto:p,tipo:'ADITAMENTOS',medida:'UNICO',color:'GENERAL',unidad:'PZA'})),
+        ARTICULOS_JAGR: ['ESFERA CHICA','BASE DE RATAN','MACETA INTERIOR','CONO ESQUINERO','FLORERO RESINA','LAMPARA CILINDRICA'].map(p=>({producto:p,tipo:'JAGR',medida:'UNICO',color:'GENERAL',unidad:'PZA'}))
       }
     };
 
@@ -874,6 +905,20 @@
       $('sumDifTotal').textContent = difTotal.toFixed(2);
     }
 
+    function addManualMonthlyRow(){
+      const producto = ($('invManualProducto').value||'').trim().toUpperCase();
+      const tipo = ($('invManualTipo').value||'').trim().toUpperCase();
+      const medida = ($('invManualMedida').value||'').trim().toUpperCase();
+      const color = ($('invManualColor').value||'').trim().toUpperCase();
+      const unidad = $('invManualUnidad').value || 'PZA';
+      if(!producto){ alert('Escribe al menos el nombre del producto.'); return; }
+      state.monthlyRows.push({
+        id:'manual-'+Date.now(), ubicacion:$('invMensualUbicacion').value, categoria:$('invMensualCategoria').value, producto, tipo, medida, color, unidad, sourceName:'', isMateriaPrima:false, sistema:0, fisico:0, diferencia:0, estado:'COINCIDE', bultos:0, pesoBulto:20, sueltos:0
+      });
+      $('invManualProducto').value=''; $('invManualTipo').value=''; $('invManualMedida').value=''; $('invManualColor').value=''; $('invManualUnidad').value='PZA';
+      renderMonthlyTable();
+    }
+
     async function saveMonthlyDraft(applyChanges){
       if(!state.monthlyRows.length){ alert('No hay renglones cargados.'); return; }
       const fecha = $('invMensualFecha').value || hoyLocalISO();
@@ -1073,7 +1118,7 @@
       $('fecha').addEventListener('change', syncSemanaDesdeFecha);
       $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
-      $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows);
+      $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows); $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
       $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });

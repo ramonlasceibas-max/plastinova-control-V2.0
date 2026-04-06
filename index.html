@@ -164,12 +164,16 @@
       #tablaInventarioMensual td:last-child{border-bottom:none}
       #tablaInventarioMensual td input,#tablaInventarioMensual td select{max-width:none;width:100%;font-size:16px}
 
-      #tablaPendientes thead{display:none}
-      #tablaPendientes, #tablaPendientes tbody{display:block;width:100%}
-      #tablaPendientes tr{display:block;width:100%;background:#fff;border:1px solid #dce7f5;border-radius:16px;margin:0 0 12px;padding:6px 0;box-shadow:0 4px 14px rgba(10,31,68,.06)}
-      #tablaPendientes td{display:block;width:100%;padding:10px 12px;border-bottom:1px solid #eef3f9;white-space:normal}
-      #tablaPendientes td::before{content:attr(data-label);display:block;font-weight:900;color:var(--brand);margin-bottom:6px}
-      #tablaPendientes td:last-child{border-bottom:none}
+      /* Mantener pendientes en formato tabla, como historial, también en móvil */
+      #tablaPendientes thead{display:table-header-group}
+      #tablaPendientes, #tablaPendientes tbody{display:table;width:100%}
+      #tablaPendientes tr{display:table-row;background:transparent;border:none;border-radius:0;margin:0;padding:0;box-shadow:none}
+      #tablaPendientes td,#tablaPendientes th{display:table-cell;padding:9px 8px;white-space:nowrap;border-bottom:1px solid #e5edf8;vertical-align:middle}
+      #tablaPendientes td::before{content:none}
+      #tablaPendientes th{font-size:11px}
+      #tablaPendientes td{font-size:11px}
+      .pending-table{min-width:820px}
+      .pending-table .btn{width:auto}
 
       .manual-add-box .row{display:block}
       .manual-add-box .form-group{margin-bottom:10px}
@@ -349,7 +353,7 @@
 
         <div class="card pending-card section-accent">
           <h3>📋 Movimientos pendientes <span class="pending-meta" id="pendingCountLabel">0 movimientos en revisión</span></h3>
-          <div class="mini-note">Agrega ventas, producción, mermas y gastos a esta lista. Revísalos aquí antes de guardarlos al historial.</div>
+          <div class="mini-note">Agrega ventas, producción, mermas y gastos a esta lista. Revísalos aquí como mini historial antes de guardarlos.</div>
           <div class="table-wrap" style="margin-top:12px;">
             <table class="db-table pending-table" id="tablaPendientes">
               <thead>

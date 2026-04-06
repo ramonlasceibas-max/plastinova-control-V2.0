@@ -170,10 +170,20 @@
       #tablaPendientes tr{display:table-row;background:transparent;border:none;border-radius:0;margin:0;padding:0;box-shadow:none}
       #tablaPendientes td,#tablaPendientes th{display:table-cell;padding:9px 8px;white-space:nowrap;border-bottom:1px solid #e5edf8;vertical-align:middle}
       #tablaPendientes td::before{content:none}
-      #tablaPendientes th{font-size:11px}
-      #tablaPendientes td{font-size:11px}
-      .pending-table{min-width:820px}
-      .pending-table .btn{width:auto}
+      #tablaPendientes th{font-size:10px}
+      #tablaPendientes td{font-size:10px}
+      .pending-table{min-width:760px;table-layout:fixed}
+      .pending-table th:nth-child(1), .pending-table td:nth-child(1){width:72px}
+      .pending-table th:nth-child(2), .pending-table td:nth-child(2){width:86px}
+      .pending-table th:nth-child(3), .pending-table td:nth-child(3){width:86px}
+      .pending-table th:nth-child(4), .pending-table td:nth-child(4){width:92px}
+      .pending-table th:nth-child(5), .pending-table td:nth-child(5){width:180px;white-space:normal;line-height:1.2}
+      .pending-table th:nth-child(6), .pending-table td:nth-child(6){width:64px;text-align:right}
+      .pending-table th:nth-child(7), .pending-table td:nth-child(7){width:82px;text-align:right}
+      .pending-table th:nth-child(8), .pending-table td:nth-child(8){width:90px;text-align:right}
+      .pending-table th:nth-child(9), .pending-table td:nth-child(9){width:70px;text-align:center}
+      .pending-table .btn{width:auto;padding:6px 8px;font-size:11px}
+      .pending-date{line-height:1.15;white-space:normal}
 
       .manual-add-box .row{display:block}
       .manual-add-box .form-group{margin-bottom:10px}
@@ -357,7 +367,7 @@
           <div class="table-wrap" style="margin-top:12px;">
             <table class="db-table pending-table" id="tablaPendientes">
               <thead>
-                <tr><th>Sección</th><th>Responsable</th><th>Movimiento</th><th>Concepto</th><th>Cant.</th><th>P. Uni</th><th>Total</th><th>Quitar</th></tr>
+                <tr><th>Fecha</th><th>Sección</th><th>Responsable</th><th>Movimiento</th><th>Concepto</th><th>Cant.</th><th>P. Uni</th><th>Total</th><th>Quitar</th></tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -1342,6 +1352,7 @@ function renderDashboard(){
       tbody.innerHTML = rows.length ? rows.map(r=>{
         const originClass = (r._origin||'').toLowerCase();
         return `<tr>
+          <td data-label="Fecha"><span class="pending-date">${escHtml(String(r.fecha||'').replace(/-/g,'-<wbr>'))}</span></td>
           <td data-label="Sección"><span class="pending-chip ${originClass}">${escHtml(r._origin||'REVISION')}</span></td>
           <td data-label="Responsable">${escHtml(r.vendedor||'')}</td>
           <td data-label="Movimiento">${escHtml(getTipoAmigable(r.tipo||''))}</td>
@@ -1351,7 +1362,7 @@ function renderDashboard(){
           <td data-label="Total">${(parseFloat(r.total)||0)!==0?('$'+formato(r.total)):'-'}</td>
           <td data-label="Quitar"><button type="button" class="btn btn-danger" style="padding:8px 10px;width:auto" onclick="window.removePendingEntry('${escJsStr(r._pendingId)}')">❌</button></td>
         </tr>`;
-      }).join('') : '<tr><td colspan="8" class="pending-empty">No hay movimientos en revisión.</td></tr>';
+      }).join('') : '<tr><td colspan="9" class="pending-empty">No hay movimientos en revisión.</td></tr>';
     }
 
     function removePendingEntry(id){ state.pendingEntries = (state.pendingEntries||[]).filter(x=>x._pendingId!==id); renderPendingEntries(); }

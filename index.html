@@ -218,7 +218,10 @@
       .inventory-table{border-collapse:separate;border-spacing:0}
 
       .main{overflow-x:visible}
-      #tab-registro.active,#tab-dashboard.active,#tab-inventario.active{min-width:0}
+      #tab-registro.active,#tab-dashboard.active{min-width:0}
+      #tab-inventario.active{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;min-width:0;padding-bottom:6px}
+      #tab-inventario.active > .split{min-width:760px}
+      #tab-inventario .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
     }
     @media print{
       body{background:#fff}

@@ -201,6 +201,9 @@
       .pending-card .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;touch-action:pan-x;max-width:100%}
       .pending-table{min-width:900px !important;width:max-content !important}
       .inventory-table{border-collapse:separate;border-spacing:0}
+
+      .main{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      #tab-registro.active,#tab-dashboard.active,#tab-inventario.active{min-width:860px}
     }
     @media print{
       body{background:#fff}
@@ -537,7 +540,7 @@
 
           <div>
             <div class="card">
-              <h3>🚚 Mercancía en ruta y sucursal</h3>
+              <h3>🚚 Sucursal y consignación (pendiente)</h3>
               <div class="row print-hidden"><button type="button" class="btn btn-warning" id="btnImprimirRuta">🖨️ Imprimir reporte de ruta</button></div>
               <div class="table-wrap">
                 <table class="db-table" id="tablaStockRuta">
@@ -623,7 +626,8 @@
       inventoryCache: [],
       monthlyRows: [],
       historyFilter: { vendedor: 'TODOS', texto: '' },
-      pendingEntries: []
+      pendingEntries: [],
+      multiStock: { PLANTA:{}, SUCURSAL:{}, CONSIGNACION:{} }
     };
 
     const PLANTA_MACETA_GRANDE_COLORES = [...COLS_TAM];
@@ -973,21 +977,76 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
       return consumo;
     }
 
+
+    function adjustStockValue(bucket,key,delta){
+      if(!bucket || !key) return;
+      bucket[key] = (parseFloat(bucket[key]) || 0) + (parseFloat(delta) || 0);
+      if(Math.abs(bucket[key]) < 1e-9) delete bucket[key];
+    }
+
+    function buildFinishedGoodNameFromParts(tipo, capacidad, colorUI){
+      const cap = String(capacidad||'').trim();
+      const col = String(colorUI||'').trim();
+      if(!cap || !col) return '';
+      if(String(tipo||'').includes('TINACO')) return `TINACO ${cap} ${col}`;
+      if(String(tipo||'').includes('TAMBO')) return `TAMBO ${cap} ${col}`;
+      if(String(tipo||'').includes('MACETA')) return `MACETA ${cap} ${col}`;
+      if(String(tipo||'').includes('BANCO')) return `BANCO ${cap} ${col}`;
+      return '';
+    }
+
+    function isConsignacionSalida(r){
+      return normalizarTextoClave(r?.concepto||'').includes('ENTREGA CONSIGNACION');
+    }
+
+    function isSucursalSalida(r){
+      return normalizarTextoClave(r?.concepto||'').includes('TRASPASO SUCURSAL');
+    }
+
+    function monthlyItemCandidateKeys(item){
+      const keys = [];
+      if(item?.sourceName) keys.push(String(item.sourceName).trim());
+      const prod = textoSeguro(item?.producto||'');
+      const tipo = textoSeguro(item?.tipo||'');
+      const medida = textoSeguro(item?.medida||'');
+      const color = textoSeguro(item?.color||'');
+      if(prod === 'TINACO') keys.push(`TINACO ${medida} ${color}`.trim());
+      if(prod === 'TAMBO') keys.push(`TAMBO ${medida} ${color}`.trim());
+      if(prod === 'BANCO') keys.push(`BANCO ${medida} ${color}`.trim());
+      if(prod === 'MACETERO'){
+        if(tipo === 'CUADRADO'){
+          if(medida === 'GRANDE') keys.push(`MACETA GRANDE ${color}`.trim());
+          if(medida === 'CHICO' || medida === 'CHICA') keys.push(`MACETA CHICA ${color}`.trim());
+        }
+        keys.push(`MACETERO ${tipo} ${medida} ${color}`.replace(/\s+/g,' ').trim());
+      }
+      if(prod && (!tipo && !medida && !color)) keys.push(prod);
+      if(prod && !prod.includes('(PIEZAS)')) keys.push(`${prod} (PIEZAS)`);
+      return [...new Set(keys.filter(Boolean))];
+    }
+
+
     function reconstructStockFromMovements(db){
       let stock = {};
+      let multiStock = { PLANTA:{}, SUCURSAL:{}, CONSIGNACION:{} };
       db.forEach(r => {
         const cant = parseFloat(r.cantidad) || 0;
         const tipo = String(r.tipo || '').trim();
         const concepto = String(r.concepto || '').trim();
-        let cap = (r.capacidad || '').trim();
-        let col = (r.colorUI || '').trim();
+        const cap = (r.capacidad || '').trim();
+        const col = (r.colorUI || '').trim();
+        const toSucursal = isSucursalSalida(r);
+        const toConsignacion = isConsignacionSalida(r);
+
         if (tipo.includes('_COBRO') || tipo === 'GASTO') return;
+
         if (tipo === 'INVENTARIO_FISICO') {
           let clave = col;
           if (!clave && concepto.startsWith('REAL: ')) clave = concepto.replace('REAL: ','').split(' (')[0].trim();
-          if (clave) stock[clave] = cant;
+          if (clave) adjustStockValue(stock, clave, cant - (parseFloat(stock[clave]) || 0));
           return;
         }
+
         if (tipo === 'COMPRA' || tipo === 'MERMA') {
           let clave = col;
           if (!clave) {
@@ -995,39 +1054,45 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
             else if (concepto.startsWith('MERMA: ')) clave = concepto.replace('MERMA: ','').split(' (')[0].trim();
           }
           if (clave) {
-            let mod = tipo === 'MERMA' ? -1 : 1;
-            stock[clave] = (stock[clave] || 0) + (cant * mod);
+            const mod = tipo === 'MERMA' ? -1 : 1;
+            adjustStockValue(stock, clave, cant * mod);
           }
           return;
         }
+
         if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO')) {
-          if (!col && cap) {
-            let legacyKey = '';
-            if (tipo.includes('TINACO')) legacyKey = `TINACO ${cap} [LEGACY]`;
-            else if (tipo.includes('TAMBO')) legacyKey = `TAMBO ${cap} [LEGACY]`;
-            if (legacyKey) {
-              if (tipo.includes('PROD_')) stock[legacyKey] = (stock[legacyKey] || 0) + cant;
-              else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[legacyKey] = (stock[legacyKey] || 0) - cant;
+          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col);
+          if (!fgName && cap) {
+            if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
+            else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
+          }
+          const receta = (col && cap) ? obtenerRecetaMateriales(tipo, cap, col) : {};
+
+          if (tipo.includes('PROD_')) {
+            Object.keys(receta).forEach(m => adjustStockValue(stock, m, -(receta[m] * cant)));
+            if (fgName) adjustStockValue(stock, fgName, cant);
+            return;
+          }
+
+          if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
+            Object.keys(receta).forEach(m => adjustStockValue(stock, m, -(receta[m] * cant)));
+            if (fgName) adjustStockValue(stock, fgName, -cant);
+
+            if (toSucursal) {
+              if (fgName) adjustStockValue(multiStock.SUCURSAL, fgName, cant);
+              Object.keys(receta).forEach(m => adjustStockValue(multiStock.SUCURSAL, m, receta[m] * cant));
+            } else if (toConsignacion) {
+              if (fgName) adjustStockValue(multiStock.CONSIGNACION, fgName, cant);
+              Object.keys(receta).forEach(m => adjustStockValue(multiStock.CONSIGNACION, m, receta[m] * cant));
             }
             return;
           }
-          if (col && cap) {
-            let receta = obtenerRecetaMateriales(tipo, cap, col);
-            Object.keys(receta).forEach(m => { stock[m] = (stock[m] || 0) - (receta[m] * cant); });
-            let fgName = null;
-            if (tipo.includes('TINACO')) fgName = `TINACO ${cap} ${col}`;
-            else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} ${col}`;
-            else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} ${col}`;
-            else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} ${col}`;
-            if (fgName) {
-              if (tipo.includes('PROD_')) stock[fgName] = (stock[fgName] || 0) + cant;
-              else if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) stock[fgName] = (stock[fgName] || 0) - cant;
-            }
-          }
         }
       });
+      multiStock.PLANTA = { ...stock };
       saveStockCache(stock);
       state.stock = stock;
+      state.multiStock = multiStock;
       renderStockTables();
       return stock;
     }
@@ -1184,7 +1249,12 @@ async function pingSupabase(){
 
     function getSystemStockForItem(item){
       const cacheMatch = state.inventoryCache.find(x => inventoryVariantKey(x) === inventoryVariantKey(item));
-      if(cacheMatch) return parseFloat(cacheMatch.stock) || 0;
+      if(cacheMatch && cacheMatch.stock !== undefined && cacheMatch.stock !== null) return parseFloat(cacheMatch.stock) || 0;
+      const bucket = (item.ubicacion === 'PLANTA') ? state.stock : ((state.multiStock && state.multiStock[item.ubicacion]) || {});
+      const keys = monthlyItemCandidateKeys(item);
+      for(const key of keys){
+        if(bucket && bucket[key] !== undefined) return parseFloat(bucket[key]) || 0;
+      }
       if(item.ubicacion==='PLANTA' && item.sourceName){ return parseFloat(state.stock[item.sourceName]) || 0; }
       return 0;
     }
@@ -1383,10 +1453,18 @@ function renderDashboard(){
     }
 
     function renderRouteTable(){
-      let deuda={}; state.movements.forEach(r=>{ let isConsignaOut=(r.concepto||'').includes('ENTREGA CONSIGNACIÓN'); let isTraspasoOut=r.tipo==='TRASPASO_TINACO'||r.tipo==='TRASPASO_TAMBO'; let isCobroConsigna=r.tipo==='VENTA_TINACO_COBRO'||r.tipo==='VENTA_TAMBO_COBRO'; let isCobroTraspaso=r.tipo==='TRASPASO_TINACO_COBRO'||r.tipo==='TRASPASO_TAMBO_COBRO'; if(isConsignaOut||isTraspasoOut){ let itemName=(r.concepto||'').replace('ENTREGA CONSIGNACIÓN: ','').replace('TRASPASO SUCURSAL: ',''); let key=r.vendedor+'|'+itemName; deuda[key]=(deuda[key]||0)+(parseFloat(r.cantidad)||0);} if(isCobroConsigna||isCobroTraspaso){ let itemName=(r.concepto||'').replace('COBRO CONSIGNACIÓN: ','').replace('COBRO SUCURSAL: ',''); let key=r.vendedor+'|'+itemName; deuda[key]=(deuda[key]||0)-(parseFloat(r.cantidad)||0);} });
-      const tbody=$('tablaStockRuta').querySelector('tbody');
-      const keys=Object.keys(deuda).filter(k=>deuda[k]>0);
-      tbody.innerHTML = keys.length ? keys.map(k=>{ const [resp,prod]=k.split('|'); return `<tr><td><strong>${escHtml(resp)}</strong></td><td>${escHtml(prod)}</td><td class="status-bad">${deuda[k]} PZAS</td></tr>`; }).join('') : '<tr><td colspan="3" class="subtle">No hay mercancía pendiente en ruta.</td></tr>';
+      const tbody = $('tablaStockRuta').querySelector('tbody');
+      const rows = [];
+      ['SUCURSAL','CONSIGNACION'].forEach(loc => {
+        const bucket = (state.multiStock && state.multiStock[loc]) || {};
+        Object.keys(bucket).sort((a,b)=>a.localeCompare(b)).forEach(prod => {
+          const q = parseFloat(bucket[prod]) || 0;
+          if(q > 0) rows.push({ loc, prod, q });
+        });
+      });
+      tbody.innerHTML = rows.length
+        ? rows.map(r => `<tr><td><strong>${escHtml(r.loc)}</strong></td><td>${escHtml(r.prod)}</td><td class="status-bad">${r.q.toFixed(2)} ${r.prod.includes('(PIEZAS)') || !r.prod.includes('ROTO') ? 'PZAS' : 'KG'}</td></tr>`).join('')
+        : '<tr><td colspan="3" class="subtle">No hay mercancía pendiente en sucursal o consignación.</td></tr>';
     }
 
     function obtenerDeudaConsignacion(vendedor, productoName){ let deuda=0; state.movements.forEach(r=>{ if(r.vendedor===vendedor){ if((r.concepto||'').includes('ENTREGA CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda += parseFloat(r.cantidad)||0; if((r.concepto||'').includes('COBRO CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda -= parseFloat(r.cantidad)||0; }}); return deuda; }

@@ -268,6 +268,40 @@
       .section-accent::before{width:5px;}
     }
 
+  
+
+    /* v30: historial solo en tabla, nunca acordeon */
+    #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
+    .history-accordion{display:none !important}
+    #historyAccordion{display:none !important}
+    #tablaHistorial{min-width:980px !important;width:max-content !important;border-collapse:collapse !important}
+    #tablaHistorial thead{display:table-header-group !important}
+    #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+    #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
+    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+    #tablaHistorial td::before{content:none !important}
+    #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;color:#fff !important;position:sticky;top:0;z-index:1}
+    #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:96px}
+    #tablaHistorial th:nth-child(2), #tablaHistorial td:nth-child(2){width:90px}
+    #tablaHistorial th:nth-child(3), #tablaHistorial td:nth-child(3){width:116px}
+    #tablaHistorial th:nth-child(4), #tablaHistorial td:nth-child(4){width:260px;white-space:normal !important;line-height:1.2}
+    #tablaHistorial th:nth-child(5), #tablaHistorial td:nth-child(5){width:74px;text-align:right}
+    #tablaHistorial th:nth-child(6), #tablaHistorial td:nth-child(6){width:96px;text-align:right}
+    #tablaHistorial th:nth-child(7), #tablaHistorial td:nth-child(7){width:102px;text-align:right}
+    #tablaHistorial th:nth-child(8), #tablaHistorial td:nth-child(8){width:82px;text-align:center}
+    #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
+    @media (max-width: 680px){
+      #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
+      .history-accordion{display:none !important}
+      #historyAccordion{display:none !important}
+      #tablaHistorial{min-width:980px !important;width:max-content !important}
+      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+      #tablaHistorial thead{display:table-header-group !important}
+      #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
+      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+      #tablaHistorial td::before{content:none !important}
+    }
+
   </style>
 </head>
 <body>
@@ -1561,7 +1595,7 @@ async function pingSupabase(){
         </tr>`;
       }).join('') || '<tr><td colspan="8" class="subtle">Sin movimientos.</td></tr>';
 
-      const acc = $('historyAccordion');
+      const acc = null; // v30: historial solo tabla
       if(acc){
         acc.innerHTML = db.length ? db.map((r,idx)=>{
           const pVal = parseFloat(r.precio) || 0;
@@ -1866,7 +1900,41 @@ function renderDashboard(){
       #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
     }
 
-</style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
+
+
+    /* v30: historial solo en tabla, nunca acordeon */
+    #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
+    .history-accordion{display:none !important}
+    #historyAccordion{display:none !important}
+    #tablaHistorial{min-width:980px !important;width:max-content !important;border-collapse:collapse !important}
+    #tablaHistorial thead{display:table-header-group !important}
+    #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+    #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
+    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+    #tablaHistorial td::before{content:none !important}
+    #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;color:#fff !important;position:sticky;top:0;z-index:1}
+    #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:96px}
+    #tablaHistorial th:nth-child(2), #tablaHistorial td:nth-child(2){width:90px}
+    #tablaHistorial th:nth-child(3), #tablaHistorial td:nth-child(3){width:116px}
+    #tablaHistorial th:nth-child(4), #tablaHistorial td:nth-child(4){width:260px;white-space:normal !important;line-height:1.2}
+    #tablaHistorial th:nth-child(5), #tablaHistorial td:nth-child(5){width:74px;text-align:right}
+    #tablaHistorial th:nth-child(6), #tablaHistorial td:nth-child(6){width:96px;text-align:right}
+    #tablaHistorial th:nth-child(7), #tablaHistorial td:nth-child(7){width:102px;text-align:right}
+    #tablaHistorial th:nth-child(8), #tablaHistorial td:nth-child(8){width:82px;text-align:center}
+    #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
+    @media (max-width: 680px){
+      #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
+      .history-accordion{display:none !important}
+      #historyAccordion{display:none !important}
+      #tablaHistorial{min-width:980px !important;width:max-content !important}
+      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+      #tablaHistorial thead{display:table-header-group !important}
+      #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
+      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+      #tablaHistorial td::before{content:none !important}
+    }
+
+  </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
     }
 

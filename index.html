@@ -1840,7 +1840,33 @@ function renderDashboard(){
       .section-accent::before{width:5px;}
     }
 
-  </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
+  
+    /* Override final: historial en iPhone como tabla compacta, no acordeón */
+    #tab-bd .card:first-of-type{border-color:#cfe0cf;}
+    #tab-bd .card:first-of-type h3{color:#3e7c3a;}
+    #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;}
+    .import-box{background:linear-gradient(180deg,#eef8ea,#e4f1df) !important;border-color:#cfe0cf !important;}
+    .import-box h4{color:#3e7c3a !important;}
+    @media (max-width: 680px){
+      #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
+      .history-accordion{display:none !important}
+      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+      #tablaHistorial thead{display:table-header-group !important}
+      #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
+      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+      #tablaHistorial td::before{content:none !important}
+      #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:88px}
+      #tablaHistorial th:nth-child(2), #tablaHistorial td:nth-child(2){width:84px}
+      #tablaHistorial th:nth-child(3), #tablaHistorial td:nth-child(3){width:112px}
+      #tablaHistorial th:nth-child(4), #tablaHistorial td:nth-child(4){width:210px;white-space:normal !important;line-height:1.2}
+      #tablaHistorial th:nth-child(5), #tablaHistorial td:nth-child(5){width:70px;text-align:right}
+      #tablaHistorial th:nth-child(6), #tablaHistorial td:nth-child(6){width:90px;text-align:right}
+      #tablaHistorial th:nth-child(7), #tablaHistorial td:nth-child(7){width:96px;text-align:right}
+      #tablaHistorial th:nth-child(8), #tablaHistorial td:nth-child(8){width:82px;text-align:center}
+      #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
+    }
+
+</style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
     }
 

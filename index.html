@@ -39,7 +39,7 @@
     .topbar p{margin:6px 0 0;color:#d7ebff;font-size:13px}
     .pill-row{display:flex;gap:10px;flex-wrap:wrap}
     .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800}
-    .mobile-tabs{display:none;gap:8px;overflow:auto;padding:10px 4px 4px;border-radius:18px;background:linear-gradient(180deg,#0b2752,#10386f);box-shadow:var(--shadow)}
+    .mobile-tabs{display:none;gap:8px;overflow:auto;overscroll-behavior-x:contain;padding:10px 4px 4px;border-radius:18px;background:linear-gradient(180deg,#0b2752,#10386f);box-shadow:var(--shadow)}
     .mobile-tab{border:none;background:#fff;color:var(--brand);padding:12px 14px;border-radius:14px;font-weight:800;white-space:nowrap;box-shadow:0 10px 16px rgba(5,22,53,.16)}
     .mobile-tab.active{background:var(--brand);color:#fff}
     .tab-panel{display:none;gap:16px}
@@ -75,7 +75,7 @@
     .status-low{color:#c46c04;font-weight:900}
     .status-bad{color:#bf2f2f;font-weight:900}
     .mini-note{padding:10px 12px;border-radius:12px;background:#eef6ff;color:var(--brand);font-size:12px;font-weight:700}
-    .chart-bars{display:flex;gap:12px;align-items:flex-end;min-height:220px;padding:14px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fbfdff}
+    .chart-bars{display:flex;gap:12px;align-items:flex-end;min-height:220px;padding:14px;overflow:auto;overscroll-behavior-x:contain;border:1px solid var(--line);border-radius:14px;background:#fbfdff}
     .bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:72px;height:100%}
     .bar{width:56px;border-radius:14px 14px 0 0;color:#fff;font-size:10px;font-weight:900;display:flex;justify-content:center;align-items:flex-start;padding-top:6px;box-shadow:0 6px 12px rgba(0,0,0,.15)}
     .bar.sales{background:linear-gradient(180deg,#1a73c9,#4dabff)}
@@ -115,6 +115,25 @@
     .history-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
     .history-item{border:1px solid #dbe6f4;background:#f8fbff;padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.4}
 
+    .history-accordion{display:none;margin-top:12px}
+    #tablaHistorialWrapper{display:block}
+    .history-acc-item{border:1px solid #d6e4f5;border-radius:16px;background:#fff;box-shadow:0 6px 16px rgba(10,31,68,.06);margin-bottom:10px;overflow:hidden}
+    .history-acc-head{width:100%;border:none;background:linear-gradient(180deg,#ffffff,#f6fbff);padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;text-align:left;cursor:pointer}
+    .history-acc-left{min-width:0;flex:1}
+    .history-acc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .history-acc-date{font-size:11px;font-weight:900;color:var(--muted)}
+    .history-acc-resp{font-size:11px;font-weight:900;color:var(--brand)}
+    .history-acc-concept{font-size:13px;font-weight:900;color:var(--text);line-height:1.25}
+    .history-acc-total{font-size:13px;font-weight:900;color:var(--brand);white-space:nowrap}
+    .history-acc-arrow{font-size:18px;font-weight:900;color:var(--brand);line-height:1;transition:transform .2s}
+    .history-acc-item.open .history-acc-arrow{transform:rotate(90deg)}
+    .history-acc-body{display:none;padding:12px 14px;border-top:1px solid #edf3fa;background:#fbfdff}
+    .history-acc-item.open .history-acc-body{display:block}
+    .history-acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .history-acc-field{background:#fff;border:1px solid #e0eaf7;border-radius:12px;padding:10px}
+    .history-acc-field strong{display:block;font-size:11px;font-weight:900;color:var(--muted);margin-bottom:4px}
+    .history-acc-actions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+
     .manual-add-box{margin-top:12px;padding:12px;border:1px dashed #c6d8ed;border-radius:14px;background:#f8fbff}
     .manual-add-title{font-size:12px;font-weight:900;color:var(--brand);margin:0 0 8px}
     .table-wrap table{min-width:640px}
@@ -136,11 +155,11 @@
     .section-kicker.gastos{background:#f6efff;color:#6d3bb0;border-color:#dbc6ff}
     .pending-card{margin-top:18px;overflow:visible}
     .pending-scroll-hint{margin:10px 0 0;font-size:12px;font-weight:800;color:var(--muted)}
-    .pending-card .table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;border-radius:18px}
+    .pending-card .table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:18px}
     .pending-card h3{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
     .pending-meta{font-size:12px;color:var(--muted);font-weight:800}
     .pending-table td,.pending-table th{font-size:12px}
-    .pending-scroll-wrap{overflow-x:auto !important;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .pending-scroll-wrap{overflow-x:auto !important;overflow-y:hidden;max-width:100%;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:#fff}
     .pending-scroll-wrap .pending-table{min-width:980px;width:max-content;table-layout:auto}
     .pending-empty{padding:18px;text-align:center;color:var(--muted);font-weight:700}
     .pending-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.35px}
@@ -169,9 +188,9 @@
       .row>.btn{width:100%}
       .inventory-table th,.inventory-table td,.db-table th,.db-table td{font-size:11px;padding:8px 6px}
       .inventory-table input,.inventory-table select{width:100%;min-width:74px}
-      .table-wrap{max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+      .table-wrap{max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
       .table-wrap table{min-width:640px;width:max-content}
-      .pending-card .table-wrap{display:block;width:100%;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;overscroll-behavior-x:contain}
+      .pending-card .table-wrap{display:block;width:100%;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
       .pending-card .table-wrap::after{content:'';display:block;width:1px;height:1px}
       #tablaStockActual th,#tablaStockActual td,#tablaStockRuta th,#tablaStockRuta td{white-space:normal}
       #tablaHistorial thead{display:none}
@@ -180,6 +199,10 @@
       #tablaHistorial td{display:block;width:100%;padding:10px 12px;border-bottom:1px solid #eef3f9;white-space:normal}
       #tablaHistorial td::before{content:attr(data-label);display:block;font-weight:900;color:var(--brand);margin-bottom:6px}
       #tablaHistorial td:last-child{border-bottom:none}
+
+      #tablaHistorialWrapper{display:none}
+      .history-accordion{display:block}
+      .history-acc-grid{grid-template-columns:1fr}
       .inventory-monthly-table-wrap{display:none}
       .inventory-accordion{display:block}
       .inv-accordion-grid{grid-template-columns:1fr}
@@ -212,16 +235,17 @@
       .mobile-tabs{padding-bottom:4px;overflow-x:auto;scroll-snap-type:x proximity}
       .mobile-tab{scroll-snap-align:start;min-width:132px}
       .summary-box{grid-template-columns:1fr 1fr}
-      .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;touch-action:pan-x;max-width:100%}
-      .pending-card .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;touch-action:pan-x;max-width:100%}
+      .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
+      .pending-card .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
       .pending-table{min-width:760px !important;width:max-content !important}
       .inventory-table{border-collapse:separate;border-spacing:0}
 
       .main{overflow-x:visible}
       #tab-registro.active,#tab-dashboard.active{min-width:0}
-      #tab-inventario.active{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;min-width:0;padding-bottom:6px}
-      #tab-inventario.active > .split{min-width:760px}
-      #tab-inventario .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+      #tab-inventario.active{display:block;min-width:0;padding-bottom:6px;overflow:visible}
+      #tab-inventario .inventory-page-scroll{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
+      #tab-inventario .inventory-page-scroll > .split{min-width:760px}
+      #tab-inventario .table-wrap{overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
     }
     @media print{
       body{background:#fff}
@@ -436,7 +460,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="table-wrap">
+          <div class="table-wrap" id="tablaHistorialWrapper">
             <table class="db-table" id="tablaHistorial">
               <thead>
                 <tr>
@@ -446,7 +470,7 @@
               <tbody></tbody>
             </table>
           </div>
-        </div>
+        </div></div>
       </section>
 
       <section id="tab-dashboard" class="tab-panel">
@@ -496,7 +520,7 @@
       </section>
 
       <section id="tab-inventario" class="tab-panel">
-        <div class="split">
+        <div class="inventory-page-scroll"><div class="split">
           <div>
             <div class="card">
               <h3>📋 Inventario Físico Mensual <span class="subtle">Planta / Sucursal</span></h3>
@@ -693,7 +717,7 @@
     ];
     const COMPRA_ACCESORIOS_20260407 = LISTA_MATERIALES.ACCESORIOS
       .filter(nombre => nombre !== 'ETIQUETA (PIEZAS)')
-      .map(nombre => ({ material:nombre, cantidad:50 }));
+      .map(nombre => ({ material:nombre, cantidad:500 }));
 
     const MONTHLY_CATALOG = {
       PLANTA: {
@@ -1527,12 +1551,14 @@ async function pingSupabase(){
       $('vendedorCorte').value = vendedoresDinamicos.includes(actualCorte) ? actualCorte : (vendedoresDinamicos[0] || 'HUSAI');
     }
 
+    
     function renderHistory(){
       let db = [...state.movements].map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{ const ta=fechaOrdenValor(a.fecha); const tb=fechaOrdenValor(b.fecha); if(ta!==tb) return tb-ta; return b._ord-a._ord; }).map(({_ord,...r})=>r);
       const vend = $('historialFiltroVendedor').value || 'TODOS';
-      const txt = normalizarTextoClave($('historialFiltroTexto').value || '');
+      const txtFilter = normalizarTextoClave($('historialFiltroTexto').value || '');
       if(vend !== 'TODOS') db = db.filter(r=>String(r.vendedor||'')===vend);
-      if(txt) db = db.filter(r=> normalizarTextoClave(`${r.fecha} ${r.vendedor} ${r.tipo} ${r.concepto}`).includes(txt));
+      if(txtFilter) db = db.filter(r=> normalizarTextoClave(`${r.fecha} ${r.vendedor} ${r.tipo} ${r.concepto}`).includes(txtFilter));
+
       const tbody = $('tablaHistorial').querySelector('tbody');
       tbody.innerHTML = db.map(r=>{
         const pVal = parseFloat(r.precio) || 0;
@@ -1552,6 +1578,48 @@ async function pingSupabase(){
           <td data-label="Borrar" class="print-hidden"><button type="button" class="btn btn-danger" style="padding:8px 10px;width:auto" onclick="window.deleteHistoryMovement('${escJsStr(String(r.id))}')">❌</button></td>
         </tr>`;
       }).join('') || '<tr><td colspan="8" class="subtle">Sin movimientos.</td></tr>';
+
+      const acc = $('historialAccordion');
+      if(acc){
+        acc.innerHTML = db.length ? db.map((r, idx)=>{
+          const pVal = parseFloat(r.precio) || 0;
+          const tVal = parseFloat(r.total) || 0;
+          const cVal = parseFloat(r.cantidad) || 0;
+          const totalShow = tVal !== 0 ? '$'+formato(tVal) : (pVal !== 0 ? '$'+formato(pVal) : (cVal !== 0 ? cVal.toFixed(2) : '-'));
+          return `<div class="history-acc-item${idx===0?' open':''}">
+            <button type="button" class="history-acc-head" onclick="window.toggleHistoryAcc(this)">
+              <div class="history-acc-left">
+                <div class="history-acc-top">
+                  <span class="history-acc-date">${escHtml(formatFechaVisible(r.fecha||''))}</span>
+                  <span class="history-acc-resp">${escHtml(r.vendedor||'')}</span>
+                  <span class="badge">${escHtml(getTipoAmigable(r.tipo||''))}</span>
+                </div>
+                <div class="history-acc-concept">${escHtml(r.concepto||'')}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="history-acc-total">${escHtml(totalShow)}</span>
+                <span class="history-acc-arrow">›</span>
+              </div>
+            </button>
+            <div class="history-acc-body">
+              <div class="history-acc-grid">
+                <div class="history-acc-field"><strong>Fecha</strong><span>${escHtml(r.fecha||'')}</span></div>
+                <div class="history-acc-field"><strong>Responsable</strong><span>${escHtml(r.vendedor||'')}</span></div>
+                <div class="history-acc-field"><strong>Movimiento</strong><span>${escHtml(getTipoAmigable(r.tipo||''))}</span></div>
+                <div class="history-acc-field"><strong>Concepto</strong><span>${escHtml(r.concepto||'')}</span></div>
+                <div class="history-acc-field"><strong>Cantidad</strong><span>${cVal !== 0 ? cVal.toFixed(2) : '-'}</span></div>
+                <div class="history-acc-field"><strong>Precio unitario</strong><span>${pVal !== 0 ? '$'+formato(pVal) : '-'}</span></div>
+                <div class="history-acc-field"><strong>Total</strong><span>${tVal !== 0 ? '$'+formato(tVal) : '-'}</span></div>
+                <div class="history-acc-field"><strong>ID</strong><span>${escHtml(String(r.id||''))}</span></div>
+              </div>
+              <div class="history-acc-actions print-hidden">
+                <button type="button" class="btn btn-danger" style="width:auto" onclick="window.deleteHistoryMovement('${escJsStr(String(r.id))}')">🗑️ Borrar movimiento</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('') : '<div class="subtle">Sin movimientos.</div>';
+      }
+
       renderHistoryVendorFilter();
     }
 

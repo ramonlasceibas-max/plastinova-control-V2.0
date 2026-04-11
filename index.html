@@ -609,7 +609,8 @@
       STOCK: 'plastinova_stock_operativo_v3',
       STOCK_LEGACY: 'plastinova_stock_v1',
       INVENTORY_CACHE: 'plastinova_inventory_cache_v3',
-      MONTHLY_DRAFTS: 'plastinova_cierres_mensuales_v3'
+      MONTHLY_DRAFTS: 'plastinova_cierres_mensuales_v3',
+      APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -629,7 +630,12 @@
       ['garantia','CAMBIO GARANTÍA ($0)'],['traspaso_sucursal','TRASPASO A SUCURSAL ($0)'],['traspaso_cobro','COBRO DE TRASPASO']
     ];
     const LISTA_MATERIALES = {
-      POLVOS: ['ROTOFOAM NEGRO AR','ROTOFOAM BLANCO AR','ROTOLENE BEIGE','ROTOLENE NEGRO - BLACK','ROTOLENE AZUL #5','ROTOLENE VERDE #15','ROTOLENE VERDE INDUST.','ROTOLENE BLANCO','RECICLADO / MERMA','ROTOLENE ROJO 14','ROTOLENE NATURAL','ROTOLENE CAFÉ','ROTOLENE NARANJA II'],
+      POLVOS: [
+        'ROTOFOAM NEGRO AR','ROTOFOAM BLANCO AR',
+        'ROTOLENE BEIGE','ROTOLENE NEGRO - BLACK','ROTOLENE AZUL #5','ROTOLENE VERDE #15','ROTOLENE VERDE INDUST.','ROTOLENE BLANCO',
+        'ROTOLENE NARANJA II','ROTOLENE ROJO 10','ROTOLENE ROJO 14','ROTOLENE ROJO INDUST.','ROTOLENE CAFÉ','ROTOLENE GRANITO 15','ROTOLENE NATURAL',
+        'RECICLADO / MERMA','ROTOLENE POLIGRANITO 1 - POLIF.','ROTOLENE BEIGE POLIF.','ROTOLENE GRIS OXFORD','SOBRAS'
+      ],
       ACCESORIOS: ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','VALVULA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)'],
       TERMINADOS: []
     };
@@ -663,11 +669,40 @@
       {producto:'CONO',tipo:'CONO ESPECIAL',medida:'UNICO',color:'CAFÉ',unidad:'PZA'}
     ];
 
+    const INVENTARIO_BASE_20260401 = [
+      { material:'ROTOFOAM NEGRO AR', cantidad:6072.00 },
+      { material:'ROTOFOAM BLANCO AR', cantidad:1420.00 },
+      { material:'ROTOLENE BEIGE', cantidad:6216.00 },
+      { material:'ROTOLENE NEGRO - BLACK', cantidad:1056.00 },
+      { material:'ROTOLENE AZUL #5', cantidad:1104.00 },
+      { material:'ROTOLENE VERDE #15', cantidad:400.00 },
+      { material:'ROTOLENE VERDE INDUST.', cantidad:304.31 },
+      { material:'ROTOLENE NARANJA II', cantidad:200.00 },
+      { material:'ROTOLENE ROJO 10', cantidad:1848.00 },
+      { material:'ROTOLENE ROJO 14', cantidad:1067.97 },
+      { material:'ROTOLENE ROJO INDUST.', cantidad:0.00 },
+      { material:'ROTOLENE CAFÉ', cantidad:360.00 },
+      { material:'ROTOLENE BLANCO', cantidad:6240.00 },
+      { material:'ROTOLENE GRANITO 15', cantidad:1065.86 },
+      { material:'ROTOLENE NATURAL', cantidad:588.14 },
+      { material:'RECICLADO / MERMA', cantidad:130.92 },
+      { material:'ROTOLENE POLIGRANITO 1 - POLIF.', cantidad:318.89 },
+      { material:'ROTOLENE BEIGE POLIF.', cantidad:18.12 },
+      { material:'ROTOLENE GRIS OXFORD', cantidad:1.88 },
+      { material:'SOBRAS', cantidad:5.80 }
+    ];
+    const COMPRA_ACCESORIOS_20260407 = LISTA_MATERIALES.ACCESORIOS
+      .filter(nombre => nombre !== 'ETIQUETA (PIEZAS)')
+      .map(nombre => ({ material:nombre, cantidad:50 }));
+
     const MONTHLY_CATALOG = {
       PLANTA: {
         MATERIA_PRIMA: [
           ...['NEGRO AR','BLANCO AR'].map(c=>({producto:'ROTOFOAM',tipo:'SACO',medida:'BULTO / SUELTO',color:c,unidad:'KG',sourceName:`ROTOFOAM ${c}`})),
-          ...['BEIGE','NEGRO - BLACK','AZUL #5','VERDE #15','VERDE INDUST.','BLANCO','ROJO 14','NATURAL','CAFÉ','NARANJA II','RECICLADO / MERMA','GRANITO','TERRACOTA','GRANITO POLIF','MELON','AZUL C/BLANCO','TURQUESA','VERDE OSCURO','DUVALIN','POLIGRANITO - PPL','SOBRAS'].map(c=>({producto:'ROTOLENE',tipo:'SACO',medida:'BULTO / SUELTO',color:c,unidad:'KG',sourceName:c==='RECICLADO / MERMA' ? 'RECICLADO / MERMA' : `ROTOLENE ${c}`}))
+          ...[
+            'BEIGE','NEGRO - BLACK','AZUL #5','VERDE #15','VERDE INDUST.','BLANCO','NARANJA II','ROJO 10','ROJO 14','ROJO INDUST.','CAFÉ','GRANITO 15','NATURAL',
+            'POLIGRANITO 1 - POLIF.','BEIGE POLIF.','GRIS OXFORD','RECICLADO / MERMA','SOBRAS'
+          ].map(c=>({producto:'ROTOLENE',tipo:'SACO',medida:'BULTO / SUELTO',color:c,unidad:'KG',sourceName:(c==='RECICLADO / MERMA' || c==='SOBRAS') ? c : `ROTOLENE ${c}`}))
         ],
         ACCESORIOS: LISTA_MATERIALES.ACCESORIOS.map(n=>({producto:n.replace(' (PIEZAS)',''),tipo:'',medida:'',color:'',unidad:'PZA',sourceName:n})),
         TINACOS: CAPS_TIN.flatMap(cap => COLS_TIN.map(color => ({producto:'TINACO',tipo:'',medida:cap,color,unidad:'PZA',sourceName:`TINACO ${cap} ${color}`}))),
@@ -1268,14 +1303,16 @@ async function pingSupabase(){
     }
 
     function getSystemStockForItem(item){
-      const cacheMatch = state.inventoryCache.find(x => inventoryVariantKey(x) === inventoryVariantKey(item));
-      if(cacheMatch && cacheMatch.stock !== undefined && cacheMatch.stock !== null) return parseFloat(cacheMatch.stock) || 0;
       const bucket = (item.ubicacion === 'PLANTA') ? state.stock : ((state.multiStock && state.multiStock[item.ubicacion]) || {});
       const keys = monthlyItemCandidateKeys(item);
       for(const key of keys){
         if(bucket && bucket[key] !== undefined) return parseFloat(bucket[key]) || 0;
       }
-      if(item.ubicacion==='PLANTA' && item.sourceName){ return parseFloat(state.stock[item.sourceName]) || 0; }
+      if(item.ubicacion==='PLANTA' && item.sourceName && state.stock[item.sourceName] !== undefined){
+        return parseFloat(state.stock[item.sourceName]) || 0;
+      }
+      const cacheMatch = state.inventoryCache.find(x => inventoryVariantKey(x) === inventoryVariantKey(item));
+      if(cacheMatch && cacheMatch.stock !== undefined && cacheMatch.stock !== null) return parseFloat(cacheMatch.stock) || 0;
       return 0;
     }
 
@@ -1819,13 +1856,81 @@ function renderDashboard(){
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', ()=>printDocument(`<h2>Resumen global</h2><div>${$('graficaVentas').outerHTML}${$('graficaProd').outerHTML}</div>`, 'REPORTE PRO - VENTAS VS PRODUCCIÓN'));
     }
 
+    function seedApril2026BaselineIfMissing(){
+      let db = getMovements();
+      const hasBaseline = db.some(r => String(r.concepto || '').includes('[BASELINE-2026-04-01]'));
+      const hasAccessoryPurchase = db.some(r => String(r.concepto || '').includes('[COMPRA-ACCESORIOS-2026-04-07]'));
+      const added = [];
+
+      if(!hasBaseline){
+        INVENTARIO_BASE_20260401.forEach(item => {
+          added.push({
+            id:`seed-inv-${normalizarTextoClave(item.material).replace(/\s+/g,'-')}`,
+            fecha:'2026-04-01',
+            semana:getNumeroSemana('2026-04-01'),
+            vendedor:'AJUSTE_INICIAL',
+            tipo:'INVENTARIO_FISICO',
+            concepto:`REAL: ${item.material} [BASELINE-2026-04-01]`,
+            cantidad:parseFloat(item.cantidad) || 0,
+            precio:0,
+            total:0,
+            capacidad:null,
+            colorUI:item.material
+          });
+        });
+      }
+
+      if(!hasAccessoryPurchase){
+        COMPRA_ACCESORIOS_20260407.forEach(item => {
+          added.push({
+            id:`seed-acc-${normalizarTextoClave(item.material).replace(/\s+/g,'-')}`,
+            fecha:'2026-04-07',
+            semana:getNumeroSemana('2026-04-07'),
+            vendedor:'COMPRA_INICIAL',
+            tipo:'COMPRA',
+            concepto:`INGRESO: ${item.material} [COMPRA-ACCESORIOS-2026-04-07]`,
+            cantidad:parseFloat(item.cantidad) || 0,
+            precio:0,
+            total:0,
+            capacidad:null,
+            colorUI:item.material
+          });
+        });
+      }
+
+      if(added.length){
+        db = ordenarDBCronologicamente([...db, ...added]);
+        saveMovements(db);
+      }
+      return { db, added };
+    }
+
+    async function syncApril2026BaselineIfNeeded(added){
+      if(!added || !added.length || localStorage.getItem(STORAGE_KEYS.APRIL_BASELINE_SYNC)==='1') return;
+      added.forEach(reg => { try { enviarNube(reg); syncOperationalMovementToSupabase(reg, 'UPSERT'); } catch(_e){} });
+      localStorage.setItem(STORAGE_KEYS.APRIL_BASELINE_SYNC, '1');
+    }
+
     function seedInitialInventoryCacheIfEmpty(){ if(getInventoryCache().length) return; const rows=[]; Object.entries(MONTHLY_CATALOG).forEach(([ubic,cats])=>{ Object.entries(cats).forEach(([cat,list])=>{ list.forEach(item=>rows.push({id:'seed-'+Math.random(), ubicacion:ubic,categoria:cat,producto:item.producto,tipo:item.tipo||'',medida:item.medida||'',color:item.color||'',unidad:item.unidad||'PZA',stock:0})); }); }); saveInventoryCache(rows); state.inventoryCache=rows; }
 
     window.deleteHistoryMovement = deleteHistoryMovement; window.editStockPrompt = editStockPrompt; window.deleteStockPrompt = deleteStockPrompt; window.removePendingEntry = removePendingEntry;
 
     async function init(){
-      updateDateDefaults(); fillStaticSelectors(); bindEvents(); state.movements = getMovements(); reconstructStockFromMovements(state.movements); seedInitialInventoryCacheIfEmpty(); state.inventoryCache = getInventoryCache(); renderAll(); updateCutDates();
-      await pingSupabase(); await loadInventoryCacheFromSupabase(); loadMonthlyRows(); renderAll();
+      updateDateDefaults();
+      fillStaticSelectors();
+      bindEvents();
+      seedInitialInventoryCacheIfEmpty();
+      const seeded = seedApril2026BaselineIfMissing();
+      state.movements = seeded.db;
+      reconstructStockFromMovements(state.movements);
+      state.inventoryCache = getInventoryCache();
+      renderAll();
+      updateCutDates();
+      await pingSupabase();
+      await loadInventoryCacheFromSupabase();
+      await syncApril2026BaselineIfNeeded(seeded.added);
+      loadMonthlyRows();
+      renderAll();
     }
     document.addEventListener('DOMContentLoaded', init);
   </script>

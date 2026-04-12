@@ -270,15 +270,15 @@
 
   
 
-    /* v30: historial solo en tabla, nunca acordeon */
+    /* v31: historial fijo y encabezados alineados */
     #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
     .history-accordion{display:none !important}
     #historyAccordion{display:none !important}
-    #tablaHistorial{min-width:980px !important;width:max-content !important;border-collapse:collapse !important}
+    #tablaHistorial{min-width:980px !important;width:100% !important;border-collapse:collapse !important;table-layout:fixed !important}
     #tablaHistorial thead{display:table-header-group !important}
-    #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+    #tablaHistorial tbody{display:table-row-group !important}
     #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
     #tablaHistorial td::before{content:none !important}
     #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;color:#fff !important;position:sticky;top:0;z-index:1}
     #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:96px}
@@ -294,11 +294,11 @@
       #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
       .history-accordion{display:none !important}
       #historyAccordion{display:none !important}
-      #tablaHistorial{min-width:980px !important;width:max-content !important}
-      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+      #tablaHistorial{min-width:980px !important;width:980px !important;table-layout:fixed !important}
       #tablaHistorial thead{display:table-header-group !important}
+      #tablaHistorial tbody{display:table-row-group !important}
       #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
       #tablaHistorial td::before{content:none !important}
     }
 
@@ -611,7 +611,7 @@
 
             <div class="card">
               <h3>📥 Entrada directa</h3>
-              <div class="form-group"><label>Material / Accesorio / Producto</label><select id="compraMaterial"></select></div>
+              <div class="form-group"><label>Material / Aditamento / Producto</label><select id="compraMaterial"></select></div>
               <div class="row">
                 <div class="form-group"><label>Unidad / Tipo de captura</label><select id="compraUnidad">
                   <option value="PZA">PIEZA</option>
@@ -732,8 +732,37 @@
       { material:'SOBRAS', cantidad:5.80 }
     ];
     const COMPRA_ACCESORIOS_20260407 = LISTA_MATERIALES.ACCESORIOS
-      .filter(nombre => nombre !== 'ETIQUETA (PIEZAS)')
       .map(nombre => ({ material:nombre, cantidad:500 }));
+
+    const ACCESORIOS_EXTRA_PLANTA_20260401 = {
+      'TAPA (PIEZAS)': 122,
+      'BRIDA (PIEZAS)': 312
+    };
+
+    const APRIL_OPENING_ROUTE_20260401 = {
+      CONSIGNACION: [
+        { vendedor:'FERNANDO', tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3 },
+        { vendedor:'HUSAI', tipo:'TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:3 },
+        { vendedor:'HUSAI', tipo:'TINACO', capacidad:'1200LT', color:'AZUL', cantidad:2 },
+        { vendedor:'HUSAI', tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1 }
+      ],
+      SUCURSAL: [
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:2 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'1100LT', color:'ROJO', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'750LT', color:'AZUL', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'750LT', color:'VERDE', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'750LT', color:'ROJO', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'750LT', color:'BEIGE', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3 },
+        { vendedor:'SUCURSAL', tipo:'TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:2 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'GRANITO BEIGE', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'ROJO CON BLANCO', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'VERDE', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'NEGRO', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'NARANJA', cantidad:1 },
+        { vendedor:'SUCURSAL', tipo:'TAMBO', capacidad:'235LT', color:'MELON', cantidad:1 }
+      ]
+    };
 
     const MONTHLY_CATALOG = {
       PLANTA: {
@@ -1080,14 +1109,87 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
     }
 
     function buildFinishedGoodNameFromParts(tipo, capacidad, colorUI){
-      const cap = String(capacidad||'').trim();
-      const col = String(colorUI||'').trim();
+      const tipoTxt = String(tipo||'').trim().toUpperCase();
+      const cap = String(capacidad||'').trim().toUpperCase();
+      const col = String(colorUI||'').trim().toUpperCase();
       if(!cap || !col) return '';
-      if(String(tipo||'').includes('TINACO')) return `TINACO ${cap} ${col}`;
-      if(String(tipo||'').includes('TAMBO')) return `TAMBO ${cap} ${col}`;
-      if(String(tipo||'').includes('MACETA')) return `MACETA ${cap} ${col}`;
-      if(String(tipo||'').includes('BANCO')) return `BANCO ${cap} ${col}`;
+      if(tipoTxt.includes('TINACO')) return `TINACO ${cap} ${col}`;
+      if(tipoTxt.includes('TAMBO')) return `TAMBO ${cap} ${col}`;
+      if(tipoTxt.includes('MACETA')){
+        if(cap === 'GRANDE') return `MACETA GRANDE ${col}`;
+        if(cap === 'CHICA' || cap === 'CHICO') return `MACETA CHICA ${col}`;
+        return `MACETA ${cap} ${col}`;
+      }
+      if(tipoTxt.includes('BANCO')){
+        if(cap === 'CHICO' || cap === 'GRANDE') return `BANCO CONICO ${cap} ${col}`;
+        return `BANCO ${cap} ${col}`;
+      }
       return '';
+    }
+
+    function obtenerRecetaAccesoriosVenta(tipoMovimiento, capacidad, colorUI){
+      const recetaCompleta = obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI) || {};
+      const soloAccesorios = {};
+      Object.keys(recetaCompleta).forEach(material => {
+        if(LISTA_MATERIALES.ACCESORIOS.includes(material)) soloAccesorios[material] = recetaCompleta[material];
+      });
+      return soloAccesorios;
+    }
+
+    function movimientoIncluyeAccesorios(reg){
+      const conceptoNorm = normalizarTextoClave(reg?.concepto || '');
+      if(reg && reg.incluyeAccesorios === false) return false;
+      if(conceptoNorm.includes('SIN ACCESORIOS') || conceptoNorm.includes('[SIN_ACCESORIOS]')) return false;
+      return true;
+    }
+
+    function createSeedMovementRecord(vendedor, tipo, concepto, cantidad, capacidad, colorUI, fecha='2026-04-01'){
+      return {
+        id:`seed-${fecha}-${tipo}-${normalizarTextoClave(concepto).replace(/[^A-Z0-9]+/g,'-')}-${Math.random().toString(36).slice(2,7)}`,
+        fecha,
+        semana:getNumeroSemana(fecha),
+        vendedor,
+        tipo,
+        concepto,
+        cantidad:parseFloat(cantidad) || 0,
+        precio:0,
+        total:0,
+        capacidad:capacidad || null,
+        colorUI:colorUI || null
+      };
+    }
+
+    function getOpeningRouteSeedRequirements(){
+      const openingProductStock = {};
+      const openingAccessoryStock = { ...ACCESORIOS_EXTRA_PLANTA_20260401 };
+      const routeMovements = [];
+      Object.entries(APRIL_OPENING_ROUTE_20260401).forEach(([destino, items]) => {
+        items.forEach(item => {
+          const capacidad = item.capacidad || '';
+          const color = normalizarColorUI(item.color || '') || item.color || '';
+          const cantidad = parseFloat(item.cantidad) || 0;
+          const tipoBase = item.tipo === 'TAMBO' ? 'TAMBO' : 'TINACO';
+          const tipoMov = destino === 'SUCURSAL'
+            ? (tipoBase === 'TAMBO' ? 'TRASPASO_TAMBO' : 'TRASPASO_TINACO')
+            : (tipoBase === 'TAMBO' ? 'VENTA_TAMBO' : 'VENTA_TINACO');
+          const nombreProducto = buildFinishedGoodNameFromParts(tipoMov, capacidad, color);
+          if(nombreProducto) openingProductStock[nombreProducto] = (parseFloat(openingProductStock[nombreProducto]) || 0) + cantidad;
+          const recetaAccesorios = obtenerRecetaAccesoriosVenta(tipoMov, capacidad, color);
+          Object.keys(recetaAccesorios).forEach(material => {
+            openingAccessoryStock[material] = (parseFloat(openingAccessoryStock[material]) || 0) + (parseFloat(recetaAccesorios[material]) || 0) * cantidad;
+          });
+          const concepto = destino === 'SUCURSAL'
+            ? `TRASPASO SUCURSAL ${tipoBase} ${capacidad} ${color} [AJUSTE-INICIAL-SUCURSAL-2026-04-01]`
+            : `ENTREGA CONSIGNACIÓN ${tipoBase} ${capacidad} ${color} [AJUSTE-INICIAL-CONSIGNACION-2026-04-01]`;
+          routeMovements.push(createSeedMovementRecord(item.vendedor || (destino === 'SUCURSAL' ? 'SUCURSAL' : 'CONSIGNACION'), tipoMov, concepto, cantidad, capacidad, color, '2026-04-01'));
+        });
+      });
+      return { openingProductStock, openingAccessoryStock, routeMovements };
+    }
+
+    function getDisplayCategoryLabel(cat){
+      if(cat === 'ACCESORIOS') return 'ADITAMENTOS';
+      return String(cat || '').replaceAll('_',' ');
     }
 
     function isConsignacionSalida(r){
@@ -1160,25 +1262,26 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
           if (!fgName && cap) {
             if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
             else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
+            else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} [LEGACY]`;
+            else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} [LEGACY]`;
           }
-          const receta = (col && cap) ? obtenerRecetaMateriales(tipo, cap, col) : {};
 
           if (tipo.includes('PROD_')) {
-            Object.keys(receta).forEach(m => adjustStockValue(stock, m, -(receta[m] * cant)));
+            const recetaMateriaPrima = (col && cap) ? obtenerRecetaMateriales(tipo, cap, col) : {};
+            Object.keys(recetaMateriaPrima).forEach(m => adjustStockValue(stock, m, -(recetaMateriaPrima[m] * cant)));
             if (fgName) adjustStockValue(stock, fgName, cant);
             return;
           }
 
           if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
-            Object.keys(receta).forEach(m => adjustStockValue(stock, m, -(receta[m] * cant)));
+            const recetaAccesorios = movimientoIncluyeAccesorios(r) && col && cap ? obtenerRecetaAccesoriosVenta(tipo, cap, col) : {};
+            Object.keys(recetaAccesorios).forEach(m => adjustStockValue(stock, m, -(recetaAccesorios[m] * cant)));
             if (fgName) adjustStockValue(stock, fgName, -cant);
 
-            if (toSucursal) {
-              if (fgName) adjustStockValue(multiStock.SUCURSAL, fgName, cant);
-              Object.keys(receta).forEach(m => adjustStockValue(multiStock.SUCURSAL, m, receta[m] * cant));
-            } else if (toConsignacion) {
-              if (fgName) adjustStockValue(multiStock.CONSIGNACION, fgName, cant);
-              Object.keys(receta).forEach(m => adjustStockValue(multiStock.CONSIGNACION, m, receta[m] * cant));
+            const destinoPendiente = toSucursal ? multiStock.SUCURSAL : (toConsignacion ? multiStock.CONSIGNACION : null);
+            if (destinoPendiente) {
+              if (fgName) adjustStockValue(destinoPendiente, fgName, cant);
+              Object.keys(recetaAccesorios).forEach(m => adjustStockValue(destinoPendiente, m, recetaAccesorios[m] * cant));
             }
             return;
           }
@@ -1281,7 +1384,7 @@ async function pingSupabase(){
       populateSelect($('tipoPrecioTinaco'), OPS_PRECIO); $('tipoPrecioTinaco').value='mayoreo';
       populateSelect($('tipoPrecioTambo'), OPS_PRECIO); $('tipoPrecioTambo').value='mayoreo';
       populateSelect($('tipoProdFabricado'), [['TINACO','TINACO'],['TAMBO','TAMBO'],['MACETA','MACETA CUADRADA'],['BANCO','BANCO']]);
-      populateSelect($('mermaCategoria'), [['POLVOS','POLVOS / MATERIA PRIMA'],['ACCESORIOS','ACCESORIOS'],['TERMINADOS','PRODUCTOS TERMINADOS']]);
+      populateSelect($('mermaCategoria'), [['POLVOS','POLVOS / MATERIA PRIMA'],['ACCESORIOS','ADITAMENTOS'],['TERMINADOS','PRODUCTOS TERMINADOS']]);
       populateSelect($('invMensualUbicacion'), [['PLANTA','PLANTA'],['SUCURSAL','SUCURSAL']]);
       populateSelect($('compraMaterial'), [['','SELECCIONAR...'],
         ...LISTA_MATERIALES.POLVOS.map(v=>[v,v]),
@@ -1330,16 +1433,46 @@ async function pingSupabase(){
       $('compraUnidadNota').innerHTML = isPolvo
         ? 'Materia prima: captura <strong>KG</strong> si son kilos sueltos o selecciona <strong>BULTO 20 KG</strong> / <strong>BULTO 24 KG</strong> si contarás costales. La app convertirá esos bultos a kilos.'
         : (isAcc
-          ? 'Accesorios: normalmente se captura por <strong>PIEZA</strong>. Si excepcionalmente lo necesitas, puedes cambiar manualmente la unidad visible.'
+          ? 'Aditamentos: normalmente se capturan por <strong>PIEZA</strong>. Si excepcionalmente lo necesitas, puedes cambiar manualmente la unidad visible.'
           : 'Producto terminado: normalmente se captura por <strong>PIEZA</strong>. El selector queda visible por si necesitas otro tipo de registro.');
     }
 
     function updateMonthlyCategories(){
       const ubic=$('invMensualUbicacion').value || 'PLANTA';
+      const prevCat=$('invMensualCategoria').value || '';
       const cats=Object.keys(MONTHLY_CATALOG[ubic] || {});
-      populateSelect($('invMensualCategoria'), cats.map(c=>[c,c.replaceAll('_',' ')]));
-      if(cats.length) $('invMensualCategoria').value = cats[0];
+      populateSelect($('invMensualCategoria'), cats.map(c=>[c,getDisplayCategoryLabel(c)]));
+      if(cats.length) $('invMensualCategoria').value = cats.includes(prevCat) ? prevCat : cats[0];
       loadMonthlyRows();
+    }
+
+    function inferInventoryCategoryFromMaterial(mat){
+      const material = textoSeguro(mat);
+      if(!material) return null;
+      if(LISTA_MATERIALES.POLVOS.includes(material)) return 'MATERIA_PRIMA';
+      if(LISTA_MATERIALES.ACCESORIOS.includes(material)) return 'ACCESORIOS';
+      if(material.startsWith('TINACO ')) return 'TINACOS';
+      if(material.startsWith('TAMBO ')) return 'TAMBOS';
+      if(material.startsWith('MACETA ') || material.startsWith('MACETERO ')) return 'MACETEROS';
+      if(material.startsWith('BANCO ')) return 'BANCOS';
+      if(material.startsWith('LAMINA ')) return 'LAMINAS';
+      return null;
+    }
+
+    function refreshInventoryAfterDirectEntry(mat){
+      const categoriaDestino = inferInventoryCategoryFromMaterial(mat);
+      if(!categoriaDestino) return;
+      const inventarioActivo = $('tab-inventario') && $('tab-inventario').classList.contains('active');
+      if(inventarioActivo){
+        $('invMensualUbicacion').value = 'PLANTA';
+        updateMonthlyCategories();
+        if((MONTHLY_CATALOG.PLANTA || {})[categoriaDestino]) $('invMensualCategoria').value = categoriaDestino;
+        loadMonthlyRows();
+        return;
+      }
+      if(($('invMensualUbicacion').value || 'PLANTA') === 'PLANTA' && ($('invMensualCategoria').value || '') === categoriaDestino){
+        loadMonthlyRows();
+      }
     }
 
     function getSystemStockForItem(item){
@@ -1533,17 +1666,13 @@ async function pingSupabase(){
         const item = { ubicacion, categoria, producto:row.producto, tipo:row.tipo, medida:row.medida, color:row.color, unidad:row.unidad };
         const up = await upsertInventoryVariant(item, row.fisico);
         await logInventoryMovement(up.id || null, 'AJUSTE_CIERRE', row.diferencia, `${fecha} ${ubicacion} ${categoria}`);
-        if(ubicacion==='PLANTA' && row.sourceName){
-          const regAud = { id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${row.sourceName} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:row.sourceName };
-          db.push(regAud);
-          enviarNube(regAud);
-          syncOperationalMovementToSupabase(regAud,'UPSERT');
-        } else {
-          const etiqueta = `${row.producto} ${row.tipo||''} ${row.medida||''} ${row.color||''}`.replace(/\s+/g,' ').trim();
-          const regAud = { id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${ubicacion} ${categoria} ${etiqueta} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:etiqueta };
-          enviarNube(regAud);
-          syncOperationalMovementToSupabase(regAud,'UPSERT');
-        }
+        const etiqueta = row.sourceName
+          ? row.sourceName
+          : `${ubicacion} ${categoria} ${row.producto} ${row.tipo||''} ${row.medida||''} ${row.color||''}`.replace(/\s+/g,' ').trim();
+        const regAud = { id: Date.now()+Math.random(), fecha, semana:getNumeroSemana(fecha), vendedor:'AUDITORIA', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${etiqueta} (CIERRE MENSUAL)`, cantidad:parseFloat(row.fisico)||0, precio:0, total:0, capacidad:null, colorUI:etiqueta };
+        db.push(regAud);
+        enviarNube(regAud);
+        syncOperationalMovementToSupabase(regAud,'UPSERT');
       }
       db = ordenarDBCronologicamente(db); saveMovements(db); state.movements = db; await loadInventoryCacheFromSupabase(); reconstructStockFromMovements(db); renderAll();
       alert('Cierre aplicado correctamente.');
@@ -1660,11 +1789,14 @@ function renderDashboard(){
         const bucket = (state.multiStock && state.multiStock[loc]) || {};
         Object.keys(bucket).sort((a,b)=>a.localeCompare(b)).forEach(prod => {
           const q = parseFloat(bucket[prod]) || 0;
-          if(q > 0) rows.push({ loc, prod, q });
+          if(q > 0){
+            const unidad = (prod.includes('ROTO') || prod.includes('MERMA')) ? 'KG' : 'PZAS';
+            rows.push({ loc, prod, q, unidad });
+          }
         });
       });
       tbody.innerHTML = rows.length
-        ? rows.map(r => `<tr><td><strong>${escHtml(r.loc)}</strong></td><td>${escHtml(r.prod)}</td><td class="status-bad">${r.q.toFixed(2)} ${r.prod.includes('(PIEZAS)') || !r.prod.includes('ROTO') ? 'PZAS' : 'KG'}</td></tr>`).join('')
+        ? rows.map(r => `<tr><td><strong>${escHtml(r.loc)}</strong></td><td>${escHtml(r.prod)}</td><td class="status-bad">${r.q.toFixed(2)} ${escHtml(r.unidad)}</td></tr>`).join('')
         : '<tr><td colspan="3" class="subtle">No hay mercancía pendiente en sucursal o consignación.</td></tr>';
     }
 
@@ -1801,6 +1933,7 @@ function renderDashboard(){
         capacidad:null,
         colorUI:mat
       });
+      refreshInventoryAfterDirectEntry(mat);
       $('compraCantidad').value='';
       alert(`Entrada sumada al stock. Registrado: ${cant} ${conceptoUnidad}${unidad.startsWith('BULTO') ? ` = ${cantidadReal.toFixed(2)} KG` : ''}.`);
     }
@@ -1902,15 +2035,15 @@ function renderDashboard(){
 
 
 
-    /* v30: historial solo en tabla, nunca acordeon */
+    /* v31: historial fijo y encabezados alineados */
     #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
     .history-accordion{display:none !important}
     #historyAccordion{display:none !important}
-    #tablaHistorial{min-width:980px !important;width:max-content !important;border-collapse:collapse !important}
+    #tablaHistorial{min-width:980px !important;width:100% !important;border-collapse:collapse !important;table-layout:fixed !important}
     #tablaHistorial thead{display:table-header-group !important}
-    #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+    #tablaHistorial tbody{display:table-row-group !important}
     #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
     #tablaHistorial td::before{content:none !important}
     #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;color:#fff !important;position:sticky;top:0;z-index:1}
     #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:96px}
@@ -1926,11 +2059,11 @@ function renderDashboard(){
       #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
       .history-accordion{display:none !important}
       #historyAccordion{display:none !important}
-      #tablaHistorial{min-width:980px !important;width:max-content !important}
-      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
+      #tablaHistorial{min-width:980px !important;width:980px !important;table-layout:fixed !important}
       #tablaHistorial thead{display:table-header-group !important}
+      #tablaHistorial tbody{display:table-row-group !important}
       #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
+      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
       #tablaHistorial td::before{content:none !important}
     }
 
@@ -2002,45 +2135,60 @@ function renderDashboard(){
 
     function seedApril2026BaselineIfMissing(){
       let db = getMovements();
-      const hasBaseline = db.some(r => String(r.concepto || '').includes('[BASELINE-2026-04-01]'));
-      const hasAccessoryPurchase = db.some(r => String(r.concepto || '').includes('[COMPRA-ACCESORIOS-2026-04-07]'));
+      const hasRawBaseline = db.some(r => {
+        const concepto = String(r.concepto || '');
+        return concepto.includes('[BASELINE-MP-2026-04-01]') || concepto.includes('[BASELINE-2026-04-01]');
+      });
+      const hasOpeningAdjustments = db.some(r => {
+        const concepto = String(r.concepto || '');
+        return concepto.includes('[AJUSTE-INICIAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-SUCURSAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]');
+      });
       const added = [];
 
-      if(!hasBaseline){
+      if(!hasRawBaseline){
         INVENTARIO_BASE_20260401.forEach(item => {
-          added.push({
-            id:`seed-inv-${normalizarTextoClave(item.material).replace(/\s+/g,'-')}`,
-            fecha:'2026-04-01',
-            semana:getNumeroSemana('2026-04-01'),
-            vendedor:'AJUSTE_INICIAL',
-            tipo:'INVENTARIO_FISICO',
-            concepto:`REAL: ${item.material} [BASELINE-2026-04-01]`,
-            cantidad:parseFloat(item.cantidad) || 0,
-            precio:0,
-            total:0,
-            capacidad:null,
-            colorUI:item.material
-          });
+          added.push(createSeedMovementRecord(
+            'AJUSTE_INICIAL',
+            'INVENTARIO_FISICO',
+            `REAL: ${item.material} [BASELINE-MP-2026-04-01]`,
+            parseFloat(item.cantidad) || 0,
+            null,
+            item.material,
+            '2026-04-01'
+          ));
         });
       }
 
-      if(!hasAccessoryPurchase){
-        COMPRA_ACCESORIOS_20260407.forEach(item => {
-          added.push({
-            id:`seed-acc-${normalizarTextoClave(item.material).replace(/\s+/g,'-')}`,
-            fecha:'2026-04-07',
-            semana:getNumeroSemana('2026-04-07'),
-            vendedor:'COMPRA_INICIAL',
-            tipo:'COMPRA',
-            concepto:`INGRESO: ${item.material} [COMPRA-ACCESORIOS-2026-04-07]`,
-            cantidad:parseFloat(item.cantidad) || 0,
-            precio:0,
-            total:0,
-            capacidad:null,
-            colorUI:item.material
-          });
+      if(!hasOpeningAdjustments){
+        const opening = getOpeningRouteSeedRequirements();
+        Object.entries(opening.openingProductStock).forEach(([material, cantidad]) => {
+          added.push(createSeedMovementRecord('AJUSTE_INICIAL', 'INVENTARIO_FISICO', `REAL: ${material} [AJUSTE-INICIAL-2026-04-01]`, cantidad, null, material, '2026-04-01'));
         });
+        Object.entries(opening.openingAccessoryStock).forEach(([material, cantidad]) => {
+          added.push(createSeedMovementRecord('AJUSTE_INICIAL', 'INVENTARIO_FISICO', `REAL: ${material} [AJUSTE-INICIAL-2026-04-01]`, cantidad, null, material, '2026-04-01'));
+        });
+        opening.routeMovements.forEach(reg => added.push(reg));
       }
+
+      COMPRA_ACCESORIOS_20260407.forEach(item => {
+        const yaExisteCompra = db.some(r => {
+          const concepto = String(r.concepto || '');
+          return String(r.tipo || '') === 'COMPRA'
+            && String(r.colorUI || '') === item.material
+            && (concepto.includes('[COMPRA-ADITAMENTOS-2026-04-07]') || concepto.includes('[COMPRA-ACCESORIOS-2026-04-07]'));
+        }) || added.some(r => String(r.tipo || '') === 'COMPRA' && String(r.colorUI || '') === item.material);
+        if(!yaExisteCompra){
+          added.push(createSeedMovementRecord(
+            'COMPRA_INICIAL',
+            'COMPRA',
+            `INGRESO: ${item.material} [COMPRA-ADITAMENTOS-2026-04-07]`,
+            parseFloat(item.cantidad) || 0,
+            null,
+            item.material,
+            '2026-04-07'
+          ));
+        }
+      });
 
       if(added.length){
         db = ordenarDBCronologicamente([...db, ...added]);
@@ -2050,7 +2198,7 @@ function renderDashboard(){
     }
 
     async function syncApril2026BaselineIfNeeded(added){
-      if(!added || !added.length || localStorage.getItem(STORAGE_KEYS.APRIL_BASELINE_SYNC)==='1') return;
+      if(!added || !added.length) return;
       added.forEach(reg => { try { enviarNube(reg); syncOperationalMovementToSupabase(reg, 'UPSERT'); } catch(_e){} });
       localStorage.setItem(STORAGE_KEYS.APRIL_BASELINE_SYNC, '1');
     }

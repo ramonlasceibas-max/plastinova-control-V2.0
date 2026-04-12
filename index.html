@@ -650,7 +650,8 @@
       STOCK_LEGACY: 'plastinova_stock_v1',
       INVENTORY_CACHE: 'plastinova_inventory_cache_v3',
       MONTHLY_DRAFTS: 'plastinova_cierres_mensuales_v3',
-      APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1'
+      APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1',
+      APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -803,7 +804,7 @@
     ];
 
     const APRIL_DIRECT_SALES_20260406_20260411 = [
-      { fecha:'2026-04-06', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1350, total:1350, incluyeAccesorios:false },
+      { fecha:'2026-04-06', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1350, total:1350 },
       { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3, precio:1450, total:4350 },
       { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'NEGRO', cantidad:2, precio:1200, total:2400 },
       { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'VERDE', cantidad:1, precio:1250, total:1250 },
@@ -816,8 +817,14 @@
       { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'750LT', color:'BEIGE', cantidad:1, precio:1200, total:1200 },
       { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:7, precio:1400, total:9800 },
       { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:13, precio:1400, total:18200 },
-      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'SURTIDO', cantidad:3, precio:495, total:1485 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'BEIGE', cantidad:2, precio:495, total:990 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'AZUL', cantidad:1, precio:495, total:495 },
       { fecha:'2026-04-10', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3, precio:1450, total:4350 },
+      { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'NEGRO', cantidad:1, precio:495, total:495 },
+      { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'AZUL', cantidad:1, precio:495, total:495 },
+      { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'VERDE', cantidad:1, precio:495, total:495 },
       { fecha:'2026-04-11', vendedor:'RAMON', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:22, precio:1450, total:31900 }
     ];
 
@@ -2148,11 +2155,26 @@ function renderDashboard(){
     function updateDateDefaults(){ $('fecha').value = hoyLocalISO(); $('invMensualFecha').value = hoyLocalISO(); $('pillDate').textContent = new Date().toLocaleDateString('es-MX'); syncSemanaDesdeFecha(); }
     function updateCutDates(){ const v=$('vendedorCorte').value; let d=new Date(); let diaActual=d.getDay()===0?7:d.getDay(); let fIni=new Date(d), fFin=new Date(d); if(v==='ISIDRO'){ fIni.setDate(d.getDate()-diaActual-1); fFin.setDate(d.getDate()-diaActual+5); } else if(v==='OFELIA'){ fIni.setDate(d.getDate()-diaActual+2); fFin.setDate(d.getDate()-diaActual+7); } else { fIni.setDate(d.getDate()-diaActual+1); fFin.setDate(d.getDate()-diaActual+6); } $('fechaDesde').valueAsDate=fIni; $('fechaHasta').valueAsDate=fFin; previewCutSummary(); }
 
+    function formatCutConcept(reg){
+      const tipo = String(reg?.tipo || '').trim().toUpperCase();
+      const capacidad = String(reg?.capacidad || '').trim().toUpperCase();
+      const color = String(reg?.colorUI || '').trim().toUpperCase();
+      let concepto = String(reg?.concepto || '')
+        .replace(/\s*\[[^\]]+\]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if(['VENTA_TINACO','TRASPASO_TINACO'].includes(tipo)) return `TINACO ${capacidad} ${color}`.trim();
+      if(['VENTA_TAMBO','TRASPASO_TAMBO'].includes(tipo)) return `TAMBO ${capacidad} ${color}`.trim();
+      if(tipo === 'VENTA_TINACO_COBRO' || tipo === 'TRASPASO_TINACO_COBRO') return `COBRO CONSIGNACIÓN: ${capacidad} ${color}`.trim();
+      if(tipo === 'VENTA_TAMBO_COBRO' || tipo === 'TRASPASO_TAMBO_COBRO') return `COBRO CONSIGNACIÓN: TAMBO ${capacidad} ${color}`.trim();
+      return concepto;
+    }
+
     function buildCutData(){
       const vendedor=$('vendedorCorte').value, mostrarTinacos=$('chkTinacos').checked, mostrarTambos=$('chkTambos').checked, startStr=$('fechaDesde').value, endStr=$('fechaHasta').value; const semanaCalculada=getNumeroSemana(startStr);
       let registros=state.movements.filter(r=>{ if(!r.fecha || !(r.fecha>=startStr && r.fecha<=endStr)) return false; if(r.vendedor===vendedor) return true; if(vendedor==='FERNANDO' && r.vendedor==='PEDRO' && (r.tipo||'').includes('PROD_EXTRA')) return true; return false; }).map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{ const ta=fechaOrdenValor(a.fecha); const tb=fechaOrdenValor(b.fecha); if(ta!==tb) return ta-tb; return a._ord-b._ord; }).map(({_ord,...r})=>r);
       let tin=[], tam=[], gastos=[]; let sumQTin=0,sumDTin=0,sumQTam=0,sumDTam=0,sumGastos=0,sumQExtTin=0,sumQExtTam=0,sumQExtTinPedro=0,sumQExtTamPedro=0,sumComisionTinacos=0,sumComisionTambos=0; let hizoTambosExtra=false,hizoTinacosExtra=false,hizoTambosExtraPedro=false,hizoTinacosExtraPedro=false;
-      registros.forEach(r=>{ const fechaFormat=r.fecha.split('-').reverse().join('/'); const cant=parseFloat(r.cantidad)||0; const precio=parseFloat(r.precio)||0; const total=parseFloat(r.total)||0; const concepto=String(r.concepto||''); const row={fecha:fechaFormat,concepto,cantidad:cant,precio,total}; const esSalidaSinIngreso=concepto.toUpperCase().includes('ENTREGA CONSIGNACIÓN') || concepto.toUpperCase().includes('TRASPASO SUCURSAL') || concepto.toUpperCase().includes('GARANTÍA'); const esVentaValida=esMovimientoConIngreso(r);
+      registros.forEach(r=>{ const fechaFormat=r.fecha.split('-').reverse().join('/'); const cant=parseFloat(r.cantidad)||0; const precio=parseFloat(r.precio)||0; const total=parseFloat(r.total)||0; const concepto=formatCutConcept(r); const row={fecha:fechaFormat,concepto,cantidad:cant,precio,total}; const esSalidaSinIngreso=concepto.toUpperCase().includes('ENTREGA CONSIGNACIÓN') || concepto.toUpperCase().includes('TRASPASO SUCURSAL') || concepto.toUpperCase().includes('GARANTÍA'); const esVentaValida=esMovimientoConIngreso(r);
         if(['VENTA_TINACO','VENTA_TINACO_COBRO','TRASPASO_TINACO','TRASPASO_TINACO_COBRO'].includes(r.tipo) && mostrarTinacos){ if(esVentaValida){ tin.push(row); sumQTin+=cant; sumDTin+=total; if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += cant*35; } }
         if(['VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TAMBO','TRASPASO_TAMBO_COBRO'].includes(r.tipo) && mostrarTambos){ if(esVentaValida){ tam.push(row); sumQTam+=cant; sumDTam+=total; if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += cant*10; } }
         if((r.tipo||'').includes('PROD_EXTRA')){ let esTambo = r.tipo==='PROD_EXTRA_TAMBO' || concepto.includes('TAMBO') || concepto.includes('235LT'); if(r.vendedor==='PEDRO' && vendedor==='FERNANDO'){ if(esTambo){ sumQExtTamPedro+=cant; hizoTambosExtraPedro=true; } else { sumQExtTinPedro+=cant; hizoTinacosExtraPedro=true; }} else if(r.vendedor===vendedor){ if(esTambo){ sumQExtTam+=cant; hizoTambosExtra=true; } else { sumQExtTin+=cant; hizoTinacosExtra=true; }} }
@@ -2165,154 +2187,171 @@ function renderDashboard(){
     function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
     function printDocument(htmlContent, tituloDocumento){
-      const logoHTML = `<div style="display:flex;align-items:center;gap:12px"><div style="width:62px;height:62px;border-radius:14px;background:linear-gradient(135deg,#0f4d8a,#3ea2ff);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:24px">PN</div><div><div style="font-weight:900;font-size:18px;color:#0f4278">PLASTINOVA</div><div style="font-size:12px;color:#38577f">Control gerencial</div></div></div>`;
+      const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
       const win = window.open('', '_blank');
       win.document.write(`<!DOCTYPE html><html><head><title>${tituloDocumento}</title><style>
-        @page{size:landscape;margin:6mm}
-        body{font-family:Arial,sans-serif;color:#111;margin:0;padding:0;font-size:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        .wrap{padding:6px}
-        .head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f4d8a;padding-bottom:8px;margin-bottom:10px}
-        .title{text-align:right}.title h1{margin:0;font-size:18px;color:#0f4d8a}.title p{margin:4px 0 0;font-size:11px}
-        h2{margin:10px 0 4px;font-size:12px;color:#0f4d8a;text-transform:uppercase;background:#dcecff;padding:6px 8px;border-left:5px solid #0f4d8a;border-radius:4px;font-weight:900}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #111;padding:4px 5px;vertical-align:top}th{background:#0f4d8a;color:#fff !important;font-size:9px;font-weight:900}td{font-size:9px} tbody tr:nth-child(even) td{background:#f5f9ff} .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.total{color:#b11818;font-weight:900}.firma{margin-top:10px;font-size:10px}.right{text-align:right}
-    
-    body{background:linear-gradient(180deg,#081a38 0%,#0c2550 16%,#12376f 28%,#dfe8f6 28.2%,#edf3fb 100%) !important;}
-    .app-shell{max-width:1320px;}
-    .main{gap:18px;}
-    .card{background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%) !important;border:1px solid #b9cde7 !important;box-shadow:0 14px 28px rgba(5,23,53,.14), inset 0 1px 0 rgba(255,255,255,.6) !important;}
-    .mobile-tabs{background:linear-gradient(180deg,#081b3a,#0b2b59 55%,#0c356b) !important;border:1px solid rgba(255,255,255,.08);}
-    .mobile-tab{background:linear-gradient(180deg,#ffffff,#f3f8ff) !important;color:#163e78 !important;border:1px solid #d8e4f2;}
-    .mobile-tab.active{background:linear-gradient(120deg,#0d3c77,#266fcb) !important;color:#fff !important;border-color:rgba(255,255,255,.12);box-shadow:0 10px 22px rgba(7,31,71,.22);}
-    .side-nav{background:linear-gradient(180deg,#061933 0%,#09234a 24%,#0c356b 62%,#1359aa 100%) !important;box-shadow:0 20px 44px rgba(5,23,53,.25);}
-    .nav-btn{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.08);}
-    .nav-btn.active,.nav-btn:hover{background:linear-gradient(120deg,rgba(33,107,196,.55),rgba(87,157,255,.36)) !important;}
-    .db-table th,.inventory-table th{background:linear-gradient(180deg,#103e77,#1b63b3) !important;}
-    .btn-primary{background:linear-gradient(120deg,#0a3a72,#2672ce) !important;}
-    .btn-secondary{background:linear-gradient(180deg,#f5f9ff,#eaf2ff) !important;color:#13467f !important;}
-    .btn-success{background:linear-gradient(120deg,#14874e,#2fa764) !important;}
-    .btn-warning{background:linear-gradient(120deg,#cf7b14,#eea53b) !important;}
-    .btn-danger{background:linear-gradient(120deg,#b93c3c,#de5656) !important;}
-    .import-box{background:linear-gradient(180deg,#eff6ff,#e4efff) !important;border:1px solid #c2d5ee !important;}
-    .section-accent{position:relative;overflow:hidden;}
-    .section-accent::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(180deg,#1c63b4,#57a9ff);}
-    .section-tinacos::before{background:linear-gradient(180deg,#0d4a89,#3f9bf8);}
-    .section-tambos::before{background:linear-gradient(180deg,#cf7a12,#f0a63d);}
-    .section-produccion::before{background:linear-gradient(180deg,#0f6f9f,#34b4da);}
-    .section-mermas::before{background:linear-gradient(180deg,#b63737,#db5757);}
-    .section-gastos::before{background:linear-gradient(180deg,#6d3bb0,#8d5de0);}
-    .section-accent h3{padding-left:8px;}
-    .section-accent .btn-block{margin-top:6px;}
-    @media (max-width: 680px){
-      .mobile-tabs{padding:10px 8px 8px !important;}
-      .card{border-radius:20px !important;}
-      .mobile-tab{min-width:124px !important;padding:13px 14px !important;}
-      .section-accent::before{width:5px;}
-    }
-
-  
-    /* Override final: historial en iPhone como tabla compacta, no acordeón */
-    #tab-bd .card:first-of-type{border-color:#cfe0cf;}
-    #tab-bd .card:first-of-type h3{color:#3e7c3a;}
-    #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;}
-    .import-box{background:linear-gradient(180deg,#eef8ea,#e4f1df) !important;border-color:#cfe0cf !important;}
-    .import-box h4{color:#3e7c3a !important;}
-    @media (max-width: 680px){
-      #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
-      .history-accordion{display:none !important}
-      #tablaHistorial, #tablaHistorial tbody{display:table !important;width:max-content !important;min-width:980px !important}
-      #tablaHistorial thead{display:table-header-group !important}
-      #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important}
-      #tablaHistorial td::before{content:none !important}
-      #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:88px}
-      #tablaHistorial th:nth-child(2), #tablaHistorial td:nth-child(2){width:84px}
-      #tablaHistorial th:nth-child(3), #tablaHistorial td:nth-child(3){width:112px}
-      #tablaHistorial th:nth-child(4), #tablaHistorial td:nth-child(4){width:210px;white-space:normal !important;line-height:1.2}
-      #tablaHistorial th:nth-child(5), #tablaHistorial td:nth-child(5){width:70px;text-align:right}
-      #tablaHistorial th:nth-child(6), #tablaHistorial td:nth-child(6){width:90px;text-align:right}
-      #tablaHistorial th:nth-child(7), #tablaHistorial td:nth-child(7){width:96px;text-align:right}
-      #tablaHistorial th:nth-child(8), #tablaHistorial td:nth-child(8){width:82px;text-align:center}
-      #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
-    }
-
-
-
-    /* v31: historial fijo y encabezados alineados */
-    #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
-    .history-accordion{display:none !important}
-    #historyAccordion{display:none !important}
-    #tablaHistorial{min-width:980px !important;width:100% !important;border-collapse:collapse !important;table-layout:fixed !important}
-    #tablaHistorial thead{display:table-header-group !important}
-    #tablaHistorial tbody{display:table-row-group !important}
-    #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-    #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
-    #tablaHistorial td::before{content:none !important}
-    #tablaHistorial th{background:linear-gradient(180deg,#4c8f3b,#3d7f31) !important;color:#fff !important;position:sticky;top:0;z-index:1}
-    #tablaHistorial th:nth-child(1), #tablaHistorial td:nth-child(1){width:96px}
-    #tablaHistorial th:nth-child(2), #tablaHistorial td:nth-child(2){width:90px}
-    #tablaHistorial th:nth-child(3), #tablaHistorial td:nth-child(3){width:116px}
-    #tablaHistorial th:nth-child(4), #tablaHistorial td:nth-child(4){width:260px;white-space:normal !important;line-height:1.2}
-    #tablaHistorial th:nth-child(5), #tablaHistorial td:nth-child(5){width:74px;text-align:right}
-    #tablaHistorial th:nth-child(6), #tablaHistorial td:nth-child(6){width:96px;text-align:right}
-    #tablaHistorial th:nth-child(7), #tablaHistorial td:nth-child(7){width:102px;text-align:right}
-    #tablaHistorial th:nth-child(8), #tablaHistorial td:nth-child(8){width:82px;text-align:center}
-    #tablaHistorial .btn{width:auto !important;padding:6px 8px !important;font-size:11px !important}
-    @media (max-width: 680px){
-      #tablaHistorialWrapper{display:block !important;overflow-x:auto !important;overflow-y:hidden !important;-webkit-overflow-scrolling:touch;max-width:100% !important}
-      .history-accordion{display:none !important}
-      #historyAccordion{display:none !important}
-      #tablaHistorial{min-width:980px !important;width:980px !important;table-layout:fixed !important}
-      #tablaHistorial thead{display:table-header-group !important}
-      #tablaHistorial tbody{display:table-row-group !important}
-      #tablaHistorial tr{display:table-row !important;background:transparent !important;border:none !important;border-radius:0 !important;margin:0 !important;padding:0 !important;box-shadow:none !important}
-      #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
-      #tablaHistorial td::before{content:none !important}
-    }
-
-  </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
+        @page{size:landscape;margin:8mm}
+        *{box-sizing:border-box}
+        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:9.5px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .wrap{padding:4px 6px}
+        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:8px;margin-bottom:10px}
+        .brand-box{display:flex;align-items:center;gap:12px}
+        .brand-logo{width:110px;height:auto;object-fit:contain}
+        .brand-fallback{width:56px;height:56px;border-radius:14px;border:2px solid #2c6aa6;align-items:center;justify-content:center;color:#2c6aa6;font-weight:900;font-size:22px}
+        .brand-name{font-weight:900;font-size:18px;color:#184c84;letter-spacing:.2px}
+        .brand-sub{font-size:11px;color:#4c6180}
+        .title{text-align:right}
+        .title h1{margin:0;font-size:17px;color:#2c6aa6;letter-spacing:.3px}
+        .title p{margin:4px 0 0;font-size:10.5px;color:#2b2b2b}
+        .center-title{text-align:center;font-weight:900;font-size:11px;line-height:1.15;margin:2px 0 10px;color:#111}
+        .section-title{margin:8px 0 0;font-size:10.5px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:5px 8px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
+        th,td{border:1px solid #202020;padding:3px 5px;vertical-align:middle}
+        thead th{background:#2c6aa6;color:#fff !important;font-size:8.7px;font-weight:900}
+        td{font-size:8.9px}
+        .right{text-align:right}
+        .center{text-align:center}
+        .total{color:#c53333;font-weight:900}
+        .stack{display:grid;grid-template-columns:46% 54%;gap:10px;align-items:start;margin-top:8px}
+        .firma{margin-top:8px;font-size:9.5px}
+        .empty td{height:19px}
+        .soft-note{color:#516885}
+      </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
     }
 
     function generateCutPDF(){
       const c=buildCutData();
-      const gastosRows = (c.gastos.length?c.gastos:[{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0},{concepto:'',total:0}]).slice(0,6).map(g=>{ const limpio=(g.concepto?String(g.concepto):'').replace(/&nbsp;|&#160;/gi,' ').trim(); return `<tr><td>${limpio?escHtml(limpio):''}</td><td class="right">${g.total?`$${formato(g.total)}`:''}</td></tr>`; }).join('');
-      const tinRows = (c.tin.length?c.tin:[{fecha:'',concepto:'Sin ventas registradas',cantidad:0,precio:0,total:0}]).map(r=>`<tr><td>${escHtml(r.fecha)}</td><td>${escHtml(r.concepto)}</td><td class="right">${r.cantidad.toFixed(2)}</td><td class="right">$${formato(r.precio)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('');
-      const tamRows = (c.tam.length?c.tam:[{fecha:'',concepto:'Sin ventas registradas',cantidad:0,precio:0,total:0}]).map(r=>`<tr><td>${escHtml(r.fecha)}</td><td>${escHtml(r.concepto)}</td><td class="right">${r.cantidad.toFixed(2)}</td><td class="right">$${formato(r.precio)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('');
-      let textoExtrasPedro='TIN EXTRA PEDRO'; if(c.hizoTambosExtraPedro && !c.hizoTinacosExtraPedro) textoExtrasPedro='TAM EXTRA PEDRO'; else if(c.hizoTambosExtraPedro && c.hizoTinacosExtraPedro) textoExtrasPedro='TIN/TAM EXT PEDRO';
-      let textoExtras=`TIN EXTRA ${c.vendedor}`; if(c.hizoTambosExtra && !c.hizoTinacosExtra) textoExtras=`TAM EXTRA ${c.vendedor}`; else if(c.hizoTambosExtra && c.hizoTinacosExtra) textoExtras=`TIN/TAM EXT ${c.vendedor}`;
-      const html=`<div style="text-align:center;font-weight:900;font-size:11px;margin-bottom:6px">VENDEDOR: ${escHtml(c.vendedor)}<br>${escHtml(c.rango)} | SEMANA ${c.semanaCalculada}</div>
-      <h2>Ventas Tinacos</h2><table><thead><tr><th style="width:12%">Fecha</th><th style="width:46%">Concepto</th><th style="width:12%">Cantidad</th><th style="width:15%">Precio Uni</th><th style="width:15%">Total</th></tr></thead><tbody>${tinRows}</tbody><tfoot><tr><td colspan="2" class="right total">TOTAL</td><td class="right total">${c.sumQTin.toFixed(2)}</td><td class="right total">-</td><td class="right total">$${formato(c.sumDTin)}</td></tr></tfoot></table>
-      <h2>Ventas Tambos y Macetas</h2><table><thead><tr><th style="width:12%">Fecha</th><th style="width:46%">Concepto</th><th style="width:12%">Cantidad</th><th style="width:15%">Precio Uni</th><th style="width:15%">Total</th></tr></thead><tbody>${tamRows}</tbody><tfoot><tr><td colspan="2" class="right total">TOTAL</td><td class="right total">${c.sumQTam.toFixed(2)}</td><td class="right total">-</td><td class="right total">$${formato(c.sumDTam)}</td></tr></tfoot></table>
-      <div class="split">
-        <div>
-          <h2>Pagos extra y comisiones</h2>
-          <table><tbody>
-            <tr><td>HORAS EXTRAS</td><td class="right">$0.00</td></tr>
-            ${c.vendedor==='FERNANDO' ? `<tr><td>${escHtml(textoExtrasPedro)}</td><td class="right">$${formato(c.comExtPedro)}</td></tr>` : ''}
-            <tr><td>${escHtml(textoExtras)}</td><td class="right">$${formato(c.comExtVendedor)}</td></tr>
-            <tr><td>COMISIÓN TINACOS</td><td class="right">$${formato(c.sumComisionTinacos)}</td></tr>
-            <tr><td>COMISIÓN TAMBOS</td><td class="right">$${formato(c.sumComisionTambos)}</td></tr>
-            <tr><td class="total">TOTAL PAGOS EXTRA</td><td class="right total">$${formato(c.totalPagosExtra)}</td></tr>
-          </tbody></table>
-          <div class="firma">FIRMA RECIBIDO: ________________________________</div>
-        </div>
-        <div>
-          <h2>Gastos del vendedor</h2>
-          <table><tbody>${gastosRows}</tbody></table>
-          <h2>Resumen final</h2>
-          <table><tbody>
-            <tr><td>TOTAL VENTAS TINACOS</td><td class="right">$${formato(c.sumDTin)}</td></tr>
-            <tr><td>TOTAL VENTAS TAMBOS</td><td class="right">$${formato(c.sumDTam)}</td></tr>
-            <tr><td class="total">TOTAL VENTAS GENERALES</td><td class="right total">$${formato(c.totalVentasGenerales)}</td></tr>
-            <tr><td>(-) GASTOS DEL VENDEDOR</td><td class="right">$${formato(c.sumGastos)}</td></tr>
-            <tr><td>SUBTOTAL DESPUÉS DE GASTOS</td><td class="right">$${formato(c.subtotalDespuesGastos)}</td></tr>
-            <tr><td>(-) PAGOS EXTRA A TRABAJADORES</td><td class="right">$${formato(c.totalPagosExtra)}</td></tr>
-            <tr><td class="total">TOTAL FINAL A ENTREGAR</td><td class="right total">$${formato(c.totalFinal)}</td></tr>
-          </tbody></table>
-        </div>
-      </div>`;
+      const fmtMoney = val => `$${formato(parseFloat(val)||0)}`;
+      const qtyLabel = num => {
+        const n = parseFloat(num) || 0;
+        return Number.isInteger(n) ? String(n) : n.toFixed(2);
+      };
+      const buildVentaRows = (rows, emptyConcept) => {
+        if(!rows.length){
+          return `<tr><td class="center"></td><td class="center"></td><td>${emptyConcept}</td><td class="center"></td><td class="right">0.00</td><td class="right">$0.00</td><td class="right">$0.00</td></tr>`;
+        }
+        return rows.map(r => `<tr>
+          <td class="center"></td>
+          <td class="center">${escHtml(r.fecha || '')}</td>
+          <td>${escHtml(r.concepto || '')}</td>
+          <td class="center"></td>
+          <td class="right">${(parseFloat(r.cantidad)||0).toFixed(2)}</td>
+          <td class="right">${fmtMoney(parseFloat(r.precio)||0)}</td>
+          <td class="right">${fmtMoney(parseFloat(r.total)||0)}</td>
+        </tr>`).join('');
+      };
+      const padRows = (current, target, cols) => Array.from({length:Math.max(0, target-current)}, () => `<tr class="empty">${Array.from({length:cols},()=>'<td>&nbsp;</td>').join('')}</tr>`).join('');
+      let textoExtrasPedro='TIN EXTRA PEDRO';
+      if(c.hizoTambosExtraPedro && !c.hizoTinacosExtraPedro) textoExtrasPedro='TAM EXTRA PEDRO';
+      else if(c.hizoTambosExtraPedro && c.hizoTinacosExtraPedro) textoExtrasPedro='TIN/TAM EXTRA PEDRO';
+      let textoExtras=`TIN EXTRA ${c.vendedor}`;
+      if(c.hizoTambosExtra && !c.hizoTinacosExtra) textoExtras=`TAM EXTRA ${c.vendedor}`;
+      else if(c.hizoTambosExtra && c.hizoTinacosExtra) textoExtras=`TIN/TAM EXTRA ${c.vendedor}`;
+
+      const extrasData = [
+        { qty:'0', label:'HORAS EXTRAS', amount:0, total:false },
+        ...(c.vendedor==='FERNANDO' ? [{ qty:qtyLabel(c.sumQExtTinPedro + c.sumQExtTamPedro), label:textoExtrasPedro, amount:c.comExtPedro, total:false }] : []),
+        { qty:qtyLabel(c.sumQExtTin + c.sumQExtTam), label:textoExtras, amount:c.comExtVendedor, total:false },
+        { qty:qtyLabel(c.sumQTin), label:'VENTAS TINACOS', amount:c.sumComisionTinacos, total:false },
+        { qty:qtyLabel(c.sumQTam), label:'VENTAS TAMBOS', amount:c.sumComisionTambos, total:false },
+        { qty:'', label:'TOTAL COMISIONES', amount:c.totalPagosExtra, total:true }
+      ];
+      const extrasRows = extrasData.map(r => `<tr>
+        <td class="center${r.total?' total':''}">${escHtml(r.qty)}</td>
+        <td${r.total?' class="total"':''}>${escHtml(r.label)}</td>
+        <td class="right${r.total?' total':''}">${fmtMoney(r.amount)}</td>
+      </tr>`).join('') + padRows(extrasData.length, 7, 3);
+
+      const gastosRowsBase = c.gastos.map(g => `<tr><td>${escHtml(g.concepto || '')}</td><td class="right">${fmtMoney(g.total || 0)}</td></tr>`).join('');
+      const gastosRows = gastosRowsBase + padRows(c.gastos.length, 5, 2);
+
+      const desgloseRows = [
+        { label:'TOTAL VENTAS TINACOS', amount:c.sumDTin, total:false },
+        { label:'TOTAL VENTAS TAMBOS Y MACETAS', amount:c.sumDTam, total:false },
+        { label:'TOTAL VENTAS', amount:c.totalVentasGenerales, total:false },
+        { label:'GASTOS $', amount:c.sumGastos, total:false },
+        { label:'SUB TOTAL $', amount:c.subtotalDespuesGastos, total:false },
+        { label:'EXTRA TRABAJADORES', amount:c.totalPagosExtra, total:false },
+        { label:'TOTAL FINAL $', amount:c.totalFinal, total:true }
+      ].map(r => `<tr><td${r.total?' class="total"':''}>${escHtml(r.label)}</td><td class="right${r.total?' total':''}">${fmtMoney(r.amount)}</td></tr>`).join('');
+
+      const html = `
+        <div class="center-title">TINACOS PLASTINOVA<br>VENDEDOR: ${escHtml(c.vendedor)}<br>${escHtml(c.rango)} | SEMANA ${c.semanaCalculada}</div>
+
+        <div class="section-title">VENTAS TINACOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:6%">FOLIO</th>
+              <th style="width:11%">FECHA</th>
+              <th style="width:39%">CONCEPTO</th>
+              <th style="width:9%"># TINACO</th>
+              <th style="width:10%">CANTIDAD</th>
+              <th style="width:12%">PRECIO UNI</th>
+              <th style="width:13%">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>${buildVentaRows(c.tin, 'Sin ventas registradas')}${padRows(c.tin.length || 1, 8, 7)}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="right total">TOTAL</td>
+              <td class="right total">${c.sumQTin.toFixed(2)}</td>
+              <td class="right total">-</td>
+              <td class="right total">${fmtMoney(c.sumDTin)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="section-title">VENTAS TAMBOS Y MACETAS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:6%">FOLIO</th>
+              <th style="width:11%">FECHA</th>
+              <th style="width:39%">CONCEPTO</th>
+              <th style="width:9%"># TAM/MAC</th>
+              <th style="width:10%">CANTIDAD</th>
+              <th style="width:12%">PRECIO UNI</th>
+              <th style="width:13%">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>${buildVentaRows(c.tam, 'Sin ventas registradas')}${padRows(c.tam.length || 1, 5, 7)}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="right total">TOTAL</td>
+              <td class="right total">${c.sumQTam.toFixed(2)}</td>
+              <td class="right total">-</td>
+              <td class="right total">${fmtMoney(c.sumDTam)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="stack">
+          <div>
+            <div class="section-title">EXTRAS TRABAJADORES</div>
+            <table>
+              <thead><tr><th style="width:14%">CANT.</th><th>CONCEPTO</th><th style="width:34%">IMPORTE</th></tr></thead>
+              <tbody>${extrasRows}</tbody>
+            </table>
+            <div class="firma">FIRMA RECIBIDO: ________________________________</div>
+          </div>
+          <div>
+            <div class="section-title">GASTOS DEL VENDEDOR</div>
+            <table>
+              <thead><tr><th>CONCEPTO</th><th style="width:34%">IMPORTE</th></tr></thead>
+              <tbody>${gastosRows}</tbody>
+            </table>
+            <div class="section-title" style="margin-top:8px">DESGLOSE DE LAS CUENTAS</div>
+            <table>
+              <thead><tr><th>CONCEPTO</th><th style="width:34%">IMPORTE</th></tr></thead>
+              <tbody>${desgloseRows}</tbody>
+            </table>
+          </div>
+        </div>`;
       printDocument(html, 'CORTE DE CAJA');
     }
+
 
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
 
@@ -2401,11 +2440,40 @@ function renderDashboard(){
 
     function seedApril2026OperationalIfMissing(existingDb){
       let db = Array.isArray(existingDb) ? [...existingDb] : getMovements();
-      const hasOperationalApril = db.some(r => String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));
       const added = [];
-      if(!hasOperationalApril){
-        added.push(...getApril2026OperationalSeeds());
+      const expected = getApril2026OperationalSeeds();
+      const versionKey = STORAGE_KEYS.APRIL_OPERATIONAL_VERSION;
+      const targetVersion = 'abril-2026-operativo-v2';
+
+      if(localStorage.getItem(versionKey) !== targetVersion){
+        db = db.filter(r => !String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));
+        added.push(...expected);
+        db = ordenarDBCronologicamente([...db, ...expected]);
+        saveMovements(db);
+        localStorage.setItem(versionKey, targetVersion);
+        return { db, added };
       }
+
+      const makeKey = r => [
+        String(r.fecha || ''),
+        String(r.vendedor || ''),
+        String(r.tipo || ''),
+        normalizarTextoClave(r.concepto || ''),
+        Number(parseFloat(r.cantidad) || 0).toFixed(2),
+        Number(parseFloat(r.precio) || 0).toFixed(2),
+        Number(parseFloat(r.total) || 0).toFixed(2),
+        String(r.capacidad || ''),
+        String(r.colorUI || ''),
+        String(r.incluyeAccesorios === false ? '0' : '1')
+      ].join('|');
+      const existingKeys = new Set(db.map(makeKey));
+      expected.forEach(reg => {
+        const key = makeKey(reg);
+        if(!existingKeys.has(key)){
+          added.push(reg);
+          existingKeys.add(key);
+        }
+      });
       if(added.length){
         db = ordenarDBCronologicamente([...db, ...added]);
         saveMovements(db);

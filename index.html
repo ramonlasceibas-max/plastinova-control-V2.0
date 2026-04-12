@@ -764,6 +764,80 @@
       ]
     };
 
+
+    const APRIL_PRODUCTION_20260406_20260410 = [
+      { fecha:'2026-04-06', productor:'FERNANDO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:4 },
+        { tipo:'TINACO', capacidad:'750LT', color:'BEIGE', cantidad:3 }
+      ]},
+      { fecha:'2026-04-07', productor:'FERNANDO', items:[
+        { tipo:'TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1 }
+      ]},
+      { fecha:'2026-04-08', productor:'FERNANDO', items:[
+        { tipo:'TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:4 },
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3 }
+      ]},
+      { fecha:'2026-04-09', productor:'FERNANDO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:7 }
+      ]},
+      { fecha:'2026-04-10', productor:'FERNANDO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:8 }
+      ]},
+      { fecha:'2026-04-06', productor:'PEDRO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:7 }
+      ]},
+      { fecha:'2026-04-07', productor:'PEDRO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:7 }
+      ]},
+      { fecha:'2026-04-08', productor:'PEDRO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:7 }
+      ]},
+      { fecha:'2026-04-09', productor:'PEDRO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:9 },
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:4 }
+      ]},
+      { fecha:'2026-04-10', productor:'PEDRO', items:[
+        { tipo:'TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:11 },
+        { tipo:'TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1 }
+      ]}
+    ];
+
+    const APRIL_DIRECT_SALES_20260406_20260411 = [
+      { fecha:'2026-04-06', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1350, total:1350, incluyeAccesorios:false },
+      { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3, precio:1450, total:4350 },
+      { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'NEGRO', cantidad:2, precio:1200, total:2400 },
+      { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'VERDE', cantidad:1, precio:1250, total:1250 },
+      { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'ROJO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'ROJO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'ROJO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3, precio:1450, total:4350 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1, precio:1200, total:1200 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'750LT', color:'BEIGE', cantidad:1, precio:1200, total:1200 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:7, precio:1400, total:9800 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:13, precio:1400, total:18200 },
+      { fecha:'2026-04-09', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'SURTIDO', cantidad:3, precio:495, total:1485 },
+      { fecha:'2026-04-10', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-11', vendedor:'RAMON', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:22, precio:1450, total:31900 }
+    ];
+
+    const APRIL_CONSIGNACIONES_NUEVAS_20260409 = [
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1 },
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:2 },
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'AZUL', cantidad:1 },
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'750LT', color:'NEGRO', cantidad:2 }
+    ];
+
+    const APRIL_CONSIGNACION_COBROS_20260409 = [
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO_COBRO', capacidad:'1200LT', color:'NEGRO', cantidad:3, precio:1450, total:4350 },
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO_COBRO', capacidad:'1200LT', color:'AZUL', cantidad:2, precio:1450, total:2900 },
+      { fecha:'2026-04-09', vendedor:'HUSAI', tipo:'VENTA_TINACO_COBRO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1450, total:1450 }
+    ];
+
+    const APRIL_GASTOS_20260409 = [
+      { fecha:'2026-04-09', vendedor:'HUSAI', concepto:'CASETAS', monto:30 }
+    ];
+
     const MONTHLY_CATALOG = {
       PLANTA: {
         MATERIA_PRIMA: [
@@ -1157,6 +1231,134 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
         capacidad:capacidad || null,
         colorUI:colorUI || null
       };
+    }
+
+
+    function createSeedOperationalRecord({ fecha, vendedor, tipo, concepto, cantidad, precio=0, total=null, capacidad=null, colorUI=null, incluyeAccesorios=true }){
+      return {
+        id:`seed-op-${fecha}-${tipo}-${normalizarTextoClave(concepto).replace(/[^A-Z0-9]+/g,'-')}-${Math.random().toString(36).slice(2,7)}`,
+        fecha,
+        semana:getNumeroSemana(fecha),
+        vendedor,
+        tipo,
+        concepto,
+        cantidad:parseFloat(cantidad) || 0,
+        precio:parseFloat(precio) || 0,
+        total: total===null ? ((parseFloat(cantidad) || 0) * (parseFloat(precio) || 0)) : (parseFloat(total) || 0),
+        capacidad:capacidad || null,
+        colorUI:colorUI || null,
+        incluyeAccesorios
+      };
+    }
+
+    function buildSeedProductionEntriesByDay(day){
+      const out = [];
+      let remainingNormal = 5;
+      (day.items || []).forEach(item => {
+        const qty = parseFloat(item.cantidad) || 0;
+        const normalQty = Math.min(remainingNormal, qty);
+        const extraQty = Math.max(0, qty - normalQty);
+        const tipoBase = String(item.tipo || 'TINACO').trim().toUpperCase();
+        const capacidad = String(item.capacidad || '').trim().toUpperCase();
+        const color = normalizarColorUI(item.color || '') || String(item.color || '').trim().toUpperCase();
+        if(normalQty > 0){
+          out.push(createSeedOperationalRecord({
+            fecha: day.fecha,
+            vendedor: day.productor,
+            tipo: `PROD_NORMAL_${tipoBase}`,
+            concepto: `NORMAL: ${tipoBase} ${capacidad} ${color} [OPERATIVO-ABRIL-2026]`,
+            cantidad: normalQty,
+            capacidad,
+            colorUI: color
+          }));
+        }
+        if(extraQty > 0){
+          out.push(createSeedOperationalRecord({
+            fecha: day.fecha,
+            vendedor: day.productor,
+            tipo: `PROD_EXTRA_${tipoBase}`,
+            concepto: `EXTRA: ${tipoBase} ${capacidad} ${color} [OPERATIVO-ABRIL-2026]`,
+            cantidad: extraQty,
+            capacidad,
+            colorUI: color
+          }));
+        }
+        remainingNormal = Math.max(0, remainingNormal - normalQty);
+      });
+      return out;
+    }
+
+    function getApril2026OperationalSeeds(){
+      const added = [];
+
+      APRIL_PRODUCTION_20260406_20260410.forEach(day => {
+        added.push(...buildSeedProductionEntriesByDay(day));
+      });
+
+      APRIL_DIRECT_SALES_20260406_20260411.forEach(item => {
+        const conceptoBase = item.tipo === 'VENTA_TAMBO'
+          ? `TAMBO ${item.capacidad} ${item.color}`
+          : `TINACO ${item.capacidad} ${item.color}`;
+        const extras = [`[OPERATIVO-ABRIL-2026]`];
+        if(item.incluyeAccesorios === false) extras.unshift('[SIN_ACCESORIOS]');
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: item.vendedor,
+          tipo: item.tipo,
+          concepto: `${conceptoBase} ${extras.join(' ')}`.trim(),
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          capacidad: item.capacidad,
+          colorUI: item.color,
+          incluyeAccesorios: item.incluyeAccesorios !== false
+        }));
+      });
+
+      APRIL_CONSIGNACIONES_NUEVAS_20260409.forEach(item => {
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: item.vendedor,
+          tipo: item.tipo,
+          concepto: `ENTREGA CONSIGNACIÓN: ${item.capacidad} ${item.color} [OPERATIVO-ABRIL-2026]`,
+          cantidad: item.cantidad,
+          precio: 0,
+          total: 0,
+          capacidad: item.capacidad,
+          colorUI: item.color,
+          incluyeAccesorios: true
+        }));
+      });
+
+      APRIL_CONSIGNACION_COBROS_20260409.forEach(item => {
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: item.vendedor,
+          tipo: item.tipo,
+          concepto: `COBRO CONSIGNACIÓN: ${item.capacidad} ${item.color} [OPERATIVO-ABRIL-2026]`,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          capacidad: item.capacidad,
+          colorUI: item.color,
+          incluyeAccesorios: false
+        }));
+      });
+
+      APRIL_GASTOS_20260409.forEach(item => {
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: item.vendedor,
+          tipo: 'GASTO',
+          concepto: `${item.concepto} [OPERATIVO-ABRIL-2026]`,
+          cantidad: 1,
+          precio: item.monto,
+          total: item.monto,
+          incluyeAccesorios: false
+        }));
+      });
+
+      return added;
     }
 
     function getOpeningRouteSeedRequirements(){
@@ -2197,6 +2399,20 @@ function renderDashboard(){
       return { db, added };
     }
 
+    function seedApril2026OperationalIfMissing(existingDb){
+      let db = Array.isArray(existingDb) ? [...existingDb] : getMovements();
+      const hasOperationalApril = db.some(r => String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));
+      const added = [];
+      if(!hasOperationalApril){
+        added.push(...getApril2026OperationalSeeds());
+      }
+      if(added.length){
+        db = ordenarDBCronologicamente([...db, ...added]);
+        saveMovements(db);
+      }
+      return { db, added };
+    }
+
     async function syncApril2026BaselineIfNeeded(added){
       if(!added || !added.length) return;
       added.forEach(reg => { try { enviarNube(reg); syncOperationalMovementToSupabase(reg, 'UPSERT'); } catch(_e){} });
@@ -2212,15 +2428,16 @@ function renderDashboard(){
       fillStaticSelectors();
       bindEvents();
       seedInitialInventoryCacheIfEmpty();
-      const seeded = seedApril2026BaselineIfMissing();
-      state.movements = seeded.db;
+      const seededBaseline = seedApril2026BaselineIfMissing();
+      const seededOperational = seedApril2026OperationalIfMissing(seededBaseline.db);
+      state.movements = seededOperational.db;
       reconstructStockFromMovements(state.movements);
       state.inventoryCache = getInventoryCache();
       renderAll();
       updateCutDates();
       await pingSupabase();
       await loadInventoryCacheFromSupabase();
-      await syncApril2026BaselineIfNeeded(seeded.added);
+      await syncApril2026BaselineIfNeeded([...(seededBaseline.added || []), ...(seededOperational.added || [])]);
       loadMonthlyRows();
       renderAll();
     }

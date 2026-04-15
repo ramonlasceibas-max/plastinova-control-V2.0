@@ -75,12 +75,16 @@
     .status-low{color:#c46c04;font-weight:900}
     .status-bad{color:#bf2f2f;font-weight:900}
     .mini-note{padding:10px 12px;border-radius:12px;background:#eef6ff;color:var(--brand);font-size:12px;font-weight:700}
-    .chart-bars{display:flex;gap:12px;align-items:flex-end;min-height:220px;padding:14px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fbfdff}
-    .bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:72px;height:100%}
-    .bar{width:56px;border-radius:14px 14px 0 0;color:#fff;font-size:10px;font-weight:900;display:flex;justify-content:center;align-items:flex-start;padding-top:6px;box-shadow:0 6px 12px rgba(0,0,0,.15)}
+    .chart-bars{display:flex;gap:12px;align-items:flex-end;min-height:245px;padding:14px;overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fbfdff}
+    .bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:108px;height:100%;padding-top:6px}
+    .bar-meta{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:flex-end;min-height:56px;margin-bottom:8px}
+    .bar-chip{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:#eef5ff;border:1px solid #cbdcf1;color:#11447d;font-size:10px;font-weight:900;white-space:nowrap;line-height:1}
+    .bar-chip.prod{background:#fff5e7;border-color:#efd3a8;color:#a86403}
+    .bar{width:62px;border-radius:14px 14px 0 0;color:#fff;font-size:10px;font-weight:900;display:flex;justify-content:center;align-items:flex-start;padding-top:6px;box-shadow:0 6px 12px rgba(0,0,0,.15)}
     .bar.sales{background:linear-gradient(180deg,#1a73c9,#4dabff)}
     .bar.prod{background:linear-gradient(180deg,#cf7b16,#f3ac39)}
     .bar-label{margin-top:8px;font-size:11px;font-weight:900;text-align:center;color:var(--text)}
+    .bar-sub{margin-top:3px;font-size:10px;font-weight:800;color:var(--muted);text-align:center;line-height:1.15}
     .check-row{display:flex;gap:14px;flex-wrap:wrap;background:#f4f8fd;border:1px solid var(--line);padding:12px;border-radius:12px;margin-top:10px}
     .check-row label{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:800}
     .split{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
@@ -493,11 +497,11 @@
         <div class="card print-hidden">
           <h3>📊 Gráficas operativas</h3>
           <div class="row">
-            <div class="form-group"><label>Periodo</label><select id="filtroTiempo"><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select></div>
+            <div class="form-group"><label>Periodo</label><select id="filtroTiempo"><option value="hoy">Hoy</option><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select></div>
             <div class="form-group"><label>Vendedor / Productor</label><select id="filtroVendedorGrafica"></select></div>
           </div>
           <div class="row">
-            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Generar reporte pro</button>
+            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
           </div>
         </div>
         <div class="stats">
@@ -651,6 +655,7 @@
       INVENTORY_CACHE: 'plastinova_inventory_cache_v3',
       MONTHLY_DRAFTS: 'plastinova_cierres_mensuales_v3',
       APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1',
+      APRIL_BASELINE_VERSION: 'plastinova_seed_baseline_20260401_version_v1',
       APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2'
     };
 
@@ -733,12 +738,15 @@
       { material:'SOBRAS', cantidad:5.80 }
     ];
     const COMPRA_ACCESORIOS_20260407 = LISTA_MATERIALES.ACCESORIOS
-      .map(nombre => ({ material:nombre, cantidad:500 }));
+      .map(nombre => ({ material:nombre, cantidad:nombre === 'ETIQUETA (PIEZAS)' ? 0 : 500 }));
 
     const ACCESORIOS_EXTRA_PLANTA_20260401 = {
       'TAPA (PIEZAS)': 122,
       'BRIDA (PIEZAS)': 312
     };
+
+    const FECHA_BASE_MATERIA_PRIMA = '2026-04-01';
+    const FECHA_BASE_ADITAMENTOS = '2026-04-07';
 
     const APRIL_OPENING_ROUTE_20260401 = {
       CONSIGNACION: [
@@ -804,7 +812,7 @@
     ];
 
     const APRIL_DIRECT_SALES_20260406_20260411 = [
-      { fecha:'2026-04-06', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1350, total:1350 },
+      { fecha:'2026-04-06', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1350, total:1350, incluyeAccesorios:false },
       { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:3, precio:1450, total:4350 },
       { fecha:'2026-04-08', vendedor:'FERNANDO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'NEGRO', cantidad:2, precio:1200, total:2400 },
       { fecha:'2026-04-08', vendedor:'HUSAI', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'VERDE', cantidad:1, precio:1250, total:1250 },
@@ -825,7 +833,15 @@
       { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'NEGRO', cantidad:1, precio:495, total:495 },
       { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'AZUL', cantidad:1, precio:495, total:495 },
       { fecha:'2026-04-11', vendedor:'FERNANDO', tipo:'VENTA_TAMBO', capacidad:'235LT', color:'VERDE', cantidad:1, precio:495, total:495 },
-      { fecha:'2026-04-11', vendedor:'RAMON', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:22, precio:1450, total:31900 }
+      { fecha:'2026-04-11', vendedor:'RAMON', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:22, precio:1450, total:31900 },
+      { fecha:'2026-04-07', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-08', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:13, precio:1450, total:18850 },
+      { fecha:'2026-04-08', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1, precio:1450, total:1450 },
+      { fecha:'2026-04-09', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:10, precio:1450, total:14500 },
+      { fecha:'2026-04-09', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1, precio:1250, total:1250 },
+      { fecha:'2026-04-09', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'NEGRO', cantidad:1, precio:1250, total:1250 },
+      { fecha:'2026-04-09', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'750LT', color:'BEIGE', cantidad:1, precio:1200, total:1200 },
+      { fecha:'2026-04-10', vendedor:'ISIDRO', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:6, precio:1450, total:8700 }
     ];
 
     const APRIL_CONSIGNACIONES_NUEVAS_20260409 = [
@@ -1153,7 +1169,7 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
       const mapeoColor = { 'NEGRO': 'ROTOLENE NEGRO - BLACK', 'BEIGE': 'ROTOLENE BEIGE', 'AZUL': 'ROTOLENE AZUL #5', 'VERDE': 'ROTOLENE VERDE #15', 'NATURAL': 'ROTOLENE NATURAL', 'NARANJA': 'ROTOLENE NARANJA II', 'CAFÉ': 'ROTOLENE CAFÉ', 'BLANCO': 'ROTOLENE BLANCO', 'ROJO': 'ROTOLENE ROJO 14', 'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.' };
       let matColorBase = mapeoColor[colorUI] || `ROTOLENE ${colorUI}`;
       if (!tipoMovimiento.includes('_COBRO') && (tipoMovimiento.includes('VENTA') || tipoMovimiento.includes('TRASPASO'))) {
-        if (tipoMovimiento.includes('TINACO')) ['TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','KIT COMPLETO (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => consumo[m] = 1);
+        if (tipoMovimiento.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => consumo[m] = 1);
         else if (tipoMovimiento.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => consumo[m] = 1);
       } else if (tipoMovimiento.includes('PROD_')) {
         const ignorar = ['GRANITO BEIGE','GRANITO','DUVALIN','TERRACOTA','MENTA','PISTACHE','UVA','MELON','OXFORD'];
@@ -1208,13 +1224,16 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
       return '';
     }
 
+    function obtenerRecetaAditamentosPorProducto(tipoMovimiento){
+      const tipoTxt = String(tipoMovimiento || '').toUpperCase();
+      const consumo = {};
+      if(tipoTxt.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => consumo[m] = 1);
+      else if(tipoTxt.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => consumo[m] = 1);
+      return consumo;
+    }
+
     function obtenerRecetaAccesoriosVenta(tipoMovimiento, capacidad, colorUI){
-      const recetaCompleta = obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI) || {};
-      const soloAccesorios = {};
-      Object.keys(recetaCompleta).forEach(material => {
-        if(LISTA_MATERIALES.ACCESORIOS.includes(material)) soloAccesorios[material] = recetaCompleta[material];
-      });
-      return soloAccesorios;
+      return obtenerRecetaAditamentosPorProducto(tipoMovimiento);
     }
 
     function movimientoIncluyeAccesorios(reg){
@@ -1383,10 +1402,6 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
             : (tipoBase === 'TAMBO' ? 'VENTA_TAMBO' : 'VENTA_TINACO');
           const nombreProducto = buildFinishedGoodNameFromParts(tipoMov, capacidad, color);
           if(nombreProducto) openingProductStock[nombreProducto] = (parseFloat(openingProductStock[nombreProducto]) || 0) + cantidad;
-          const recetaAccesorios = obtenerRecetaAccesoriosVenta(tipoMov, capacidad, color);
-          Object.keys(recetaAccesorios).forEach(material => {
-            openingAccessoryStock[material] = (parseFloat(openingAccessoryStock[material]) || 0) + (parseFloat(recetaAccesorios[material]) || 0) * cantidad;
-          });
           const concepto = destino === 'SUCURSAL'
             ? `TRASPASO SUCURSAL ${tipoBase} ${capacidad} ${color} [AJUSTE-INICIAL-SUCURSAL-2026-04-01]`
             : `ENTREGA CONSIGNACIÓN ${tipoBase} ${capacidad} ${color} [AJUSTE-INICIAL-CONSIGNACION-2026-04-01]`;
@@ -1407,6 +1422,53 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
 
     function isSucursalSalida(r){
       return normalizarTextoClave(r?.concepto||'').includes('TRASPASO SUCURSAL');
+    }
+
+
+    function movementDateOnOrAfter(reg, cutoffDate){
+      return fechaOrdenValor(reg?.fecha) >= fechaOrdenValor(cutoffDate);
+    }
+
+    function movimientoEsAjusteInicialRuta(reg){
+      const concepto = String(reg?.concepto || '');
+      return concepto.includes('[AJUSTE-INICIAL-SUCURSAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]');
+    }
+
+    function movimientoConsumeMateriaPrima(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      return tipo.includes('PROD_') && movementDateOnOrAfter(reg, FECHA_BASE_MATERIA_PRIMA);
+    }
+
+    function movimientoConsumeAditamentos(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      if(!(tipo.includes('VENTA') || tipo.includes('TRASPASO'))) return false;
+      if(tipo.includes('_COBRO')) return false;
+      if(!movimientoIncluyeAccesorios(reg)) return false;
+      return movementDateOnOrAfter(reg, FECHA_BASE_ADITAMENTOS);
+    }
+
+    function movimientoMueveAditamentosFuera(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      if(!(tipo.includes('VENTA') || tipo.includes('TRASPASO'))) return false;
+      if(tipo.includes('_COBRO')) return false;
+      if(!movimientoIncluyeAccesorios(reg)) return false;
+      if(!(isSucursalSalida(reg) || isConsignacionSalida(reg))) return false;
+      if(movimientoEsAjusteInicialRuta(reg)) return true;
+      return movementDateOnOrAfter(reg, FECHA_BASE_ADITAMENTOS);
+    }
+
+    function getDestinoPendienteMovimiento(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      const conceptoNorm = normalizarTextoClave(reg?.concepto || '');
+      if(tipo.includes('TRASPASO')) return 'SUCURSAL';
+      if(conceptoNorm.includes('TRASPASO SUCURSAL') || conceptoNorm.includes('COBRO SUCURSAL')) return 'SUCURSAL';
+      if(conceptoNorm.includes('ENTREGA CONSIGNACION') || conceptoNorm.includes('COBRO CONSIGNACION')) return 'CONSIGNACION';
+      return null;
+    }
+
+    function movimientoLiquidaPendienteFuera(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      return tipo.includes('_COBRO') && !!getDestinoPendienteMovimiento(reg);
     }
 
     function monthlyItemCandidateKeys(item){
@@ -1441,10 +1503,8 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
         const concepto = String(r.concepto || '').trim();
         const cap = (r.capacidad || '').trim();
         const col = (r.colorUI || '').trim();
-        const toSucursal = isSucursalSalida(r);
-        const toConsignacion = isConsignacionSalida(r);
 
-        if (tipo.includes('_COBRO') || tipo === 'GASTO') return;
+        if (tipo === 'GASTO') return;
 
         if (tipo === 'INVENTARIO_FISICO') {
           let clave = col;
@@ -1466,34 +1526,44 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
           return;
         }
 
-        if (tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO')) {
-          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col);
-          if (!fgName && cap) {
-            if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
-            else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
-            else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} [LEGACY]`;
-            else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} [LEGACY]`;
-          }
+        if (!(tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO'))) return;
 
-          if (tipo.includes('PROD_')) {
-            const recetaMateriaPrima = (col && cap) ? obtenerRecetaMateriales(tipo, cap, col) : {};
-            Object.keys(recetaMateriaPrima).forEach(m => adjustStockValue(stock, m, -(recetaMateriaPrima[m] * cant)));
-            if (fgName) adjustStockValue(stock, fgName, cant);
-            return;
-          }
+        let fgName = buildFinishedGoodNameFromParts(tipo, cap, col);
+        if (!fgName && cap) {
+          if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
+          else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
+          else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} [LEGACY]`;
+          else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} [LEGACY]`;
+        }
 
-          if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
-            const recetaAccesorios = movimientoIncluyeAccesorios(r) && col && cap ? obtenerRecetaAccesoriosVenta(tipo, cap, col) : {};
-            Object.keys(recetaAccesorios).forEach(m => adjustStockValue(stock, m, -(recetaAccesorios[m] * cant)));
-            if (fgName) adjustStockValue(stock, fgName, -cant);
+        if (tipo.includes('PROD_')) {
+          const recetaMateriaPrima = movimientoConsumeMateriaPrima(r) && col && cap ? (obtenerRecetaMateriales(tipo, cap, col) || {}) : {};
+          Object.keys(recetaMateriaPrima).forEach(m => adjustStockValue(stock, m, -((parseFloat(recetaMateriaPrima[m]) || 0) * cant)));
+          if (fgName) adjustStockValue(stock, fgName, cant);
+          return;
+        }
 
-            const destinoPendiente = toSucursal ? multiStock.SUCURSAL : (toConsignacion ? multiStock.CONSIGNACION : null);
-            if (destinoPendiente) {
+        if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
+          const recetaAccesoriosPlanta = movimientoConsumeAditamentos(r) && col && cap ? (obtenerRecetaAccesoriosVenta(tipo, cap, col) || {}) : {};
+          Object.keys(recetaAccesoriosPlanta).forEach(m => adjustStockValue(stock, m, -((parseFloat(recetaAccesoriosPlanta[m]) || 0) * cant)));
+
+          if (!tipo.includes('_COBRO') && fgName) adjustStockValue(stock, fgName, -cant);
+
+          const destinoNombre = getDestinoPendienteMovimiento(r);
+          const destinoPendiente = destinoNombre ? multiStock[destinoNombre] : null;
+          const recetaAccesoriosFuera = col && cap ? (obtenerRecetaAditamentosPorProducto(tipo) || {}) : {};
+          if (destinoPendiente) {
+            if (movimientoLiquidaPendienteFuera(r)) {
+              if (fgName) adjustStockValue(destinoPendiente, fgName, -cant);
+              Object.keys(recetaAccesoriosFuera).forEach(m => adjustStockValue(destinoPendiente, m, -((parseFloat(recetaAccesoriosFuera[m]) || 0) * cant)));
+            } else {
               if (fgName) adjustStockValue(destinoPendiente, fgName, cant);
-              Object.keys(recetaAccesorios).forEach(m => adjustStockValue(destinoPendiente, m, recetaAccesorios[m] * cant));
+              if (movimientoMueveAditamentosFuera(r)) {
+                Object.keys(recetaAccesoriosFuera).forEach(m => adjustStockValue(destinoPendiente, m, (parseFloat(recetaAccesoriosFuera[m]) || 0) * cant));
+              }
             }
-            return;
           }
+          return;
         }
       });
       multiStock.PLANTA = { ...stock };
@@ -1977,15 +2047,314 @@ async function pingSupabase(){
       item.classList.toggle('open');
     }
 
-function renderDashboard(){
-      let db = state.movements; const fTiempo=$('filtroTiempo').value; const fVend=$('filtroVendedorGrafica').value; let d_sem=getNumeroSemana($('fecha').value); let d_mes=new Date().getMonth(); let d_anio=new Date().getFullYear(); let v_ventas={}, v_prod={}, maxV=0, maxP=0; let ventasTotal=0, tinTotal=0, tamTotal=0, prodTotal=0;
-      db.forEach(r=>{ let rD=parseLocalDate(r.fecha); if(!rD) return; let valid=(fTiempo==='semana'&&r.semana==d_sem&&rD.getFullYear()==d_anio)||(fTiempo==='mes'&&rD.getMonth()==d_mes&&rD.getFullYear()==d_anio)||(fTiempo==='anio'&&rD.getFullYear()==d_anio); if(valid && (fVend==='TODOS'||r.vendedor===fVend)) { let isTin=(r.concepto||'').includes('TINACO'); let isTam=(r.concepto||'').includes('TAMBO') || (r.concepto||'').includes('235LT'); let isMac=(r.concepto||'').includes('MACETA'); let cant=parseFloat(r.cantidad)||0; if(esMovimientoConIngreso(r)){ if(!v_ventas[r.vendedor]) v_ventas[r.vendedor]={totalDinero:0,tin:0,tam:0,mac:0}; v_ventas[r.vendedor].totalDinero += parseFloat(r.total)||0; ventasTotal += parseFloat(r.total)||0; if(isTin){ v_ventas[r.vendedor].tin += cant; tinTotal += cant; } if(isTam){ v_ventas[r.vendedor].tam += cant; tamTotal += cant; } if(isMac) v_ventas[r.vendedor].mac += cant; if(v_ventas[r.vendedor].totalDinero > maxV) maxV = v_ventas[r.vendedor].totalDinero; } if((r.tipo||'').includes('PROD')){ if(!v_prod[r.vendedor]) v_prod[r.vendedor]={total:0,tin:0,tam:0,mac:0}; v_prod[r.vendedor].total += cant; prodTotal += cant; if(isTin) v_prod[r.vendedor].tin += cant; if(isTam) v_prod[r.vendedor].tam += cant; if(isMac) v_prod[r.vendedor].mac += cant; if(v_prod[r.vendedor].total>maxP) maxP=v_prod[r.vendedor].total; } } });
-      $('dashVentasTotal').textContent = '$'+formato(ventasTotal); $('dashTinacosTotal').textContent=tinTotal.toFixed(2); $('dashTambosTotal').textContent=tamTotal.toFixed(2); $('dashProdTotal').textContent=prodTotal.toFixed(2);
-      $('graficaVentas').innerHTML = Object.keys(v_ventas).map(v=>`<div class="bar-col"><div class="bar sales" style="height:${maxV>0?(v_ventas[v].totalDinero/maxV)*170:0}px">$${Math.round(v_ventas[v].totalDinero)}</div><div class="bar-label">${escHtml(v)}</div></div>`).join('') || '<div class="subtle">Sin ventas.</div>';
-      $('graficaProd').innerHTML = Object.keys(v_prod).map(v=>`<div class="bar-col"><div class="bar prod" style="height:${maxP>0?(v_prod[v].total/maxP)*170:0}px">${Math.round(v_prod[v].total)}</div><div class="bar-label">${escHtml(v)}</div></div>`).join('') || '<div class="subtle">Sin producción.</div>';
+function getDashboardFilterContext(){
+      const fTiempo = $('filtroTiempo').value;
+      const fVend = $('filtroVendedorGrafica').value;
+      const baseFecha = $('fecha').value || hoyLocalISO();
+      const hoy = parseLocalDate(baseFecha) || parseLocalDate(hoyLocalISO()) || new Date();
+      const semanaActual = getNumeroSemana(baseFecha);
+      const mesActual = hoy.getMonth();
+      const anioActual = hoy.getFullYear();
+      const periodoLabel = fTiempo==='hoy' ? `Hoy (${formatFechaVisible(baseFecha)})` : (fTiempo==='semana' ? `Semana ${semanaActual}` : (fTiempo==='mes' ? 'Mes actual' : 'Año actual'));
+      return { fTiempo, fVend, baseFecha, semanaActual, mesActual, anioActual, periodoLabel };
     }
 
-    function renderStockTables(){
+    function getDashboardFilteredMovements(){
+      const ctx = getDashboardFilterContext();
+      const db = state.movements || [];
+      const sameDate = (rFecha, refFecha) => String(rFecha || '') === String(refFecha || '');
+      return db.filter(r=>{
+        const rD = parseLocalDate(r.fecha);
+        if(!rD) return false;
+        const valid = (ctx.fTiempo==='hoy' && sameDate(r.fecha, ctx.baseFecha))
+          || (ctx.fTiempo==='semana' && r.semana==ctx.semanaActual && rD.getFullYear()==ctx.anioActual)
+          || (ctx.fTiempo==='mes' && rD.getMonth()==ctx.mesActual && rD.getFullYear()==ctx.anioActual)
+          || (ctx.fTiempo==='anio' && rD.getFullYear()==ctx.anioActual);
+        if(!valid) return false;
+        if(ctx.fVend!=='TODOS' && r.vendedor!==ctx.fVend) return false;
+        return true;
+      });
+    }
+
+
+    function computeStockSnapshotUpTo(fechaLimite){
+      const limitTime = fechaLimite ? fechaOrdenValor(fechaLimite) : Number.POSITIVE_INFINITY;
+      const db = ordenarDBCronologicamente([...(state.movements || [])]).filter(r => fechaOrdenValor(r.fecha) <= limitTime);
+      const stock = {};
+      db.forEach(r => {
+        const cant = parseFloat(r.cantidad) || 0;
+        const tipo = String(r.tipo || '').trim();
+        const concepto = String(r.concepto || '').trim();
+        const cap = String(r.capacidad || '').trim();
+        const col = String(r.colorUI || '').trim();
+        if (tipo.includes('_COBRO') || tipo === 'GASTO') return;
+        if (tipo === 'INVENTARIO_FISICO') {
+          let clave = col;
+          if (!clave && concepto.startsWith('REAL: ')) clave = concepto.replace('REAL: ','').split(' (')[0].trim();
+          if (clave) stock[clave] = cant;
+          return;
+        }
+        if (tipo === 'COMPRA' || tipo === 'MERMA') {
+          let clave = col;
+          if (!clave) {
+            if (concepto.startsWith('INGRESO: ')) clave = concepto.replace('INGRESO: ','').split(' (')[0].trim();
+            else if (concepto.startsWith('MERMA: ')) clave = concepto.replace('MERMA: ','').split(' (')[0].trim();
+          }
+          if (clave) stock[clave] = (parseFloat(stock[clave]) || 0) + (cant * (tipo === 'MERMA' ? -1 : 1));
+          return;
+        }
+        if (!(tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO'))) return;
+        let fgName = buildFinishedGoodNameFromParts(tipo, cap, col);
+        if (!fgName && cap) {
+          if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
+          else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
+          else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} [LEGACY]`;
+          else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} [LEGACY]`;
+        }
+        if (tipo.includes('PROD_')) {
+          const recetaMateriaPrima = movimientoConsumeMateriaPrima(r) && col && cap ? obtenerRecetaMateriales(tipo, cap, col) : {};
+          Object.keys(recetaMateriaPrima).forEach(m => {
+            stock[m] = (parseFloat(stock[m]) || 0) - ((parseFloat(recetaMateriaPrima[m]) || 0) * cant);
+          });
+          if (fgName) stock[fgName] = (parseFloat(stock[fgName]) || 0) + cant;
+          return;
+        }
+        if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
+          const recetaAccesorios = movimientoConsumeAditamentos(r) && col && cap ? obtenerRecetaAccesoriosVenta(tipo, cap, col) : {};
+          Object.keys(recetaAccesorios).forEach(m => {
+            stock[m] = (parseFloat(stock[m]) || 0) - ((parseFloat(recetaAccesorios[m]) || 0) * cant);
+          });
+          if (fgName) stock[fgName] = (parseFloat(stock[fgName]) || 0) - cant;
+        }
+      });
+      return stock;
+    }
+
+    function computeMultiStockSnapshotUpTo(fechaLimite){
+      const limitTime = fechaLimite ? fechaOrdenValor(fechaLimite) : Number.POSITIVE_INFINITY;
+      const db = ordenarDBCronologicamente([...(state.movements || [])]).filter(r => fechaOrdenValor(r.fecha) <= limitTime);
+      const multi = { PLANTA:{}, SUCURSAL:{}, CONSIGNACION:{} };
+      db.forEach(r => {
+        const cant = parseFloat(r.cantidad) || 0;
+        const tipo = String(r.tipo || '').trim();
+        const cap = String(r.capacidad || '').trim();
+        const col = String(r.colorUI || '').trim();
+        if(!cant) return;
+        if (tipo === 'GASTO') return;
+        if (!(tipo.includes('TINACO') || tipo.includes('TAMBO') || tipo.includes('MACETA') || tipo.includes('BANCO'))) return;
+        const destinoNombre = getDestinoPendienteMovimiento(r);
+        const destinoPendiente = destinoNombre ? multi[destinoNombre] : null;
+        if(!destinoPendiente) return;
+        let fgName = buildFinishedGoodNameFromParts(tipo, cap, col);
+        if (!fgName && cap) {
+          if (tipo.includes('TINACO')) fgName = `TINACO ${cap} [LEGACY]`;
+          else if (tipo.includes('TAMBO')) fgName = `TAMBO ${cap} [LEGACY]`;
+          else if (tipo.includes('MACETA')) fgName = `MACETA ${cap} [LEGACY]`;
+          else if (tipo.includes('BANCO')) fgName = `BANCO ${cap} [LEGACY]`;
+        }
+        const recetaAccesorios = col && cap ? (obtenerRecetaAditamentosPorProducto(tipo) || {}) : {};
+        if (movimientoLiquidaPendienteFuera(r)) {
+          if (fgName) destinoPendiente[fgName] = (parseFloat(destinoPendiente[fgName]) || 0) - cant;
+          Object.keys(recetaAccesorios).forEach(m => {
+            destinoPendiente[m] = (parseFloat(destinoPendiente[m]) || 0) - ((parseFloat(recetaAccesorios[m]) || 0) * cant);
+          });
+        } else {
+          if (fgName) destinoPendiente[fgName] = (parseFloat(destinoPendiente[fgName]) || 0) + cant;
+          if (movimientoMueveAditamentosFuera(r)) {
+            Object.keys(recetaAccesorios).forEach(m => {
+              destinoPendiente[m] = (parseFloat(destinoPendiente[m]) || 0) + ((parseFloat(recetaAccesorios[m]) || 0) * cant);
+            });
+          }
+        }
+      });
+      return multi;
+    }
+
+    function getDashboardData(){
+      const ctx = getDashboardFilterContext();
+      const db = getDashboardFilteredMovements();
+      const ventas = {};
+      const produccion = {};
+      let maxV = 0, maxP = 0;
+      let ventasTotal = 0, tinTotal = 0, tamTotal = 0, prodTotal = 0;
+      db.forEach(r=>{
+        const concepto = String(r.concepto||'').toUpperCase();
+        const tipoMov = String(r.tipo||'').toUpperCase();
+        const capacidadMov = String(r.capacidad||'').toUpperCase();
+        const isTin = tipoMov.includes('TINACO') || ['1200LT','1100LT','750LT'].includes(capacidadMov) || concepto.includes('TINACO') || ['1200LT','1100LT','750LT'].some(v=>concepto.includes(v));
+        const isTam = tipoMov.includes('TAMBO') || capacidadMov==='235LT' || concepto.includes('TAMBO') || concepto.includes('235LT');
+        const isMac = tipoMov.includes('MACETA') || concepto.includes('MACETA') || concepto.includes('MACETERO');
+        const cant = parseFloat(r.cantidad)||0;
+        if(esMovimientoConIngreso(r)){
+          if(!ventas[r.vendedor]) ventas[r.vendedor] = { totalDinero:0, tin:0, tam:0, mac:0 };
+          ventas[r.vendedor].totalDinero += parseFloat(r.total)||0;
+          ventasTotal += parseFloat(r.total)||0;
+          if(isTin){ ventas[r.vendedor].tin += cant; tinTotal += cant; }
+          if(isTam){ ventas[r.vendedor].tam += cant; tamTotal += cant; }
+          if(isMac) ventas[r.vendedor].mac += cant;
+          if(ventas[r.vendedor].totalDinero > maxV) maxV = ventas[r.vendedor].totalDinero;
+        }
+        if((r.tipo||'').includes('PROD')){
+          if(!produccion[r.vendedor]) produccion[r.vendedor] = { total:0, tin:0, tam:0, mac:0 };
+          produccion[r.vendedor].total += cant;
+          prodTotal += cant;
+          if(isTin) produccion[r.vendedor].tin += cant;
+          if(isTam) produccion[r.vendedor].tam += cant;
+          if(isMac) produccion[r.vendedor].mac += cant;
+          if(produccion[r.vendedor].total > maxP) maxP = produccion[r.vendedor].total;
+        }
+      });
+      const ventasRows = Object.keys(ventas).sort().map(v=>({ vendedor:v, ...ventas[v] }));
+      const prodRows = Object.keys(produccion).sort().map(v=>({ vendedor:v, ...produccion[v] }));
+      return { ...ctx, ventasTotal, tinTotal, tamTotal, prodTotal, ventasRows, prodRows, maxV, maxP };
+    }
+
+    function buildDashboardInventoryBreakdown(){
+      const ctx = getDashboardFilterContext();
+      const db = getDashboardFilteredMovements();
+      const stockSnapshot = computeStockSnapshotUpTo(ctx.baseFecha);
+      const multiSnapshot = computeMultiStockSnapshotUpTo(ctx.baseFecha);
+      const accesoriosUsados = {};
+      const materiaConsumida = {};
+      const terminadosVendidos = {};
+      db.forEach(r=>{
+        const tipoMov = String(r.tipo||'').toUpperCase();
+        const cap = String(r.capacidad||'').toUpperCase();
+        const col = String(r.colorUI||'').toUpperCase();
+        const cant = parseFloat(r.cantidad)||0;
+        if(!cant) return;
+        const recetaMateria = (cap && col) ? (obtenerRecetaMateriales(tipoMov, cap, col) || {}) : {};
+        if(tipoMov.includes('PROD_')){
+          if(movimientoConsumeMateriaPrima(r)){
+            Object.entries(recetaMateria).forEach(([material, qty])=>{
+              if(LISTA_MATERIALES.POLVOS.includes(material)) materiaConsumida[material] = (materiaConsumida[material]||0) + ((parseFloat(qty)||0) * cant);
+            });
+          }
+          return;
+        }
+        const esSalidaFisica = (tipoMov.includes('VENTA') || tipoMov.includes('TRASPASO')) && !tipoMov.includes('_COBRO');
+        if(!esSalidaFisica) return;
+        const recetaAccesorios = movimientoConsumeAditamentos(r) && cap && col ? (obtenerRecetaAccesoriosVenta(tipoMov, cap, col) || {}) : {};
+        Object.entries(recetaAccesorios).forEach(([material, qty])=>{
+          if(LISTA_MATERIALES.ACCESORIOS.includes(material)) accesoriosUsados[material] = (accesoriosUsados[material]||0) + ((parseFloat(qty)||0) * cant);
+        });
+        const nombreTerminado = buildFinishedGoodNameFromParts(tipoMov, cap, col);
+        if(nombreTerminado && (tipoMov.includes('TINACO') || tipoMov.includes('TAMBO') || tipoMov.includes('MACETA'))){
+          terminadosVendidos[nombreTerminado] = (terminadosVendidos[nombreTerminado]||0) + cant;
+        }
+      });
+      const mapRows = (bucket, unit) => Object.keys(bucket).sort((a,b)=>a.localeCompare(b)).map(nombre=>({
+        nombre,
+        usado: parseFloat(bucket[nombre])||0,
+        resta: parseFloat(stockSnapshot[nombre])||0,
+        unidad: unit
+      }));
+      const fueraTinacosRows = [];
+      const fueraAditamentosRows = [];
+      const fueraPorUbicacion = { SUCURSAL:{ tinacos:[], aditamentos:[] }, CONSIGNACION:{ tinacos:[], aditamentos:[] } };
+      ['SUCURSAL','CONSIGNACION'].forEach(ubicacion => {
+        const bucket = (multiSnapshot && multiSnapshot[ubicacion]) || {};
+        Object.keys(bucket).sort((a,b)=>a.localeCompare(b)).forEach(nombre => {
+          const cantidad = parseFloat(bucket[nombre]) || 0;
+          if(cantidad <= 0) return;
+          if(nombre.startsWith('TINACO ')){
+            const row = { ubicacion, nombre, cantidad, unidad:'PZAS' };
+            fueraTinacosRows.push(row);
+            fueraPorUbicacion[ubicacion].tinacos.push(row);
+          }
+          if(LISTA_MATERIALES.ACCESORIOS.includes(nombre)){
+            const row = { ubicacion, nombre, cantidad, unidad:'PZAS' };
+            fueraAditamentosRows.push(row);
+            fueraPorUbicacion[ubicacion].aditamentos.push(row);
+          }
+        });
+      });
+      return {
+        accesoriosRows: mapRows(accesoriosUsados, 'PZAS'),
+        materiaRows: mapRows(materiaConsumida, 'KG'),
+        terminadosRows: mapRows(terminadosVendidos, 'PZAS'),
+        fueraTinacosRows,
+        fueraAditamentosRows,
+        fueraPorUbicacion
+      };
+    }
+
+function renderBarMeta(chips, kind='sales'){
+      const visibles = chips.filter(x => x.value > 0);
+      if(!visibles.length) return `<div class="bar-meta"><span class="bar-chip ${kind==='prod'?'prod':''}">SIN MOV.</span></div>`;
+      return `<div class="bar-meta">${visibles.map(x=>`<span class="bar-chip ${kind==='prod'?'prod':''}">${escHtml(x.label)} ${parseFloat(x.value||0).toFixed(0)}</span>`).join('')}</div>`;
+    }
+
+    function renderDashboard(){
+      const data = getDashboardData();
+      $('dashVentasTotal').textContent = '$'+formato(data.ventasTotal);
+      $('dashTinacosTotal').textContent = data.tinTotal.toFixed(2);
+      $('dashTambosTotal').textContent = data.tamTotal.toFixed(2);
+      $('dashProdTotal').textContent = data.prodTotal.toFixed(2);
+      $('graficaVentas').innerHTML = data.ventasRows.map(r=>`<div class="bar-col">
+        ${renderBarMeta([{label:'TIN',value:r.tin},{label:'TAM',value:r.tam},{label:'MAC',value:r.mac}], 'sales')}
+        <div class="bar sales" style="height:${data.maxV>0?(r.totalDinero/data.maxV)*170:0}px">$${Math.round(r.totalDinero)}</div>
+        <div class="bar-label">${escHtml(r.vendedor)}</div>
+      </div>`).join('') || '<div class="subtle">Sin ventas.</div>';
+      $('graficaProd').innerHTML = data.prodRows.map(r=>`<div class="bar-col">
+        ${renderBarMeta([{label:'TIN',value:r.tin},{label:'TAM',value:r.tam},{label:'MAC',value:r.mac}], 'prod')}
+        <div class="bar prod" style="height:${data.maxP>0?(r.total/data.maxP)*170:0}px">${Math.round(r.total)}</div>
+        <div class="bar-label">${escHtml(r.vendedor)}</div>
+      </div>`).join('') || '<div class="subtle">Sin producción.</div>';
+    }
+
+    function generateDashboardReport(){
+      const data = getDashboardData();
+      const breakdown = buildDashboardInventoryBreakdown();
+      const fmtMoney = val => '$'+formato(parseFloat(val)||0);
+      const fmtQty = val => (parseFloat(val)||0).toFixed(2);
+      const salesRows = data.ventasRows.length ? data.ventasRows.map(r=>`<tr><td>${escHtml(r.vendedor)}</td><td class="center">${(parseFloat(r.tin)||0).toFixed(0)}</td><td class="center">${(parseFloat(r.tam)||0).toFixed(0)}</td><td class="center">${(parseFloat(r.mac)||0).toFixed(0)}</td><td class="right">${fmtMoney(r.totalDinero)}</td></tr>`).join('') : `<tr><td colspan="5" class="center">Sin ventas en este periodo.</td></tr>`;
+      const prodRows = data.prodRows.length ? data.prodRows.map(r=>`<tr><td>${escHtml(r.vendedor)}</td><td class="center">${(parseFloat(r.tin)||0).toFixed(0)}</td><td class="center">${(parseFloat(r.tam)||0).toFixed(0)}</td><td class="center">${(parseFloat(r.mac)||0).toFixed(0)}</td><td class="right">${(parseFloat(r.total)||0).toFixed(0)}</td></tr>`).join('') : `<tr><td colspan="5" class="center">Sin producción en este periodo.</td></tr>`;
+      const accRows = breakdown.accesoriosRows.length ? breakdown.accesoriosRows.map(r=>`<tr><td>${escHtml(r.nombre.replace(' (PIEZAS)',''))}</td><td class="right">${fmtQty(r.usado)}</td><td class="right">${fmtQty(r.resta)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`).join('') : `<tr><td colspan="4" class="center">Sin uso de aditamentos en este periodo.</td></tr>`;
+      const mpRows = breakdown.materiaRows.length ? breakdown.materiaRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td class="right">${fmtQty(r.usado)}</td><td class="right">${fmtQty(r.resta)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`).join('') : `<tr><td colspan="4" class="center">Sin consumo de materia prima en este periodo.</td></tr>`;
+      const termRows = breakdown.terminadosRows.length ? breakdown.terminadosRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td class="right">${fmtQty(r.usado)}</td><td class="right">${fmtQty(r.resta)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`).join('') : `<tr><td colspan="4" class="center">Sin producto terminado vendido en este periodo.</td></tr>`;
+      const renderRowsOutside = (rows, emptyLabel, formatter) => rows.length ? rows.map(formatter).join('') : `<tr><td colspan="3" class="center">${emptyLabel}</td></tr>`;
+      const sucTinRows = renderRowsOutside(breakdown.fueraPorUbicacion.SUCURSAL.tinacos, 'Sin tinacos en sucursal.', r=>`<tr><td>${escHtml(r.nombre)}</td><td class="right">${fmtQty(r.cantidad)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`);
+      const sucAditRows = renderRowsOutside(breakdown.fueraPorUbicacion.SUCURSAL.aditamentos, 'Sin aditamentos en sucursal.', r=>`<tr><td>${escHtml(r.nombre.replace(' (PIEZAS)',''))}</td><td class="right">${fmtQty(r.cantidad)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`);
+      const consTinRows = renderRowsOutside(breakdown.fueraPorUbicacion.CONSIGNACION.tinacos, 'Sin tinacos en consignación.', r=>`<tr><td>${escHtml(r.nombre)}</td><td class="right">${fmtQty(r.cantidad)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`);
+      const consAditRows = renderRowsOutside(breakdown.fueraPorUbicacion.CONSIGNACION.aditamentos, 'Sin aditamentos en consignación.', r=>`<tr><td>${escHtml(r.nombre.replace(' (PIEZAS)',''))}</td><td class="right">${fmtQty(r.cantidad)}</td><td class="center">${escHtml(r.unidad)}</td></tr>`);
+      const totalAccUsado = breakdown.accesoriosRows.reduce((s,r)=>s+(parseFloat(r.usado)||0),0);
+      const totalMpUsado = breakdown.materiaRows.reduce((s,r)=>s+(parseFloat(r.usado)||0),0);
+      const totalTerminadosVendidos = breakdown.terminadosRows.reduce((s,r)=>s+(parseFloat(r.usado)||0),0);
+      const totalSucTin = breakdown.fueraPorUbicacion.SUCURSAL.tinacos.reduce((s,r)=>s+(parseFloat(r.cantidad)||0),0);
+      const totalSucAdit = breakdown.fueraPorUbicacion.SUCURSAL.aditamentos.reduce((s,r)=>s+(parseFloat(r.cantidad)||0),0);
+      const totalConsTin = breakdown.fueraPorUbicacion.CONSIGNACION.tinacos.reduce((s,r)=>s+(parseFloat(r.cantidad)||0),0);
+      const totalConsAdit = breakdown.fueraPorUbicacion.CONSIGNACION.aditamentos.reduce((s,r)=>s+(parseFloat(r.cantidad)||0),0);
+      const html = `
+        <div class="center-title">REPORTE OPERATIVO DEL PERIODO</div>
+        <table style="margin-bottom:8px"><tbody>
+          <tr><td><strong>Periodo</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Filtro</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+          <tr><td><strong>Ventas</strong></td><td>${fmtMoney(data.ventasTotal)}</td><td><strong>Producción</strong></td><td>${fmtQty(data.prodTotal)}</td></tr>
+          <tr><td><strong>Tinacos vendidos</strong></td><td>${fmtQty(data.tinTotal)}</td><td><strong>Tambos vendidos</strong></td><td>${fmtQty(data.tamTotal)}</td></tr>
+        </tbody></table>
+        <div class="section-title">VENTAS POR VENDEDOR</div>
+        <table><thead><tr><th>VENDEDOR</th><th>TINACOS</th><th>TAMBOS</th><th>MACETAS</th><th>TOTAL VENDIDO</th></tr></thead><tbody>${salesRows}</tbody></table>
+        <div class="section-title">PRODUCCIÓN POR PERSONA</div>
+        <table><thead><tr><th>PERSONA</th><th>TINACOS</th><th>TAMBOS</th><th>MACETAS</th><th>TOTAL PRODUCIDO</th></tr></thead><tbody>${prodRows}</tbody></table>
+        <div class="section-title">ADITAMENTOS USADOS Y EXISTENCIA ACTUAL</div>
+        <table><thead><tr><th>ADITAMENTO</th><th>USADO</th><th>RESTANTE EN ALMACÉN</th><th>UNIDAD</th></tr></thead><tbody>${accRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalAccUsado)}</strong></td><td></td><td class="center">PZAS</td></tr></tfoot></table>
+        <div class="section-title">MATERIA PRIMA CONSUMIDA Y EXISTENCIA ACTUAL</div>
+        <table><thead><tr><th>MATERIAL</th><th>CONSUMIDO</th><th>RESTANTE EN ALMACÉN</th><th>UNIDAD</th></tr></thead><tbody>${mpRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalMpUsado)}</strong></td><td></td><td class="center">KG</td></tr></tfoot></table>
+        <div class="section-title">PRODUCTO TERMINADO VENDIDO Y EXISTENCIA ACTUAL</div>
+        <table><thead><tr><th>PRODUCTO</th><th>VENDIDO</th><th>RESTANTE EN ALMACÉN</th><th>UNIDAD</th></tr></thead><tbody>${termRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalTerminadosVendidos)}</strong></td><td></td><td class="center">PZAS</td></tr></tfoot></table>
+        <div class="section-title">TINACOS EN SUCURSAL</div>
+        <table><thead><tr><th>TINACO</th><th>CANTIDAD</th><th>UNIDAD</th></tr></thead><tbody>${sucTinRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalSucTin)}</strong></td><td class="center">PZAS</td></tr></tfoot></table>
+        <div class="section-title">ADITAMENTOS EN SUCURSAL</div>
+        <table><thead><tr><th>ADITAMENTO</th><th>CANTIDAD</th><th>UNIDAD</th></tr></thead><tbody>${sucAditRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalSucAdit)}</strong></td><td class="center">PZAS</td></tr></tfoot></table>
+        <div class="section-title">TINACOS EN CONSIGNACIÓN</div>
+        <table><thead><tr><th>TINACO</th><th>CANTIDAD</th><th>UNIDAD</th></tr></thead><tbody>${consTinRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalConsTin)}</strong></td><td class="center">PZAS</td></tr></tfoot></table>
+        <div class="section-title">ADITAMENTOS EN CONSIGNACIÓN</div>
+        <table><thead><tr><th>ADITAMENTO</th><th>CANTIDAD</th><th>UNIDAD</th></tr></thead><tbody>${consAditRows}</tbody><tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalConsAdit)}</strong></td><td class="center">PZAS</td></tr></tfoot></table>
+      `;
+      printDocument(html, `REPORTE OPERATIVO - ${data.periodoLabel.toUpperCase()}`);
+    }
+
+function renderStockTables(){
       const tbody=$('tablaStockActual').querySelector('tbody'); const stock=state.stock || {}; const arr=Object.keys(stock).map(k=>({m:k,q:stock[k]})).sort((a,b)=>a.m.localeCompare(b.m));
       tbody.innerHTML = arr.length ? arr.map(i=>{ const valorNum=parseFloat(i.q)||0; const esKg=i.m.includes('ROTO')||i.m.includes('MERMA'); const unidad=esKg?'KG':'PZAS'; const colorClass = valorNum<0?'status-bad':(valorNum<10?'status-low':'status-ok'); return `<tr><td><strong>${escHtml(i.m)}</strong></td><td class="${colorClass}">${Number.isInteger(valorNum)?valorNum:valorNum.toFixed(2)} <span class="subtle">${unidad}</span></td><td class="print-hidden"><button type="button" class="btn btn-secondary" style="padding:8px 10px;width:auto" onclick="window.editStockPrompt('${escJsStr(i.m)}', ${valorNum}, '${unidad}')">✏️</button> <button type="button" class="btn btn-danger" style="padding:8px 10px;width:auto" onclick="window.deleteStockPrompt('${escJsStr(i.m)}')">🗑️</button></td></tr>`; }).join('') : '<tr><td colspan="3" class="subtle">Stock en 0.</td></tr>';
       renderRouteTable();
@@ -2363,7 +2732,9 @@ function renderDashboard(){
       document.querySelectorAll('.nav-btn,.mobile-tab').forEach(btn=>{
         btn.addEventListener('click', e=>{ e.preventDefault(); switchTab(btn.dataset.tab); });
       });
-      $('fecha').addEventListener('change', syncSemanaDesdeFecha);
+      $('fecha').addEventListener('change', ()=>{ syncSemanaDesdeFecha(); renderDashboard(); });
+      $('filtroTiempo').addEventListener('change', renderDashboard);
+      $('filtroVendedorGrafica').addEventListener('change', renderDashboard);
       $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
       $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows); $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
@@ -2371,11 +2742,31 @@ function renderDashboard(){
       $('btnAgregarTinaco').addEventListener('click', ()=>{ const entries=buildTinacoPendingEntries(); if(entries.length){ queueEntries(entries,'tinacos'); $('qTinaco').value=''; }}); $('btnAgregarTambo').addEventListener('click', ()=>{ const entries=buildTamboPendingEntries(); if(entries.length){ queueEntries(entries,'tambos'); $('qTambo').value=''; }}); $('btnAgregarProduccion').addEventListener('click', ()=>{ const entries=buildProductionPendingEntries(); if(entries.length){ queueEntries(entries,'produccion'); $('qProdNormal').value=''; $('qProdExtra').value=''; }}); $('btnAgregarGasto').addEventListener('click', ()=>{ const entries=buildGastoPendingEntries(); if(entries.length){ queueEntries(entries,'gastos'); $('montoGasto').value=''; $('descGasto').value=''; }}); $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnLimpiarPendientes').addEventListener('click', clearPendingEntries); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
       $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } }); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
-      $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', ()=>printDocument(`<h2>Resumen global</h2><div>${$('graficaVentas').outerHTML}${$('graficaProd').outerHTML}</div>`, 'REPORTE PRO - VENTAS VS PRODUCCIÓN'));
+      $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
     }
 
     function seedApril2026BaselineIfMissing(){
       let db = getMovements();
+      const added = [];
+      const versionKey = STORAGE_KEYS.APRIL_BASELINE_VERSION;
+      const targetVersion = 'abril-2026-baseline-v3';
+      const seedMarkers = [
+        '[BASELINE-MP-2026-04-01]',
+        '[BASELINE-2026-04-01]',
+        '[AJUSTE-INICIAL-2026-04-01]',
+        '[AJUSTE-INICIAL-SUCURSAL-2026-04-01]',
+        '[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]',
+        '[COMPRA-ADITAMENTOS-2026-04-07]',
+        '[COMPRA-ACCESORIOS-2026-04-07]'
+      ];
+
+      if(localStorage.getItem(versionKey) !== targetVersion){
+        db = db.filter(r => {
+          const concepto = String(r.concepto || '');
+          return !seedMarkers.some(tag => concepto.includes(tag));
+        });
+      }
+
       const hasRawBaseline = db.some(r => {
         const concepto = String(r.concepto || '');
         return concepto.includes('[BASELINE-MP-2026-04-01]') || concepto.includes('[BASELINE-2026-04-01]');
@@ -2384,7 +2775,6 @@ function renderDashboard(){
         const concepto = String(r.concepto || '');
         return concepto.includes('[AJUSTE-INICIAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-SUCURSAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]');
       });
-      const added = [];
 
       if(!hasRawBaseline){
         INVENTARIO_BASE_20260401.forEach(item => {
@@ -2435,6 +2825,7 @@ function renderDashboard(){
         db = ordenarDBCronologicamente([...db, ...added]);
         saveMovements(db);
       }
+      localStorage.setItem(versionKey, targetVersion);
       return { db, added };
     }
 
@@ -2443,7 +2834,7 @@ function renderDashboard(){
       const added = [];
       const expected = getApril2026OperationalSeeds();
       const versionKey = STORAGE_KEYS.APRIL_OPERATIONAL_VERSION;
-      const targetVersion = 'abril-2026-operativo-v2';
+      const targetVersion = 'abril-2026-operativo-v5';
 
       if(localStorage.getItem(versionKey) !== targetVersion){
         db = db.filter(r => !String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));

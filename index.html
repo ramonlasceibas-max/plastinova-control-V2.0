@@ -139,6 +139,10 @@
 
     .import-box{margin-top:12px;padding:14px;border:1px solid #c6d8ed;border-radius:16px;background:linear-gradient(180deg,#f8fbff,#eef5ff)}
     .import-box h4{margin:0 0 10px;color:var(--brand);font-size:14px;font-weight:900}
+    .price-box{margin-top:12px;padding:14px;border:1px solid #c6d8ed;border-radius:16px;background:linear-gradient(180deg,#f8fbff,#edf6ff)}
+    .price-box h4{margin:0 0 10px;color:var(--brand);font-size:14px;font-weight:900}
+    .price-table input{width:92px;min-width:78px;padding:8px;border:1px solid #c6d8ed;border-radius:10px;background:#fff;font-size:12px;text-align:right}
+    .price-active-note{font-size:12px;font-weight:800;color:var(--muted);margin-top:8px}
     .toast-sync{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(120deg,#0d3c77,#1c64b5);color:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 12px 24px rgba(5,22,53,.25);font-weight:900;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease}
     .toast-sync.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .soft-blue{background:linear-gradient(180deg,#0d3970,#145aa8) !important;color:#fff !important;border:none !important}
@@ -466,6 +470,27 @@
             <button type="button" class="btn btn-warning" id="btnImprimirHistorial">🖨️ Imprimir historial</button>
             <button type="button" class="btn btn-danger" id="btnBorrarTodoHistorial">🗑️ Borrar todo</button>
           </div>
+          <div class="price-box">
+            <h4>💲 Actualización de precios</h4>
+            <div class="mini-note">Programa precios nuevos sin alterar ventas anteriores. La app usará estos precios solo desde la fecha indicada.</div>
+            <div class="row" style="margin-top:10px">
+              <div class="form-group"><label>Aplicar nuevos precios desde</label><input type="date" id="precioVigenteDesde"></div>
+              <div class="form-group"><label>Estado</label><div class="price-active-note" id="precioEstado">Sin cambio programado.</div></div>
+            </div>
+            <div class="table-wrap" style="margin-top:10px">
+              <table class="db-table price-table" id="tablaPrecios">
+                <thead>
+                  <tr><th>Producto</th><th>Público</th><th>Mayoreo</th><th>Distribuidor</th><th>Segunda</th><th>Cobro consignación</th><th>Cobro sucursal</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <button type="button" class="btn btn-success" id="btnGuardarPrecios">💾 Guardar nuevos precios</button>
+              <button type="button" class="btn btn-secondary" id="btnCargarPreciosActuales">↺ Cargar precios actuales</button>
+              <button type="button" class="btn btn-danger" id="btnQuitarPreciosProgramados">🗑️ Quitar cambio programado</button>
+            </div>
+          </div>
                   <div class="import-box">
             <h4>📥 Cargar datos de la app anterior</h4>
             <div class="row">
@@ -656,7 +681,8 @@
       MONTHLY_DRAFTS: 'plastinova_cierres_mensuales_v3',
       APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1',
       APRIL_BASELINE_VERSION: 'plastinova_seed_baseline_20260401_version_v1',
-      APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2'
+      APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2',
+      PRICE_SETTINGS: 'plastinova_price_settings_v1'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -859,6 +885,20 @@
 
     const APRIL_GASTOS_20260409 = [
       { fecha:'2026-04-09', vendedor:'HUSAI', concepto:'CASETAS', monto:30 }
+    ];
+
+    const APRIL_OFELIA_TRASPASOS_EXTRA = [
+      { fecha:'2026-04-11', vendedor:'OFELIA', tipo:'TRASPASO_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:2 },
+      { fecha:'2026-04-11', vendedor:'OFELIA', tipo:'TRASPASO_TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1 },
+      { fecha:'2026-04-29', vendedor:'OFELIA', tipo:'TRASPASO_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1 }
+    ];
+
+    const APRIL_OFELIA_VENTAS_EXTRA = [
+      { fecha:'2026-04-14', vendedor:'OFELIA', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'NEGRO', cantidad:1, precio:1750, total:1750 },
+      { fecha:'2026-04-15', vendedor:'OFELIA', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1750, total:1750 },
+      { fecha:'2026-04-17', vendedor:'OFELIA', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1, precio:1660, total:1660 },
+      { fecha:'2026-04-18', vendedor:'OFELIA', tipo:'VENTA_TINACO', capacidad:'1100LT', color:'BEIGE', cantidad:1, precio:1660, total:1660 },
+      { fecha:'2026-04-24', vendedor:'OFELIA', tipo:'VENTA_TINACO', capacidad:'1200LT', color:'BEIGE', cantidad:1, precio:1750, total:1750 }
     ];
 
     const MONTHLY_CATALOG = {
@@ -1384,6 +1424,36 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
         }));
       });
 
+      APRIL_OFELIA_TRASPASOS_EXTRA.forEach(item => {
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: 'OFELIA',
+          tipo: item.tipo,
+          concepto: `TRASPASO SUCURSAL: ${item.capacidad} ${item.color} [OPERATIVO-ABRIL-2026] [OFELIA-SUCURSAL-2026-04]`,
+          cantidad: item.cantidad,
+          precio: 0,
+          total: 0,
+          capacidad: item.capacidad,
+          colorUI: item.color,
+          incluyeAccesorios: true
+        }));
+      });
+
+      APRIL_OFELIA_VENTAS_EXTRA.forEach(item => {
+        added.push(createSeedOperationalRecord({
+          fecha: item.fecha,
+          vendedor: 'OFELIA',
+          tipo: item.tipo,
+          concepto: `TINACO ${item.capacidad} ${item.color} [OPERATIVO-ABRIL-2026] [OFELIA-SUCURSAL-2026-04]`,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          capacidad: item.capacidad,
+          colorUI: item.color,
+          incluyeAccesorios: true
+        }));
+      });
+
       return added;
     }
 
@@ -1471,6 +1541,32 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
       return tipo.includes('_COBRO') && !!getDestinoPendienteMovimiento(reg);
     }
 
+    function esVentaSucursalOfelia(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      const vendedor = textoSeguro(reg?.vendedor || '');
+      if(vendedor !== 'OFELIA') return false;
+      if(!tipo.includes('VENTA')) return false;
+      if(tipo.includes('_COBRO')) return false;
+      if(isConsignacionSalida(reg) || isSucursalSalida(reg)) return false;
+      return true;
+    }
+
+    function normalizarResponsablesSucursal(db){
+      let changed = false;
+      const out = (db || []).map(reg => {
+        const conceptoNorm = normalizarTextoClave(reg?.concepto || '');
+        const tipo = String(reg?.tipo || '').toUpperCase();
+        if((tipo.includes('TRASPASO') && !tipo.includes('_COBRO')) || conceptoNorm.includes('TRASPASO SUCURSAL')){
+          if(textoSeguro(reg?.vendedor || '') !== 'OFELIA'){
+            changed = true;
+            return { ...reg, vendedor:'OFELIA' };
+          }
+        }
+        return reg;
+      });
+      return { db: out, changed };
+    }
+
     function monthlyItemCandidateKeys(item){
       const keys = [];
       if(item?.sourceName) keys.push(String(item.sourceName).trim());
@@ -1544,14 +1640,22 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
         }
 
         if (tipo.includes('VENTA') || tipo.includes('TRASPASO')) {
-          const recetaAccesoriosPlanta = movimientoConsumeAditamentos(r) && col && cap ? (obtenerRecetaAccesoriosVenta(tipo, cap, col) || {}) : {};
+          const ventaSucursal = esVentaSucursalOfelia(r);
+          const recetaAccesoriosPlanta = (!ventaSucursal && movimientoConsumeAditamentos(r) && col && cap) ? (obtenerRecetaAccesoriosVenta(tipo, cap, col) || {}) : {};
           Object.keys(recetaAccesoriosPlanta).forEach(m => adjustStockValue(stock, m, -((parseFloat(recetaAccesoriosPlanta[m]) || 0) * cant)));
 
-          if (!tipo.includes('_COBRO') && fgName) adjustStockValue(stock, fgName, -cant);
+          if (!ventaSucursal && !tipo.includes('_COBRO') && fgName) adjustStockValue(stock, fgName, -cant);
+
+          const recetaAccesoriosFuera = col && cap ? (obtenerRecetaAditamentosPorProducto(tipo) || {}) : {};
+          if (ventaSucursal) {
+            if (fgName) adjustStockValue(multiStock.SUCURSAL, fgName, -cant);
+            if (movementDateOnOrAfter(r, FECHA_BASE_ADITAMENTOS) && movimientoIncluyeAccesorios(r)) {
+              Object.keys(recetaAccesoriosFuera).forEach(m => adjustStockValue(multiStock.SUCURSAL, m, -((parseFloat(recetaAccesoriosFuera[m]) || 0) * cant)));
+            }
+          }
 
           const destinoNombre = getDestinoPendienteMovimiento(r);
           const destinoPendiente = destinoNombre ? multiStock[destinoNombre] : null;
-          const recetaAccesoriosFuera = col && cap ? (obtenerRecetaAditamentosPorProducto(tipo) || {}) : {};
           if (destinoPendiente) {
             if (movimientoLiquidaPendienteFuera(r)) {
               if (fgName) adjustStockValue(destinoPendiente, fgName, -cant);
@@ -1697,9 +1801,120 @@ async function pingSupabase(){
       populateSelect($('mermaProducto'), (LISTA_MATERIALES[cat]||[]).map(v=>[v,v]), 'SELECCIONAR...');
     }
 
+
+    const PRICE_EDIT_CAPS = ['1200LT','1100LT','750LT','235LT'];
+    const PRICE_EDIT_FIELDS = [
+      ['publico','Público'],
+      ['mayoreo','Mayoreo'],
+      ['distribuidor','Distribuidor'],
+      ['segunda','Segunda'],
+      ['consignacion_cobro','Cobro consignación'],
+      ['traspaso_cobro','Cobro sucursal']
+    ];
+
+    function clonarPreciosBase(){
+      return JSON.parse(JSON.stringify(LISTA_PRECIOS));
+    }
+
+    function getPriceSettings(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEYS.PRICE_SETTINGS);
+        if(!raw) return null;
+        const cfg = JSON.parse(raw);
+        if(!cfg || !cfg.vigenteDesde || !cfg.precios) return null;
+        return cfg;
+      }catch(_e){ return null; }
+    }
+
+    function savePriceSettings(cfg){
+      if(!cfg){ localStorage.removeItem(STORAGE_KEYS.PRICE_SETTINGS); return; }
+      localStorage.setItem(STORAGE_KEYS.PRICE_SETTINGS, JSON.stringify(cfg));
+    }
+
+    function getEffectivePriceBook(fechaRef){
+      const base = clonarPreciosBase();
+      const cfg = getPriceSettings();
+      const fecha = fechaRef || $('fecha')?.value || hoyLocalISO();
+      if(cfg && cfg.vigenteDesde && fechaOrdenValor(fecha) >= fechaOrdenValor(cfg.vigenteDesde)){
+        Object.entries(cfg.precios || {}).forEach(([cap, valores])=>{
+          base[cap] = {...(base[cap] || {}), ...(valores || {})};
+          base[cap].consignacion_salida = 0;
+          base[cap].traspaso_sucursal = 0;
+          base[cap].garantia = 0;
+        });
+      }
+      return base;
+    }
+
+    function getEffectivePrice(capacidad, tipoPrecio, fechaRef){
+      const book = getEffectivePriceBook(fechaRef);
+      return parseFloat(book?.[capacidad]?.[tipoPrecio]) || 0;
+    }
+
+    function renderPriceEditor(){
+      const tbody = $('tablaPrecios')?.querySelector('tbody');
+      if(!tbody) return;
+      const cfg = getPriceSettings();
+      const precios = cfg?.precios || clonarPreciosBase();
+      const vigente = $('precioVigenteDesde');
+      if(vigente) vigente.value = cfg?.vigenteDesde || '2026-05-01';
+      const estado = $('precioEstado');
+      if(estado){
+        estado.textContent = cfg ? `Cambio programado desde ${formatFechaVisible(cfg.vigenteDesde)}.` : 'Sin cambio programado. Puedes capturar una nueva fecha y guardar.';
+      }
+      tbody.innerHTML = PRICE_EDIT_CAPS.map(cap=>{
+        const vals = precios[cap] || LISTA_PRECIOS[cap] || {};
+        return `<tr>
+          <td><strong>${cap}</strong></td>
+          ${PRICE_EDIT_FIELDS.map(([key])=>`<td><input type="number" step="0.01" min="0" data-price-cap="${cap}" data-price-key="${key}" value="${parseFloat(vals[key] ?? 0)}"></td>`).join('')}
+        </tr>`;
+      }).join('');
+    }
+
+    function cargarPreciosActualesEnEditor(){
+      const fecha = $('precioVigenteDesde')?.value || $('fecha')?.value || hoyLocalISO();
+      const book = getEffectivePriceBook(fecha);
+      document.querySelectorAll('[data-price-cap][data-price-key]').forEach(input=>{
+        const cap = input.dataset.priceCap;
+        const key = input.dataset.priceKey;
+        input.value = parseFloat(book?.[cap]?.[key] ?? 0);
+      });
+    }
+
+    function guardarPreciosProgramados(){
+      const vigenteDesde = $('precioVigenteDesde')?.value || '';
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(vigenteDesde)){
+        alert('Selecciona la fecha desde la que aplican los nuevos precios.');
+        return;
+      }
+      const precios = {};
+      PRICE_EDIT_CAPS.forEach(cap=>{
+        precios[cap] = {...(LISTA_PRECIOS[cap] || {})};
+        PRICE_EDIT_FIELDS.forEach(([key])=>{
+          const input = document.querySelector(`[data-price-cap="${cap}"][data-price-key="${key}"]`);
+          precios[cap][key] = parseFloat(input?.value) || 0;
+        });
+        precios[cap].consignacion_salida = 0;
+        precios[cap].traspaso_sucursal = 0;
+        precios[cap].garantia = 0;
+      });
+      savePriceSettings({vigenteDesde, precios});
+      renderPriceEditor();
+      updatePriceFields();
+      alert(`Precios guardados. Aplicarán desde ${formatFechaVisible(vigenteDesde)}.`);
+    }
+
+    function quitarPreciosProgramados(){
+      if(!confirm('¿Quitar el cambio de precios programado? No se tocarán ventas ya guardadas.')) return;
+      savePriceSettings(null);
+      renderPriceEditor();
+      updatePriceFields();
+    }
+
     function updatePriceFields(){
-      $('pTinaco').value = LISTA_PRECIOS[$('capTinaco').value]?.[$('tipoPrecioTinaco').value] ?? 0;
-      $('pTambo').value = LISTA_PRECIOS[$('capTambo').value]?.[$('tipoPrecioTambo').value] ?? 0;
+      const fechaMov = $('fecha')?.value || hoyLocalISO();
+      $('pTinaco').value = getEffectivePrice($('capTinaco').value, $('tipoPrecioTinaco').value, fechaMov);
+      $('pTambo').value = getEffectivePrice($('capTambo').value, $('tipoPrecioTambo').value, fechaMov);
     }
 
     function updateCompraUnits(){
@@ -2724,7 +2939,7 @@ function renderStockTables(){
 
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
 
-    function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); }
+    function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); renderPriceEditor(); }
 
     function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes') previewCutSummary(); }
 
@@ -2732,7 +2947,7 @@ function renderStockTables(){
       document.querySelectorAll('.nav-btn,.mobile-tab').forEach(btn=>{
         btn.addEventListener('click', e=>{ e.preventDefault(); switchTab(btn.dataset.tab); });
       });
-      $('fecha').addEventListener('change', ()=>{ syncSemanaDesdeFecha(); renderDashboard(); });
+      $('fecha').addEventListener('change', ()=>{ syncSemanaDesdeFecha(); updatePriceFields(); renderDashboard(); });
       $('filtroTiempo').addEventListener('change', renderDashboard);
       $('filtroVendedorGrafica').addEventListener('change', renderDashboard);
       $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
@@ -2742,6 +2957,7 @@ function renderStockTables(){
       $('btnAgregarTinaco').addEventListener('click', ()=>{ const entries=buildTinacoPendingEntries(); if(entries.length){ queueEntries(entries,'tinacos'); $('qTinaco').value=''; }}); $('btnAgregarTambo').addEventListener('click', ()=>{ const entries=buildTamboPendingEntries(); if(entries.length){ queueEntries(entries,'tambos'); $('qTambo').value=''; }}); $('btnAgregarProduccion').addEventListener('click', ()=>{ const entries=buildProductionPendingEntries(); if(entries.length){ queueEntries(entries,'produccion'); $('qProdNormal').value=''; $('qProdExtra').value=''; }}); $('btnAgregarGasto').addEventListener('click', ()=>{ const entries=buildGastoPendingEntries(); if(entries.length){ queueEntries(entries,'gastos'); $('montoGasto').value=''; $('descGasto').value=''; }}); $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnLimpiarPendientes').addEventListener('click', clearPendingEntries); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
       $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } }); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
+      $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
     }
 
@@ -2834,7 +3050,10 @@ function renderStockTables(){
       const added = [];
       const expected = getApril2026OperationalSeeds();
       const versionKey = STORAGE_KEYS.APRIL_OPERATIONAL_VERSION;
-      const targetVersion = 'abril-2026-operativo-v5';
+      const targetVersion = 'abril-2026-operativo-v6';
+
+      const normalizedBefore = normalizarResponsablesSucursal(db);
+      db = normalizedBefore.db;
 
       if(localStorage.getItem(versionKey) !== targetVersion){
         db = db.filter(r => !String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));
@@ -2867,6 +3086,10 @@ function renderStockTables(){
       });
       if(added.length){
         db = ordenarDBCronologicamente([...db, ...added]);
+      }
+      const normalizedAfter = normalizarResponsablesSucursal(db);
+      db = normalizedAfter.db;
+      if(added.length || normalizedBefore.changed || normalizedAfter.changed){
         saveMovements(db);
       }
       return { db, added };

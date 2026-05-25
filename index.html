@@ -2826,9 +2826,11 @@ function renderStockTables(){
         </tr>`).join('');
       };
       const padRows = (current, target, cols) => Array.from({length:Math.max(0, target-current)}, () => `<tr class="empty">${Array.from({length:cols},()=>'<td>&nbsp;</td>').join('')}</tr>`).join('');
+      
       let textoExtrasPedro='TIN EXTRA PEDRO';
       if(c.hizoTambosExtraPedro && !c.hizoTinacosExtraPedro) textoExtrasPedro='TAM EXTRA PEDRO';
       else if(c.hizoTambosExtraPedro && c.hizoTinacosExtraPedro) textoExtrasPedro='TIN/TAM EXTRA PEDRO';
+      
       let textoExtras=`TIN EXTRA ${c.vendedor}`;
       if(c.hizoTambosExtra && !c.hizoTinacosExtra) textoExtras=`TAM EXTRA ${c.vendedor}`;
       else if(c.hizoTambosExtra && c.hizoTinacosExtra) textoExtras=`TIN/TAM EXTRA ${c.vendedor}`;
@@ -2860,33 +2862,23 @@ function renderStockTables(){
         { label:'TOTAL FINAL $', amount:c.totalFinal, total:true }
       ].map(r => `<tr><td${r.total?' class="total"':''}>${escHtml(r.label)}</td><td class="right${r.total?' total':''}">${fmtMoney(r.amount)}</td></tr>`).join('');
 
-      const html = `
-        <div class="center-title">TINACOS PLASTINOVA<br>VENDEDOR: ${escHtml(c.vendedor)}<br>${escHtml(c.rango)} | SEMANA ${c.semanaCalculada}</div>
+      // AQUI ES DONDE CALCULAMOS SI SE OCULTA LA TABLA DE TAMBOS
+      const ocultarTambos = c.tam.length === 0;
+      
+      // Si no hay tambos, rellenamos la tabla de tinacos hasta 15 filas para que abarque la hoja
+      const tinacosFilasRelleno = ocultarTambos ? 15 : 8; 
+      
+      // Si ocultamos los tambos, inyectamos estilos extra para agrandar aún más la letra
+      const estilosExtra = ocultarTambos ? `
+        <style>
+          td { font-size: 13px !important; }
+          .empty td { height: 28px !important; }
+          .section-title { font-size: 13px !important; padding: 8px 10px !important; }
+        </style>
+      ` : '';
 
-        <div class="section-title">VENTAS TINACOS</div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:6%">FOLIO</th>
-              <th style="width:11%">FECHA</th>
-              <th style="width:39%">CONCEPTO</th>
-              <th style="width:9%"># TINACO</th>
-              <th style="width:10%">CANTIDAD</th>
-              <th style="width:12%">PRECIO UNI</th>
-              <th style="width:13%">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>${buildVentaRows(c.tin, 'Sin ventas registradas')}${padRows(c.tin.length || 1, 8, 7)}</tbody>
-          <tfoot>
-            <tr>
-              <td colspan="4" class="right total">TOTAL</td>
-              <td class="right total">${c.sumQTin.toFixed(2)}</td>
-              <td class="right total">-</td>
-              <td class="right total">${fmtMoney(c.sumDTin)}</td>
-            </tr>
-          </tfoot>
-        </table>
-
+      // Solo construimos la tabla de tambos si realmente hay ventas de tambos
+      const tablaTambosHTML = ocultarTambos ? '' : `
         <div class="section-title">VENTAS TAMBOS Y MACETAS</div>
         <table>
           <thead>
@@ -2910,6 +2902,37 @@ function renderStockTables(){
             </tr>
           </tfoot>
         </table>
+      `;
+
+      const html = `
+        ${estilosExtra}
+        <div class="center-title">TINACOS PLASTINOVA<br>VENDEDOR: ${escHtml(c.vendedor)}<br>${escHtml(c.rango)} | SEMANA ${c.semanaCalculada}</div>
+
+        <div class="section-title">VENTAS TINACOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:6%">FOLIO</th>
+              <th style="width:11%">FECHA</th>
+              <th style="width:39%">CONCEPTO</th>
+              <th style="width:9%"># TINACO</th>
+              <th style="width:10%">CANTIDAD</th>
+              <th style="width:12%">PRECIO UNI</th>
+              <th style="width:13%">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>${buildVentaRows(c.tin, 'Sin ventas registradas')}${padRows(c.tin.length || 1, tinacosFilasRelleno, 7)}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="right total">TOTAL</td>
+              <td class="right total">${c.sumQTin.toFixed(2)}</td>
+              <td class="right total">-</td>
+              <td class="right total">${fmtMoney(c.sumDTin)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        ${tablaTambosHTML}
 
         <div class="stack">
           <div>
@@ -2935,195 +2958,3 @@ function renderStockTables(){
         </div>`;
       printDocument(html, 'CORTE DE CAJA');
     }
-
-
-    function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
-
-    function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); renderPriceEditor(); }
-
-    function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes') previewCutSummary(); }
-
-    function bindEvents(){
-      document.querySelectorAll('.nav-btn,.mobile-tab').forEach(btn=>{
-        btn.addEventListener('click', e=>{ e.preventDefault(); switchTab(btn.dataset.tab); });
-      });
-      $('fecha').addEventListener('change', ()=>{ syncSemanaDesdeFecha(); updatePriceFields(); renderDashboard(); });
-      $('filtroTiempo').addEventListener('change', renderDashboard);
-      $('filtroVendedorGrafica').addEventListener('change', renderDashboard);
-      $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
-      $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
-      $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows); $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
-      $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
-      $('btnAgregarTinaco').addEventListener('click', ()=>{ const entries=buildTinacoPendingEntries(); if(entries.length){ queueEntries(entries,'tinacos'); $('qTinaco').value=''; }}); $('btnAgregarTambo').addEventListener('click', ()=>{ const entries=buildTamboPendingEntries(); if(entries.length){ queueEntries(entries,'tambos'); $('qTambo').value=''; }}); $('btnAgregarProduccion').addEventListener('click', ()=>{ const entries=buildProductionPendingEntries(); if(entries.length){ queueEntries(entries,'produccion'); $('qProdNormal').value=''; $('qProdExtra').value=''; }}); $('btnAgregarGasto').addEventListener('click', ()=>{ const entries=buildGastoPendingEntries(); if(entries.length){ queueEntries(entries,'gastos'); $('montoGasto').value=''; $('descGasto').value=''; }}); $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnLimpiarPendientes').addEventListener('click', clearPendingEntries); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
-      $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
-      $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } }); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
-      $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
-      $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
-    }
-
-    function seedApril2026BaselineIfMissing(){
-      let db = getMovements();
-      const added = [];
-      const versionKey = STORAGE_KEYS.APRIL_BASELINE_VERSION;
-      const targetVersion = 'abril-2026-baseline-v3';
-      const seedMarkers = [
-        '[BASELINE-MP-2026-04-01]',
-        '[BASELINE-2026-04-01]',
-        '[AJUSTE-INICIAL-2026-04-01]',
-        '[AJUSTE-INICIAL-SUCURSAL-2026-04-01]',
-        '[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]',
-        '[COMPRA-ADITAMENTOS-2026-04-07]',
-        '[COMPRA-ACCESORIOS-2026-04-07]'
-      ];
-
-      if(localStorage.getItem(versionKey) !== targetVersion){
-        db = db.filter(r => {
-          const concepto = String(r.concepto || '');
-          return !seedMarkers.some(tag => concepto.includes(tag));
-        });
-      }
-
-      const hasRawBaseline = db.some(r => {
-        const concepto = String(r.concepto || '');
-        return concepto.includes('[BASELINE-MP-2026-04-01]') || concepto.includes('[BASELINE-2026-04-01]');
-      });
-      const hasOpeningAdjustments = db.some(r => {
-        const concepto = String(r.concepto || '');
-        return concepto.includes('[AJUSTE-INICIAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-SUCURSAL-2026-04-01]') || concepto.includes('[AJUSTE-INICIAL-CONSIGNACION-2026-04-01]');
-      });
-
-      if(!hasRawBaseline){
-        INVENTARIO_BASE_20260401.forEach(item => {
-          added.push(createSeedMovementRecord(
-            'AJUSTE_INICIAL',
-            'INVENTARIO_FISICO',
-            `REAL: ${item.material} [BASELINE-MP-2026-04-01]`,
-            parseFloat(item.cantidad) || 0,
-            null,
-            item.material,
-            '2026-04-01'
-          ));
-        });
-      }
-
-      if(!hasOpeningAdjustments){
-        const opening = getOpeningRouteSeedRequirements();
-        Object.entries(opening.openingProductStock).forEach(([material, cantidad]) => {
-          added.push(createSeedMovementRecord('AJUSTE_INICIAL', 'INVENTARIO_FISICO', `REAL: ${material} [AJUSTE-INICIAL-2026-04-01]`, cantidad, null, material, '2026-04-01'));
-        });
-        Object.entries(opening.openingAccessoryStock).forEach(([material, cantidad]) => {
-          added.push(createSeedMovementRecord('AJUSTE_INICIAL', 'INVENTARIO_FISICO', `REAL: ${material} [AJUSTE-INICIAL-2026-04-01]`, cantidad, null, material, '2026-04-01'));
-        });
-        opening.routeMovements.forEach(reg => added.push(reg));
-      }
-
-      COMPRA_ACCESORIOS_20260407.forEach(item => {
-        const yaExisteCompra = db.some(r => {
-          const concepto = String(r.concepto || '');
-          return String(r.tipo || '') === 'COMPRA'
-            && String(r.colorUI || '') === item.material
-            && (concepto.includes('[COMPRA-ADITAMENTOS-2026-04-07]') || concepto.includes('[COMPRA-ACCESORIOS-2026-04-07]'));
-        }) || added.some(r => String(r.tipo || '') === 'COMPRA' && String(r.colorUI || '') === item.material);
-        if(!yaExisteCompra){
-          added.push(createSeedMovementRecord(
-            'COMPRA_INICIAL',
-            'COMPRA',
-            `INGRESO: ${item.material} [COMPRA-ADITAMENTOS-2026-04-07]`,
-            parseFloat(item.cantidad) || 0,
-            null,
-            item.material,
-            '2026-04-07'
-          ));
-        }
-      });
-
-      if(added.length){
-        db = ordenarDBCronologicamente([...db, ...added]);
-        saveMovements(db);
-      }
-      localStorage.setItem(versionKey, targetVersion);
-      return { db, added };
-    }
-
-    function seedApril2026OperationalIfMissing(existingDb){
-      let db = Array.isArray(existingDb) ? [...existingDb] : getMovements();
-      const added = [];
-      const expected = getApril2026OperationalSeeds();
-      const versionKey = STORAGE_KEYS.APRIL_OPERATIONAL_VERSION;
-      const targetVersion = 'abril-2026-operativo-v6';
-
-      const normalizedBefore = normalizarResponsablesSucursal(db);
-      db = normalizedBefore.db;
-
-      if(localStorage.getItem(versionKey) !== targetVersion){
-        db = db.filter(r => !String(r.concepto || '').includes('[OPERATIVO-ABRIL-2026]'));
-        added.push(...expected);
-        db = ordenarDBCronologicamente([...db, ...expected]);
-        saveMovements(db);
-        localStorage.setItem(versionKey, targetVersion);
-        return { db, added };
-      }
-
-      const makeKey = r => [
-        String(r.fecha || ''),
-        String(r.vendedor || ''),
-        String(r.tipo || ''),
-        normalizarTextoClave(r.concepto || ''),
-        Number(parseFloat(r.cantidad) || 0).toFixed(2),
-        Number(parseFloat(r.precio) || 0).toFixed(2),
-        Number(parseFloat(r.total) || 0).toFixed(2),
-        String(r.capacidad || ''),
-        String(r.colorUI || ''),
-        String(r.incluyeAccesorios === false ? '0' : '1')
-      ].join('|');
-      const existingKeys = new Set(db.map(makeKey));
-      expected.forEach(reg => {
-        const key = makeKey(reg);
-        if(!existingKeys.has(key)){
-          added.push(reg);
-          existingKeys.add(key);
-        }
-      });
-      if(added.length){
-        db = ordenarDBCronologicamente([...db, ...added]);
-      }
-      const normalizedAfter = normalizarResponsablesSucursal(db);
-      db = normalizedAfter.db;
-      if(added.length || normalizedBefore.changed || normalizedAfter.changed){
-        saveMovements(db);
-      }
-      return { db, added };
-    }
-
-    async function syncApril2026BaselineIfNeeded(added){
-      if(!added || !added.length) return;
-      added.forEach(reg => { try { enviarNube(reg); syncOperationalMovementToSupabase(reg, 'UPSERT'); } catch(_e){} });
-      localStorage.setItem(STORAGE_KEYS.APRIL_BASELINE_SYNC, '1');
-    }
-
-    function seedInitialInventoryCacheIfEmpty(){ if(getInventoryCache().length) return; const rows=[]; Object.entries(MONTHLY_CATALOG).forEach(([ubic,cats])=>{ Object.entries(cats).forEach(([cat,list])=>{ list.forEach(item=>rows.push({id:'seed-'+Math.random(), ubicacion:ubic,categoria:cat,producto:item.producto,tipo:item.tipo||'',medida:item.medida||'',color:item.color||'',unidad:item.unidad||'PZA',stock:0})); }); }); saveInventoryCache(rows); state.inventoryCache=rows; }
-
-    window.deleteHistoryMovement = deleteHistoryMovement; window.editStockPrompt = editStockPrompt; window.deleteStockPrompt = deleteStockPrompt; window.removePendingEntry = removePendingEntry;
-
-    async function init(){
-      updateDateDefaults();
-      fillStaticSelectors();
-      bindEvents();
-      seedInitialInventoryCacheIfEmpty();
-      const seededBaseline = seedApril2026BaselineIfMissing();
-      const seededOperational = seedApril2026OperationalIfMissing(seededBaseline.db);
-      state.movements = seededOperational.db;
-      reconstructStockFromMovements(state.movements);
-      state.inventoryCache = getInventoryCache();
-      renderAll();
-      updateCutDates();
-      await pingSupabase();
-      await loadInventoryCacheFromSupabase();
-      await syncApril2026BaselineIfNeeded([...(seededBaseline.added || []), ...(seededOperational.added || [])]);
-      loadMonthlyRows();
-      renderAll();
-    }
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
-</body>
-</html>

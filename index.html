@@ -195,7 +195,7 @@
       .pending-card .table-wrap{display:block;width:100%;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
       .pending-card .table-wrap::after{content:'';display:block;width:1px;height:1px}
       #tablaStockActual th,#tablaStockActual td,#tablaStockRuta th,#tablaStockRuta td{white-space:normal}
-      #tablaHistorialWrapper{display:none}
+      #tablaHistorialWrapper{display:none}            
       .history-accordion{display:block}
       .history-acc-grid{grid-template-columns:1fr}
       .inventory-monthly-table-wrap{display:none}
@@ -2768,7 +2768,7 @@ function renderStockTables(){
       return { vendedor, semanaCalculada, rango:`${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')}`, tin, tam, gastos, sumQTin,sumDTin,sumQTam,sumDTam,sumGastos,sumComisionTinacos,sumComisionTambos,sumQExtTin,sumQExtTam,sumQExtTinPedro,sumQExtTamPedro,hizoTambosExtra,hizoTinacosExtra,hizoTambosExtraPedro,hizoTinacosExtraPedro,comExtPedro,comExtVendedor,totalPagosExtra,totalVentasGenerales,subtotalDespuesGastos,totalFinal };
     }
 
-    function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
+   function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
     function printDocument(htmlContent, tituloDocumento){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
@@ -2776,29 +2776,29 @@ function renderStockTables(){
       win.document.write(`<!DOCTYPE html><html><head><title>${tituloDocumento}</title><style>
         @page{size:landscape;margin:8mm}
         *{box-sizing:border-box}
-        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:9.5px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         .wrap{padding:4px 6px}
-        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:8px;margin-bottom:10px}
+        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px}
         .brand-box{display:flex;align-items:center;gap:12px}
-        .brand-logo{width:110px;height:auto;object-fit:contain}
+        .brand-logo{width:130px;height:auto;object-fit:contain}
         .brand-fallback{width:56px;height:56px;border-radius:14px;border:2px solid #2c6aa6;align-items:center;justify-content:center;color:#2c6aa6;font-weight:900;font-size:22px}
-        .brand-name{font-weight:900;font-size:18px;color:#184c84;letter-spacing:.2px}
-        .brand-sub{font-size:11px;color:#4c6180}
+        .brand-name{font-weight:900;font-size:22px;color:#184c84;letter-spacing:.2px}
+        .brand-sub{font-size:13px;color:#4c6180}
         .title{text-align:right}
-        .title h1{margin:0;font-size:17px;color:#2c6aa6;letter-spacing:.3px}
-        .title p{margin:4px 0 0;font-size:10.5px;color:#2b2b2b}
-        .center-title{text-align:center;font-weight:900;font-size:11px;line-height:1.15;margin:2px 0 10px;color:#111}
-        .section-title{margin:8px 0 0;font-size:10.5px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:5px 8px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
-        table{width:100%;border-collapse:collapse;table-layout:fixed}
-        th,td{border:1px solid #202020;padding:3px 5px;vertical-align:middle}
-        thead th{background:#2c6aa6;color:#fff !important;font-size:8.7px;font-weight:900}
-        td{font-size:8.9px}
+        .title h1{margin:0;font-size:20px;color:#2c6aa6;letter-spacing:.3px}
+        .title p{margin:4px 0 0;font-size:12px;color:#2b2b2b}
+        .center-title{text-align:center;font-weight:900;font-size:14px;line-height:1.2;margin:4px 0 14px;color:#111}
+        .section-title{margin:10px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:6px 10px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
+        table{width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:avoid}
+        th,td{border:1px solid #202020;padding:5px 7px;vertical-align:middle}
+        thead th{background:#2c6aa6;color:#fff !important;font-size:11px;font-weight:900}
+        td{font-size:11.5px}
         .right{text-align:right}
         .center{text-align:center}
         .total{color:#c53333;font-weight:900}
-        .stack{display:grid;grid-template-columns:46% 54%;gap:10px;align-items:start;margin-top:8px}
-        .firma{margin-top:8px;font-size:9.5px}
-        .empty td{height:19px}
+        .stack{display:grid;grid-template-columns:46% 54%;gap:12px;align-items:start;margin-top:10px;page-break-inside:avoid}
+        .firma{margin-top:16px;font-size:12px}
+        .empty td{height:25px}
         .soft-note{color:#516885}
       </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();

@@ -2843,9 +2843,10 @@ function renderStockTables(){
         { qty:qtyLabel(c.sumQTam), label:'VENTAS TAMBOS', amount:c.sumComisionTambos, total:false },
         { qty:'', label:'TOTAL COMISIONES', amount:c.totalPagosExtra, total:true }
       ];
+      
       const extrasRows = extrasData.map(r => `<tr>
         <td class="center${r.total?' total':''}">${escHtml(r.qty)}</td>
-        <td${r.total?' class="total"':'' attachment_id=1}>${escHtml(r.label)}</td>
+        <td${r.total?' class="total"':''}>${escHtml(r.label)}</td>
         <td class="right${r.total?' total':''}">${fmtMoney(r.amount)}</td>
       </tr>`).join('') + padRows(extrasData.length, 7, 3);
 

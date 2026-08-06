@@ -2058,7 +2058,7 @@ async function pingSupabase(){
         </tr>`).join('');
       }
       tbody.querySelectorAll('.inv-fisico-input,.inv-weight-select').forEach(inp=>{
-        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
+        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); });
         inp.addEventListener('change', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyTable(); });
       });
       renderMonthlyAccordion();
@@ -2117,7 +2117,7 @@ async function pingSupabase(){
         });
       });
       wrap.querySelectorAll('.inv-fisico-input,.inv-weight-select').forEach(inp=>{
-        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyAccordion(); });
+        inp.addEventListener('input', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); });
         inp.addEventListener('change', e=>{ recalcMonthlyRow(parseInt(e.target.dataset.rowIndex,10), e.target.value, e.target.dataset.field || 'fisico'); renderMonthlyAccordion(); });
       });
     }

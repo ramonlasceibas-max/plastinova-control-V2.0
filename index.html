@@ -3106,6 +3106,31 @@ function imprimirDetalleProduccion() {
     function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes') previewCutSummary(); }
 
     function bindEvents(){
+// --- MAGIA: Convertir Inventario en Pestañas Desplegables ---
+      const invCards = document.querySelectorAll('#tab-inventario .card');
+      invCards.forEach((card, index) => {
+        const h3 = card.querySelector('h3');
+        if(!h3) return;
+        h3.style.cursor = 'pointer';
+        h3.style.padding = '14px';
+        h3.style.background = 'linear-gradient(180deg,#f4f8fd,#e9f2ff)';
+        h3.style.margin = '-16px -16px 14px -16px';
+        h3.style.borderBottom = '1px solid #c7d8ef';
+        const isOpenDefault = index === 0; // Abre la primera por defecto
+        h3.innerHTML += ` <span class="toggle-icon" style="float:right;font-size:11px;background:#fff;padding:4px 8px;border-radius:8px;border:1px solid #c7d8ef;color:#0a3d78;">${isOpenDefault ? '🔼 OCULTAR' : '🔽 DESPLEGAR'}</span>`;
+        const wrap = document.createElement('div');
+        wrap.style.display = isOpenDefault ? 'block' : 'none';
+        Array.from(card.children).forEach(child => {
+          if(child !== h3) wrap.appendChild(child);
+        });
+        card.appendChild(wrap);
+        h3.addEventListener('click', () => {
+          const isClosed = wrap.style.display === 'none';
+          wrap.style.display = isClosed ? 'block' : 'none';
+          h3.querySelector('.toggle-icon').innerHTML = isClosed ? '🔼 OCULTAR' : '🔽 DESPLEGAR';
+        });
+      });
+      // -------------------------------------------------------------
       document.querySelectorAll('.nav-btn,.mobile-tab').forEach(btn=>{
         btn.addEventListener('click', e=>{ e.preventDefault(); switchTab(btn.dataset.tab); });
       });

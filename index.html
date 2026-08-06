@@ -1729,6 +1729,20 @@ async function pingSupabase(){
       saveInventoryCache(state.inventoryCache);
       return state.inventoryCache;
     }
+async function loadInventoryCacheFromSupabase(){
+      if(!supabaseClient) { state.inventoryCache = getInventoryCache(); return state.inventoryCache; }
+      try {
+        const { data, error } = await supabaseClient.from('inventario').select('*').order('ubicacion').order('categoria').order('producto');
+        if(error){ state.inventoryCache = getInventoryCache(); return state.inventoryCache; }
+        state.inventoryCache = data || [];
+        saveInventoryCache(state.inventoryCache);
+        return state.inventoryCache;
+      } catch (e) {
+        // ESCUDO: Si no hay internet, usamos la memoria local y evitamos que la app se congele
+        state.inventoryCache = getInventoryCache(); 
+        return state.inventoryCache;
+      }
+    }
 
     async function upsertInventoryVariant(item, stockValue){
       const payload = {
@@ -1741,19 +1755,36 @@ async function pingSupabase(){
         unidad: textoSeguro(item.unidad),
         stock: parseFloat(stockValue) || 0
       };
+      
+      let cache = getInventoryCache();
+      const key = inventoryVariantKey(payload);
+      const idx = cache.findIndex(x=>inventoryVariantKey(x)===key);
+      
       if(!supabaseClient){
-        let cache = getInventoryCache();
-        const key = inventoryVariantKey(payload);
-        const idx = cache.findIndex(x=>inventoryVariantKey(x)===key);
         if(idx>=0) cache[idx] = {...cache[idx], ...payload}; else cache.push({...payload,id:'local-'+Date.now()+Math.random()});
         saveInventoryCache(cache); state.inventoryCache = cache; return cache[idx] || payload;
       }
-      const { data: found } = await supabaseClient.from('inventario').select('*').eq('ubicacion',payload.ubicacion).eq('categoria',payload.categoria).eq('producto',payload.producto).eq('tipo',payload.tipo).eq('medida',payload.medida).eq('color',payload.color).eq('unidad',payload.unidad).limit(1);
-      if(found && found.length){ await supabaseClient.from('inventario').update({stock: payload.stock}).eq('id', found[0].id); return {...found[0], ...payload}; }
-      const { data: inserted } = await supabaseClient.from('inventario').insert([payload]).select(); return inserted?.[0] || payload;
+      
+      try {
+        const { data: found } = await supabaseClient.from('inventario').select('*').eq('ubicacion',payload.ubicacion).eq('categoria',payload.categoria).eq('producto',payload.producto).eq('tipo',payload.tipo).eq('medida',payload.medida).eq('color',payload.color).eq('unidad',payload.unidad).limit(1);
+        if(found && found.length){ await supabaseClient.from('inventario').update({stock: payload.stock}).eq('id', found[0].id); return {...found[0], ...payload}; }
+        const { data: inserted } = await supabaseClient.from('inventario').insert([payload]).select(); return inserted?.[0] || payload;
+      } catch (e) {
+        // ESCUDO: Si falla el internet al guardar, lo aseguramos en la memoria del celular
+        if(idx>=0) cache[idx] = {...cache[idx], ...payload}; else cache.push({...payload,id:'local-'+Date.now()+Math.random()});
+        saveInventoryCache(cache); state.inventoryCache = cache; return cache[idx] || payload;
+      }
     }
 
-    async function logInventoryMovement(productoId, tipo_movimiento, cantidad, referencia=''){ if(!supabaseClient) return; await supabaseClient.from('movimientos_inventario').insert([{producto_id:productoId||null,tipo_movimiento,cantidad,fecha:new Date().toISOString(),vendedor:'SISTEMA',origen:'APP',referencia}]); }
+    async function logInventoryMovement(productoId, tipo_movimiento, cantidad, referencia=''){ 
+      if(!supabaseClient) return; 
+      try {
+        await supabaseClient.from('movimientos_inventario').insert([{producto_id:productoId||null,tipo_movimiento,cantidad,fecha:new Date().toISOString(),vendedor:'SISTEMA',origen:'APP',referencia}]); 
+      } catch (e) {
+        // ESCUDO: Ignoramos el error en silencio para que el vendedor pueda seguir trabajando
+      } 
+    }
+  
 
     async function syncOperationalMovementToSupabase(reg, action='UPSERT'){
       if(!supabaseClient || !reg) return;

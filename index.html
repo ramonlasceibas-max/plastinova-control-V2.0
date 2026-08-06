@@ -539,8 +539,35 @@
           <div class="card"><h3>💰 Ventas por persona</h3><div class="chart-bars" id="graficaVentas"></div></div>
           <div class="card"><h3>🏭 Producción por persona</h3><div class="chart-bars" id="graficaProd"></div></div>
         </div>
-      </section>
 
+        <div class="card" style="margin-top: 16px;">
+          <div class="row print-hidden" style="justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="margin:0;">⚙️ Historial Detallado de Producción</h3>
+            <button type="button" class="btn btn-secondary" id="btnImprimirDetalleProd">🖨️ Imprimir / PDF de Producción</button>
+          </div>
+          <div class="grid-2">
+            <div>
+              <h4 style="color:var(--brand);margin-bottom:8px;font-size:13px;">📝 Piezas Producidas</h4>
+              <div class="table-wrap">
+                <table class="db-table" id="tablaDetalleProd">
+                  <thead><tr><th>Productor</th><th>Producto</th><th>Cant.</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h4 style="color:var(--brand);margin-bottom:8px;font-size:13px;">🧪 Materia Prima Estimada</h4>
+              <div class="table-wrap">
+                <table class="db-table" id="tablaConsumoMP">
+                  <thead><tr><th>Material</th><th>Consumo (KG)</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
       <section id="tab-cortes" class="tab-panel">
         <div class="card print-hidden">
           <h3>✂️ Generador de cortes</h3>
@@ -2500,22 +2527,71 @@ function renderBarMeta(chips, kind='sales'){
       return `<div class="bar-meta">${visibles.map(x=>`<span class="bar-chip ${kind==='prod'?'prod':''}">${escHtml(x.label)} ${parseFloat(x.value||0).toFixed(0)}</span>`).join('')}</div>`;
     }
 
-    function renderDashboard(){
+  function renderDashboard(){
       const data = getDashboardData();
       $('dashVentasTotal').textContent = '$'+formato(data.ventasTotal);
       $('dashTinacosTotal').textContent = data.tinTotal.toFixed(2);
       $('dashTambosTotal').textContent = data.tamTotal.toFixed(2);
       $('dashProdTotal').textContent = data.prodTotal.toFixed(2);
+
       $('graficaVentas').innerHTML = data.ventasRows.map(r=>`<div class="bar-col">
         ${renderBarMeta([{label:'TIN',value:r.tin},{label:'TAM',value:r.tam},{label:'MAC',value:r.mac}], 'sales')}
         <div class="bar sales" style="height:${data.maxV>0?(r.totalDinero/data.maxV)*170:0}px">$${Math.round(r.totalDinero)}</div>
         <div class="bar-label">${escHtml(r.vendedor)}</div>
       </div>`).join('') || '<div class="subtle">Sin ventas.</div>';
+
       $('graficaProd').innerHTML = data.prodRows.map(r=>`<div class="bar-col">
         ${renderBarMeta([{label:'TIN',value:r.tin},{label:'TAM',value:r.tam},{label:'MAC',value:r.mac}], 'prod')}
         <div class="bar prod" style="height:${data.maxP>0?(r.total/data.maxP)*170:0}px">${Math.round(r.total)}</div>
         <div class="bar-label">${escHtml(r.vendedor)}</div>
       </div>`).join('') || '<div class="subtle">Sin producción.</div>';
+
+      // --- NUEVAS TABLAS DE PRODUCCION Y MATERIA PRIMA ---
+      const db = getDashboardFilteredMovements();
+      const detalleProd = {};
+      const consumoMP = {};
+
+      db.forEach(r => {
+        const tipo = String(r.tipo||'');
+        if(tipo.includes('PROD_')) {
+          const cap = String(r.capacidad||'').toUpperCase();
+          const col = String(r.colorUI||'').toUpperCase();
+          const cant = parseFloat(r.cantidad)||0;
+          const productor = String(r.vendedor||'');
+
+          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col) || `${tipo} ${cap} ${col}`;
+
+          const prodKey = `${productor}|${fgName}`;
+          if(!detalleProd[prodKey]) detalleProd[prodKey] = { productor, producto: fgName, cant: 0 };
+          detalleProd[prodKey].cant += cant;
+
+          if (movimientoConsumeMateriaPrima(r)) {
+            const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+            Object.keys(receta).forEach(mat => {
+              consumoMP[mat] = (consumoMP[mat] || 0) + ((parseFloat(receta[mat]) || 0) * cant);
+            });
+          }
+        }
+      });
+
+      const tbProd = $('tablaDetalleProd')?.querySelector('tbody');
+      if(tbProd) {
+        const prodArr = Object.values(detalleProd).sort((a,b)=>a.productor.localeCompare(b.productor));
+        tbProd.innerHTML = prodArr.length ? prodArr.map(p => `<tr>
+          <td>${escHtml(p.productor)}</td>
+          <td>${escHtml(p.producto)}</td>
+          <td class="status-ok"><strong>${p.cant.toFixed(2)}</strong></td>
+        </tr>`).join('') : '<tr><td colspan="3" class="subtle">Sin producción en este periodo.</td></tr>';
+      }
+
+      const tbMP = $('tablaConsumoMP')?.querySelector('tbody');
+      if(tbMP) {
+        const mpArr = Object.entries(consumoMP).sort((a,b)=>a[0].localeCompare(b[0]));
+        tbMP.innerHTML = mpArr.length ? mpArr.map(([mat, qty]) => `<tr>
+          <td><strong>${escHtml(mat)}</strong></td>
+          <td class="status-low">${qty.toFixed(2)} KG</td>
+        </tr>`).join('') : '<tr><td colspan="2" class="subtle">Sin consumo registrado.</td></tr>';
+      }
     }
 
     function generateDashboardReport(){
@@ -2953,7 +3029,75 @@ function renderStockTables(){
         </div>`;
       printDocument(html, 'CORTE DE CAJA');
     }
+function imprimirDetalleProduccion() {
+      const data = getDashboardData();
+      const db = getDashboardFilteredMovements();
+      const detalleProd = {};
+      const consumoMP = {};
 
+      let totalPiezas = 0;
+      let totalMP = 0;
+
+      db.forEach(r => {
+        const tipo = String(r.tipo||'');
+        if(tipo.includes('PROD_')) {
+          const cap = String(r.capacidad||'').toUpperCase();
+          const col = String(r.colorUI||'').toUpperCase();
+          const cant = parseFloat(r.cantidad)||0;
+          const productor = String(r.vendedor||'');
+
+          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col) || `${tipo} ${cap} ${col}`;
+
+          const prodKey = `${productor}|${fgName}`;
+          if(!detalleProd[prodKey]) detalleProd[prodKey] = { productor, producto: fgName, cant: 0 };
+          detalleProd[prodKey].cant += cant;
+          totalPiezas += cant;
+
+          if (movimientoConsumeMateriaPrima(r)) {
+            const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+            Object.keys(receta).forEach(mat => {
+              const qty = (parseFloat(receta[mat]) || 0) * cant;
+              consumoMP[mat] = (consumoMP[mat] || 0) + qty;
+              totalMP += qty;
+            });
+          }
+        }
+      });
+
+      const prodArr = Object.values(detalleProd).sort((a,b)=>a.productor.localeCompare(b.productor));
+      const mpArr = Object.entries(consumoMP).sort((a,b)=>a[0].localeCompare(b[0]));
+
+      const prodRows = prodArr.length 
+        ? prodArr.map(p => `<tr><td>${escHtml(p.productor)}</td><td>${escHtml(p.producto)}</td><td class="right">${p.cant.toFixed(2)}</td></tr>`).join('') 
+        : `<tr><td colspan="3" class="center">Sin producción en este periodo.</td></tr>`;
+
+      const mpRows = mpArr.length 
+        ? mpArr.map(([mat, qty]) => `<tr><td>${escHtml(mat)}</td><td class="right">${qty.toFixed(2)}</td><td class="center">KG</td></tr>`).join('') 
+        : `<tr><td colspan="3" class="center">Sin consumo registrado.</td></tr>`;
+
+      const html = `
+        <div class="center-title">REPORTE DETALLADO DE PRODUCCIÓN Y CONSUMOS</div>
+        <table style="margin-bottom:12px"><tbody>
+          <tr><td><strong>Periodo:</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Productor:</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+        </tbody></table>
+
+        <div class="section-title">PIEZAS PRODUCIDAS (DETALLE)</div>
+        <table>
+          <thead><tr><th>PRODUCTOR</th><th>PRODUCTO</th><th>CANTIDAD</th></tr></thead>
+          <tbody>${prodRows}</tbody>
+          <tfoot><tr><td colspan="2" class="right"><strong>TOTAL PIEZAS</strong></td><td class="right"><strong>${totalPiezas.toFixed(2)}</strong></td></tr></tfoot>
+        </table>
+
+        <div class="section-title" style="margin-top:16px">CONSUMO ESTIMADO DE MATERIA PRIMA</div>
+        <table>
+          <thead><tr><th>MATERIAL</th><th>CONSUMO ESTIMADO</th><th>UNIDAD</th></tr></thead>
+          <tbody>${mpRows}</tbody>
+          <tfoot><tr><td colspan="1" class="right"><strong>TOTAL KILOS ESTIMADOS</strong></td><td class="right"><strong>${totalMP.toFixed(2)}</strong></td><td class="center">KG</td></tr></tfoot>
+        </table>
+      `;
+
+      printDocument(html, `DETALLE PRODUCCIÓN - ${data.periodoLabel.toUpperCase()}`);
+    }
 
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
 
@@ -2977,6 +3121,7 @@ function renderStockTables(){
       $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } }); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
       $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
+$('btnImprimirDetalleProd')?.addEventListener('click', imprimirDetalleProduccion);
     }
 
     function seedApril2026BaselineIfMissing(){

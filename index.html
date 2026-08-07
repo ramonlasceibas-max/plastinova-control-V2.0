@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Plastinova Gerencial Pro</title>
   <style>
+/* --- NUEVOS DISEÑOS --- */
+body.dark-mode { background-color: #0b132b !important; color: #e0e6ed !important; }
+body.dark-mode .card, body.dark-mode .modal { background-color: #1c2541 !important; color: #e0e6ed !important; border: 1px solid #3a506b !important; }
+body.dark-mode input, body.dark-mode select { background-color: #0b132b !important; color: #ffffff !important; }
+
+.etiqueta { padding: 3px 8px; border-radius: 12px; font-weight: 600; font-size: 11px; display: inline-block; }
+.etiqueta-tinaco { background: #dbeafe; color: #1e40af; }
+.etiqueta-tambo { background: #ffedd5; color: #c2410c; }
+.etiqueta-merma { background: #fee2e2; color: #991b1b; }
+
+#fab-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+.fab-btn { width: 60px; height: 60px; border-radius: 50%; background: #0a3d78; color: white; border: none; font-size: 24px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+#fab-menu { display: none; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+
     :root{
       --bg:#091d3f;
       --panel:#ffffff;
@@ -309,7 +323,10 @@
       #tablaHistorial td,#tablaHistorial th{display:table-cell !important;padding:9px 8px !important;white-space:nowrap !important;border-bottom:1px solid #e5edf8 !important;vertical-align:middle !important;box-sizing:border-box !important}
       #tablaHistorial td::before{content:none !important}
     }
-
+/* --- CORRECCIONES MOVILES --- */
+.split > div { min-width: 0; }
+#tablaConsumoMP { min-width: 400px !important; }
+.inventory-header ~ .row.print-hidden { display: flex; flex-direction: column !important; width: 100%; gap: 10px; }
   </style>
 </head>
 <body>
@@ -518,13 +535,20 @@
         </div>
       </section>
 
-      <section id="tab-dashboard" class="tab-panel">
+     <section id="tab-dashboard" class="tab-panel">
         <div class="card print-hidden">
           <h3>📊 Gráficas operativas</h3>
-          <div class="row">
-            <div class="form-group"><label>Periodo</label><select id="filtroTiempo"><option value="hoy">Hoy</option><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select></div>
+          <div class="row" style="flex-wrap: wrap;">
+            <div class="form-group"><label>Periodo rápido</label><select id="filtroTiempo"><option value="hoy">Hoy</option><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select></div>
+            <div class="form-group"><label>Día exacto</label><input type="date" id="graficaFechaExacta" class="form-control"></div>
+            <div class="form-group"><label>Mes exacto</label><input type="month" id="graficaMesExacto" class="form-control"></div>
             <div class="form-group"><label>Vendedor / Productor</label><select id="filtroVendedorGrafica"></select></div>
           </div>
+          <div class="row">
+            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
+          </div>
+        </div>
+        <div class="stats">
           <div class="row">
             <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
           </div>
@@ -2323,13 +2347,19 @@ async function loadInventoryCacheFromSupabase(){
 function getDashboardFilterContext(){
       const fTiempo = $('filtroTiempo').value;
       const fVend = $('filtroVendedorGrafica').value;
+      const exactDate = $('graficaFechaExacta') ? $('graficaFechaExacta').value : null;
+      const exactMonth = $('graficaMesExacto') ? $('graficaMesExacto').value : null;
       const baseFecha = $('fecha').value || hoyLocalISO();
       const hoy = parseLocalDate(baseFecha) || parseLocalDate(hoyLocalISO()) || new Date();
       const semanaActual = getNumeroSemana(baseFecha);
       const mesActual = hoy.getMonth();
       const anioActual = hoy.getFullYear();
-      const periodoLabel = fTiempo==='hoy' ? `Hoy (${formatFechaVisible(baseFecha)})` : (fTiempo==='semana' ? `Semana ${semanaActual}` : (fTiempo==='mes' ? 'Mes actual' : 'Año actual'));
-      return { fTiempo, fVend, baseFecha, semanaActual, mesActual, anioActual, periodoLabel };
+      
+      let periodoLabel = fTiempo==='hoy' ? `Hoy (${formatFechaVisible(baseFecha)})` : (fTiempo==='semana' ? `Semana ${semanaActual}` : (fTiempo==='mes' ? 'Mes actual' : 'Año actual'));
+      if(exactDate) periodoLabel = `Día: ${formatFechaVisible(exactDate)}`;
+      else if(exactMonth) periodoLabel = `Mes: ${exactMonth}`;
+      
+      return { fTiempo, fVend, baseFecha, semanaActual, mesActual, anioActual, periodoLabel, exactDate, exactMonth };
     }
 
     function getDashboardFilteredMovements(){
@@ -2339,16 +2369,24 @@ function getDashboardFilterContext(){
       return db.filter(r=>{
         const rD = parseLocalDate(r.fecha);
         if(!rD) return false;
-        const valid = (ctx.fTiempo==='hoy' && sameDate(r.fecha, ctx.baseFecha))
-          || (ctx.fTiempo==='semana' && r.semana==ctx.semanaActual && rD.getFullYear()==ctx.anioActual)
-          || (ctx.fTiempo==='mes' && rD.getMonth()==ctx.mesActual && rD.getFullYear()==ctx.anioActual)
-          || (ctx.fTiempo==='anio' && rD.getFullYear()==ctx.anioActual);
+        
+        let valid = false;
+        if(ctx.exactDate) {
+          valid = sameDate(r.fecha, ctx.exactDate);
+        } else if(ctx.exactMonth) {
+          const [y, m] = ctx.exactMonth.split('-');
+          valid = (rD.getFullYear() == y && rD.getMonth() == parseInt(m)-1);
+        } else {
+          valid = (ctx.fTiempo==='hoy' && sameDate(r.fecha, ctx.baseFecha))
+            || (ctx.fTiempo==='semana' && r.semana==ctx.semanaActual && rD.getFullYear()==ctx.anioActual)
+            || (ctx.fTiempo==='mes' && rD.getMonth()==ctx.mesActual && rD.getFullYear()==ctx.anioActual)
+            || (ctx.fTiempo==='anio' && rD.getFullYear()==ctx.anioActual);
+        }
         if(!valid) return false;
         if(ctx.fVend!=='TODOS' && r.vendedor!==ctx.fVend) return false;
         return true;
       });
     }
-
 
     function computeStockSnapshotUpTo(fechaLimite){
       const limitTime = fechaLimite ? fechaOrdenValor(fechaLimite) : Number.POSITIVE_INFINITY;
@@ -3166,9 +3204,11 @@ function imprimirDetalleProduccion() {
         btn.addEventListener('click', e=>{ e.preventDefault(); switchTab(btn.dataset.tab); });
       });
       $('fecha').addEventListener('change', ()=>{ syncSemanaDesdeFecha(); updatePriceFields(); renderDashboard(); });
-      $('filtroTiempo').addEventListener('change', renderDashboard);
+     $('filtroTiempo').addEventListener('change', () => { if($('graficaFechaExacta')) $('graficaFechaExacta').value=''; if($('graficaMesExacto')) $('graficaMesExacto').value=''; renderDashboard(); });
       $('filtroVendedorGrafica').addEventListener('change', renderDashboard);
-      $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
+      $('graficaFechaExacta')?.addEventListener('change', () => { if($('graficaMesExacto')) $('graficaMesExacto').value=''; renderDashboard(); });
+      $('graficaMesExacto')?.addEventListener('change', () => { if($('graficaFechaExacta')) $('graficaFechaExacta').value=''; renderDashboard(); });
+ $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
       $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows); $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
@@ -3343,6 +3383,43 @@ $('btnImprimirDetalleProd')?.addEventListener('click', imprimirDetalleProduccion
       renderAll();
     }
     document.addEventListener('DOMContentLoaded', init);
+/* --- FUNCIONES NUEVAS DE DISEÑO --- */
+// Encender o apagar el Modo Oscuro
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('plastinova_dark', document.body.classList.contains('dark-mode'));
+}
+// Recordar si la luz estaba apagada
+if(localStorage.getItem('plastinova_dark') === 'true') {
+    document.body.classList.add('dark-mode');
+}
+
+// Abrir o cerrar el menú del rayito
+function toggleFab() {
+    const menu = document.getElementById('fab-menu');
+    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+}
+
+// Pintar palabras clave de colores
+function aplicarEtiqueta(texto) {
+    if(!texto) return '';
+    const t = texto.toUpperCase();
+    if(t.includes('TINACO')) return `<span class="etiqueta etiqueta-tinaco">${texto}</span>`;
+    if(t.includes('TAMBO')) return `<span class="etiqueta etiqueta-tambo">${texto}</span>`;
+    if(t.includes('MERMA')) return `<span class="etiqueta etiqueta-merma">${texto}</span>`;
+    return texto;
+}
   </script>
+<!-- Botón Flotante para Tinacos y Tambos -->
+<div id="fab-container">
+    <div id="fab-menu">
+        <button onclick="document.getElementById('diario-tab').click();" class="fab-btn" style="background:#1e40af; font-size:16px;">🚰</button>
+        <button onclick="document.getElementById('diario-tab').click();" class="fab-btn" style="background:#c2410c; font-size:16px;">🛢️</button>
+    </div>
+    <button class="fab-btn" onclick="toggleFab()">⚡</button>
+</div>
+
+<!-- Botón para apagar la luz (Modo Oscuro) -->
+<button onclick="toggleDarkMode()" style="position:absolute; top:15px; right:70px; background:none; border:none; font-size:24px; z-index:999;">🌙</button>
 </body>
 </html>

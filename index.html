@@ -3198,7 +3198,7 @@ function imprimirInformeDetalladoGeneral() {
         </table>
       `;
 
-   printDocument(html, 'INFORME DETALLADO - ' + data.periodoLabel.toUpperCase());
+  printDocument(html, "INFORME DETALLADO Y PRODUCCION");
     }
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
     function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); renderPriceEditor(); }

@@ -3371,21 +3371,124 @@ function renderStockTables(){
       return concepto;
     }
 
-    function buildCutData(){
-      const vendedor=$('vendedorCorte').value, mostrarTinacos=$('chkTinacos').checked, mostrarTambos=$('chkTambos').checked, startStr=$('fechaDesde').value, endStr=$('fechaHasta').value; const semanaCalculada=getNumeroSemana(startStr);
-      let registros=state.movements.filter(r=>{ if(!r.fecha || !(r.fecha>=startStr && r.fecha<=endStr)) return false; if(r.vendedor===vendedor) return true; if(vendedor==='FERNANDO' && r.vendedor==='PEDRO' && (r.tipo||'').includes('PROD_EXTRA')) return true; return false; }).map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{ const ta=fechaOrdenValor(a.fecha); const tb=fechaOrdenValor(b.fecha); if(ta!==tb) return ta-tb; return a._ord-b._ord; }).map(({_ord,...r})=>r);
-      let tin=[], tam=[], gastos=[]; let sumQTin=0,sumDTin=0,sumQTam=0,sumDTam=0,sumGastos=0,sumQExtTin=0,sumQExtTam=0,sumQExtTinPedro=0,sumQExtTamPedro=0,sumComisionTinacos=0,sumComisionTambos=0; let hizoTambosExtra=false,hizoTinacosExtra=false,hizoTambosExtraPedro=false,hizoTinacosExtraPedro=false;
-      registros.forEach(r=>{ const fechaFormat=r.fecha.split('-').reverse().join('/'); const cant=parseFloat(r.cantidad)||0; const precio=parseFloat(r.precio)||0; const total=parseFloat(r.total)||0; const concepto=formatCutConcept(r); const row={fecha:fechaFormat,concepto,cantidad:cant,precio,total}; const esSalidaSinIngreso=concepto.toUpperCase().includes('ENTREGA CONSIGNACIÓN') || concepto.toUpperCase().includes('TRASPASO SUCURSAL') || concepto.toUpperCase().includes('GARANTÍA'); const esVentaValida=esMovimientoConIngreso(r);
-        if(['VENTA_TINACO','VENTA_TINACO_COBRO','TRASPASO_TINACO','TRASPASO_TINACO_COBRO'].includes(r.tipo) && mostrarTinacos){ if(esVentaValida){ tin.push(row); sumQTin+=cant; sumDTin+=total; if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += cant*35; } }
-        if(['VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TAMBO','TRASPASO_TAMBO_COBRO'].includes(r.tipo) && mostrarTambos){ if(esVentaValida){ tam.push(row); sumQTam+=cant; sumDTam+=total; if(!esSalidaSinIngreso && !r.tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += cant*10; } }
-        if((r.tipo||'').includes('PROD_EXTRA')){ let esTambo = r.tipo==='PROD_EXTRA_TAMBO' || concepto.includes('TAMBO') || concepto.includes('235LT'); if(r.vendedor==='PEDRO' && vendedor==='FERNANDO'){ if(esTambo){ sumQExtTamPedro+=cant; hizoTambosExtraPedro=true; } else { sumQExtTinPedro+=cant; hizoTinacosExtraPedro=true; }} else if(r.vendedor===vendedor){ if(esTambo){ sumQExtTam+=cant; hizoTambosExtra=true; } else { sumQExtTin+=cant; hizoTinacosExtra=true; }} }
-        if(r.tipo==='GASTO'){ const gastoConcepto=(concepto||'').replace(/&nbsp;?/gi,' ').trim(); gastos.push({concepto:gastoConcepto, total}); sumGastos += total; }
-      });
-      const comExtPedro=(sumQExtTinPedro*35)+(sumQExtTamPedro*10); const comExtVendedor=(sumQExtTin*35)+(sumQExtTam*10); const totalPagosExtra=comExtPedro+comExtVendedor+sumComisionTinacos+sumComisionTambos; const totalVentasGenerales=sumDTin+sumDTam; const subtotalDespuesGastos=totalVentasGenerales-sumGastos; const totalFinal=subtotalDespuesGastos-totalPagosExtra;
-      return { vendedor, semanaCalculada, rango:`${startStr.split('-').reverse().join('/')} AL ${endStr.split('-').reverse().join('/')}`, tin, tam, gastos, sumQTin,sumDTin,sumQTam,sumDTam,sumGastos,sumComisionTinacos,sumComisionTambos,sumQExtTin,sumQExtTam,sumQExtTinPedro,sumQExtTamPedro,hizoTambosExtra,hizoTinacosExtra,hizoTambosExtraPedro,hizoTinacosExtraPedro,comExtPedro,comExtVendedor,totalPagosExtra,totalVentasGenerales,subtotalDespuesGastos,totalFinal };
+    // Normaliza fechas exclusivamente para el corte. Acepta YYYY-MM-DD, timestamp ISO y DD/MM/YYYY.
+    // El corte NUNCA se decide comparando texto: se compara por fecha real para impedir que entren registros de otro periodo.
+    function parseFechaCorte(fechaValor){
+      if(fechaValor instanceof Date && !isNaN(fechaValor.getTime())) return new Date(fechaValor.getFullYear(), fechaValor.getMonth(), fechaValor.getDate());
+      const raw=String(fechaValor||'').trim();
+      if(!raw) return null;
+      const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso){
+        const y=Number(iso[1]), m=Number(iso[2]), d=Number(iso[3]);
+        const dt=new Date(y,m-1,d);
+        return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d ? dt : null;
+      }
+      const mx=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(mx){
+        const d=Number(mx[1]), m=Number(mx[2]), y=Number(mx[3]);
+        const dt=new Date(y,m-1,d);
+        return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d ? dt : null;
+      }
+      return null;
     }
 
-    function previewCutSummary(){ const c=buildCutData(); $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
+    function buildCutData(){
+      const vendedor=textoSeguro($('vendedorCorte').value);
+      const mostrarTinacos=$('chkTinacos').checked;
+      const mostrarTambos=$('chkTambos').checked;
+      const startStr=String($('fechaDesde').value||'').trim();
+      const endStr=String($('fechaHasta').value||'').trim();
+      const startDate=parseFechaCorte(startStr);
+      const endDate=parseFechaCorte(endStr);
+      const semanaCalculada=getNumeroSemana(startStr);
+
+      const emptyResult = (error='') => ({
+        error, vendedor, semanaCalculada, rango:startStr&&endStr?`${formatFechaVisible(startStr)} AL ${formatFechaVisible(endStr)}`:'SIN RANGO',
+        tin:[], tam:[], gastos:[], registrosPeriodo:[],
+        sumQTin:0,sumDTin:0,sumQTam:0,sumDTam:0,sumGastos:0,sumComisionTinacos:0,sumComisionTambos:0,
+        sumQExtTin:0,sumQExtTam:0,sumQExtTinPedro:0,sumQExtTamPedro:0,
+        hizoTambosExtra:false,hizoTinacosExtra:false,hizoTambosExtraPedro:false,hizoTinacosExtraPedro:false,
+        comExtPedro:0,comExtVendedor:0,totalPagosExtra:0,totalVentasGenerales:0,subtotalDespuesGastos:0,totalFinal:0
+      });
+
+      if(!startDate || !endDate) return emptyResult('Selecciona una fecha inicial y una fecha final válidas.');
+      if(startDate.getTime()>endDate.getTime()) return emptyResult('La fecha inicial no puede ser posterior a la fecha final.');
+
+      startDate.setHours(0,0,0,0);
+      endDate.setHours(23,59,59,999);
+      const inicioMs=startDate.getTime();
+      const finMs=endDate.getTime();
+
+      // FILTRO ESTRICTO: primero fecha, después responsable. Ningún movimiento fuera del rango puede llegar al PDF.
+      let registros=(state.movements||[]).filter(r=>{
+        const fechaMov=parseFechaCorte(r?.fecha);
+        if(!fechaMov) return false;
+        const t=fechaMov.getTime();
+        if(t<inicioMs || t>finMs) return false;
+        const responsable=textoSeguro(r?.vendedor);
+        if(responsable===vendedor) return true;
+        // Regla existente: para el corte de Fernando se consideran los extras producidos por Pedro, pero SOLO dentro del mismo rango.
+        return vendedor==='FERNANDO' && responsable==='PEDRO' && String(r?.tipo||'').toUpperCase().includes('PROD_EXTRA');
+      }).map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{
+        const ta=parseFechaCorte(a.fecha)?.getTime() ?? 0;
+        const tb=parseFechaCorte(b.fecha)?.getTime() ?? 0;
+        if(ta!==tb) return ta-tb;
+        return a._ord-b._ord;
+      }).map(({_ord,...r})=>r);
+
+      let tin=[], tam=[], gastos=[];
+      let sumQTin=0,sumDTin=0,sumQTam=0,sumDTam=0,sumGastos=0,sumQExtTin=0,sumQExtTam=0,sumQExtTinPedro=0,sumQExtTamPedro=0,sumComisionTinacos=0,sumComisionTambos=0;
+      let hizoTambosExtra=false,hizoTinacosExtra=false,hizoTambosExtraPedro=false,hizoTinacosExtraPedro=false;
+
+      registros.forEach(r=>{
+        const fechaDate=parseFechaCorte(r.fecha);
+        // Segundo cinturón de seguridad: incluso si el arreglo fuera alterado, no procesamos fechas externas.
+        if(!fechaDate || fechaDate.getTime()<inicioMs || fechaDate.getTime()>finMs) return;
+        const fechaFormat=`${String(fechaDate.getDate()).padStart(2,'0')}/${String(fechaDate.getMonth()+1).padStart(2,'0')}/${fechaDate.getFullYear()}`;
+        const cant=parseFloat(r.cantidad)||0;
+        const precio=parseFloat(r.precio)||0;
+        const total=parseFloat(r.total)||0;
+        const concepto=formatCutConcept(r);
+        const row={fecha:fechaFormat,concepto,cantidad:cant,precio,total};
+        const tipo=String(r.tipo||'').toUpperCase();
+        const responsable=textoSeguro(r.vendedor);
+        const esSalidaSinIngreso=concepto.toUpperCase().includes('ENTREGA CONSIGNACIÓN') || concepto.toUpperCase().includes('TRASPASO SUCURSAL') || concepto.toUpperCase().includes('GARANTÍA');
+        const esVentaValida=esMovimientoConIngreso(r);
+
+        if(['VENTA_TINACO','VENTA_TINACO_COBRO','TRASPASO_TINACO','TRASPASO_TINACO_COBRO'].includes(tipo) && mostrarTinacos && esVentaValida){
+          tin.push(row); sumQTin+=cant; sumDTin+=total;
+          if(!esSalidaSinIngreso && !tipo.includes('TRASPASO_TINACO')) sumComisionTinacos += cant*35;
+        }
+        if(['VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TAMBO','TRASPASO_TAMBO_COBRO'].includes(tipo) && mostrarTambos && esVentaValida){
+          tam.push(row); sumQTam+=cant; sumDTam+=total;
+          if(!esSalidaSinIngreso && !tipo.includes('TRASPASO_TAMBO')) sumComisionTambos += cant*10;
+        }
+        if(tipo.includes('PROD_EXTRA')){
+          const esTambo = tipo==='PROD_EXTRA_TAMBO' || concepto.includes('TAMBO') || concepto.includes('235LT');
+          if(responsable==='PEDRO' && vendedor==='FERNANDO'){
+            if(esTambo){ sumQExtTamPedro+=cant; hizoTambosExtraPedro=true; }
+            else { sumQExtTinPedro+=cant; hizoTinacosExtraPedro=true; }
+          } else if(responsable===vendedor){
+            if(esTambo){ sumQExtTam+=cant; hizoTambosExtra=true; }
+            else { sumQExtTin+=cant; hizoTinacosExtra=true; }
+          }
+        }
+        if(tipo==='GASTO' && responsable===vendedor){
+          const gastoConcepto=(concepto||'').replace(/&nbsp;?/gi,' ').trim();
+          gastos.push({concepto:gastoConcepto,total}); sumGastos+=total;
+        }
+      });
+
+      const comExtPedro=(sumQExtTinPedro*35)+(sumQExtTamPedro*10);
+      const comExtVendedor=(sumQExtTin*35)+(sumQExtTam*10);
+      const totalPagosExtra=comExtPedro+comExtVendedor+sumComisionTinacos+sumComisionTambos;
+      const totalVentasGenerales=sumDTin+sumDTam;
+      const subtotalDespuesGastos=totalVentasGenerales-sumGastos;
+      const totalFinal=subtotalDespuesGastos-totalPagosExtra;
+      return { error:'', vendedor, semanaCalculada, rango:`${formatFechaVisible(startStr)} AL ${formatFechaVisible(endStr)}`, registrosPeriodo:registros, tin, tam, gastos, sumQTin,sumDTin,sumQTam,sumDTam,sumGastos,sumComisionTinacos,sumComisionTambos,sumQExtTin,sumQExtTam,sumQExtTinPedro,sumQExtTamPedro,hizoTambosExtra,hizoTinacosExtra,hizoTambosExtraPedro,hizoTinacosExtraPedro,comExtPedro,comExtVendedor,totalPagosExtra,totalVentasGenerales,subtotalDespuesGastos,totalFinal };
+    }
+
+    function previewCutSummary(){ const c=buildCutData(); if(c.error){ $('previewCorte').innerHTML = `<div class="mini-note status-bad">${escHtml(c.error)}</div>`; return; } $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
     function printDocument(htmlContent, tituloDocumento){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
@@ -3432,6 +3535,7 @@ function renderStockTables(){
 
     function generateCutPDF(){
       const c=buildCutData();
+      if(c.error){ alert(c.error); return; }
       const fmtMoney = val => `$${formato(parseFloat(val)||0)}`;
       const qtyLabel = num => {
         const n = parseFloat(num) || 0;

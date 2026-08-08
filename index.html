@@ -348,7 +348,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         <button type="button" class="nav-btn" data-tab="inventario">📦 Inventario</button>
       </div>
       <div class="nav-hint">
-        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.
+        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.<br><strong>BASE SEGURA PRE-REPORTES · 2026-08-08</strong>
       </div>
     </aside>
 
@@ -486,8 +486,8 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             <button type="button" class="btn btn-secondary" id="btnLimpiarFiltroHistorial">↺ Ver todos</button>
             <button type="button" class="btn btn-warning" id="btnImprimirHistorial">🖨️ Imprimir historial</button>
             <button type="button" class="btn btn-secondary" id="btnDescargarRespaldo">💾 Descargar respaldo</button>
-            <button type="button" class="btn btn-success" id="btnSincronizarNube">☁️ Sincronizar nube</button>
-            <button type="button" class="btn btn-warning" id="btnRestaurarNube">♻️ Restaurar desde nube</button>
+            <button type="button" class="btn btn-success" id="btnSincronizarNube">☁️ Subir pendientes a Supabase</button>
+            <button type="button" class="btn btn-warning" id="btnRestaurarNube" disabled title="Bloqueado por seguridad hasta depurar la copia remota">⚠️ Restaurar nube (bloqueado)</button>
             <button type="button" class="btn btn-danger" id="btnBorrarTodoHistorial">🗑️ Borrar todo</button>
           </div>
           <div class="mini-note" id="cloudMasterStatus" style="margin-top:8px"><strong>Nube maestra:</strong> pendiente de verificar.</div>
@@ -520,7 +520,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             </div>
             <div class="row">
               <button type="button" class="btn btn-primary" id="btnImportarArchivo">📂 Importar archivo</button>
-              <div class="mini-note" style="flex:1">Importa primero tu historial viejo y deja el inventario físico de hoy como el último paso del día.</div>
+              <div class="mini-note" style="flex:1"><strong>Importación segura:</strong> FECHA DEL MOVIMIENTO es obligatoria. Una fecha inválida detiene la importación y nunca se sustituye por la fecha de hoy. Los archivos importados no se reenvían automáticamente a Google Sheets.</div>
             </div>
           </div>
         </div>
@@ -761,7 +761,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       BACKUP_MOVS: 'plastinova_backup_movimientos_ultimo_v1',
       IMPORT_FINGERPRINTS: 'plastinova_import_fingerprints_v1',
       CLOUD_SYNC_QUEUE: 'plastinova_cloud_sync_queue_v1',
-      CLOUD_LAST_SYNC: 'plastinova_cloud_last_sync_v1'
+      CLOUD_LAST_SYNC: 'plastinova_cloud_last_sync_v1',
+      PENDING_ENTRIES: 'plastinova_pending_entries_v1',
+      MASTER_HISTORY_IMPORTED: 'plastinova_master_history_imported_v1'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -1162,16 +1164,32 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       ].join('|');
     }
     function separarDuplicadosProbables(incoming, existentes){
-      const disponibles = new Map();
-      (existentes||[]).forEach(r=>{ const k=claveMovimientoImportado(r); disponibles.set(k,(disponibles.get(k)||0)+1); });
-      const usados = new Map(); const nuevos=[]; const duplicados=[];
+      const idsExistentes = new Set((existentes||[]).map(r=>String(r?.id??'').trim()).filter(Boolean));
+      const disponiblesSinId = new Map();
+      (existentes||[]).forEach(r=>{
+        const id=String(r?.id??'').trim();
+        if(id) return;
+        const k=claveMovimientoImportado(r);
+        disponiblesSinId.set(k,(disponiblesSinId.get(k)||0)+1);
+      });
+
+      const usadosSinId = new Map();
+      const nuevos=[]; const duplicados=[];
       (incoming||[]).forEach(r=>{
-        const k=claveMovimientoImportado(r), usadosK=(usados.get(k)||0), ya=(disponibles.get(k)||0);
-        usados.set(k, usadosK+1);
+        const id=String(r?.id??'').trim();
+        if(id){
+          if(idsExistentes.has(id)) duplicados.push(r);
+          else { nuevos.push(r); idsExistentes.add(id); }
+          return;
+        }
+        const k=claveMovimientoImportado(r);
+        const usadosK=(usadosSinId.get(k)||0), ya=(disponiblesSinId.get(k)||0);
+        usadosSinId.set(k, usadosK+1);
         if(usadosK < ya) duplicados.push(r); else nuevos.push(r);
       });
       return {nuevos, duplicados};
     }
+
 
     function parseCSVLineSafe(line, delimiter=','){
       const out=[]; let cur=''; let inQuotes=false;
@@ -1224,6 +1242,79 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       return Number.isFinite(n) ? n : 0;
     }
 
+    function construirFechaISOImportacion(y,m,d){
+      y=Number(y); m=Number(m); d=Number(d);
+      if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)) return null;
+      if(y<2000||y>2100||m<1||m>12||d<1||d>31) return null;
+      const dt=new Date(y,m-1,d);
+      if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d) return null;
+      return `${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function normalizarFechaImportada(valor){
+      if(valor instanceof Date && !isNaN(valor.getTime())){
+        return construirFechaISOImportacion(valor.getFullYear(), valor.getMonth()+1, valor.getDate());
+      }
+      const raw=String(valor ?? '').trim();
+      if(!raw) return null;
+
+      // ISO / formato de Google Sheets: YYYY-MM-DD, con o sin hora/zona.
+      let m=raw.match(/^(\d{4})[-\/]([01]?\d)[-\/]([0-3]?\d)(?:[T\s].*)?$/);
+      if(m) return construirFechaISOImportacion(m[1],m[2],m[3]);
+
+      // YYYYMMDD
+      m=raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if(m) return construirFechaISOImportacion(m[1],m[2],m[3]);
+
+      // DD/MM/YYYY o DD-MM-YYYY. En fechas ambiguas se usa criterio mexicano D/M/Y.
+      m=raw.match(/^([0-3]?\d)[\/-]([0-3]?\d)[\/-](\d{2}|\d{4})(?:[T\s].*)?$/);
+      if(m){
+        let a=Number(m[1]), b=Number(m[2]), y=Number(m[3]);
+        if(y<100) y+=2000;
+        let d=a, mes=b;
+        // Si el primer campo solo puede ser mes y el segundo solo puede ser día, invertir.
+        if(a<=12 && b>12){ mes=a; d=b; }
+        return construirFechaISOImportacion(y,mes,d);
+      }
+
+      // Serial de Excel/Google Sheets.
+      if(/^\d+(?:\.\d+)?$/.test(raw)){
+        const serial=Number(raw);
+        if(serial>=30000 && serial<=80000){
+          const base=Date.UTC(1899,11,30);
+          const dt=new Date(base + Math.floor(serial)*86400000);
+          return construirFechaISOImportacion(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate());
+        }
+      }
+      return null;
+    }
+
+    function normalizarResponsableImportado(valor){
+      const n=normalizarTextoClave(valor);
+      const alias={ 'OFELIA SUCURSAL':'OFELIA', 'IVAN':'IVAN', 'RAMON':'RAMON' };
+      return alias[n] || n || 'SISTEMA';
+    }
+
+    function normalizarCapacidadImportada(valor){
+      const raw=normalizarTextoClave(valor).replace(/\s+/g,'');
+      const alias={
+        '1200L':'1200LT','1200LTS':'1200LT','1200LITROS':'1200LT',
+        '1100L':'1100LT','1100LTS':'1100LT','1100LITROS':'1100LT',
+        '750L':'750LT','750LTS':'750LT','750LITROS':'750LT',
+        '235L':'235LT','235LTS':'235LT','235LITROS':'235LT',
+        'CHICA':'CHICO'
+      };
+      return alias[raw] || raw || null;
+    }
+
+    const TIPOS_IMPORTACION_CANONICOS = new Set([
+      'VENTA_TINACO','VENTA_TINACO_COBRO','TRASPASO_TINACO','TRASPASO_TINACO_COBRO',
+      'VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TAMBO','TRASPASO_TAMBO_COBRO',
+      'PROD_NORMAL_TINACO','PROD_EXTRA_TINACO','PROD_NORMAL_TAMBO','PROD_EXTRA_TAMBO',
+      'PROD_NORMAL_MACETA','PROD_EXTRA_MACETA','PROD_NORMAL_BANCO','PROD_EXTRA_BANCO',
+      'GASTO','MERMA','COMPRA','INVENTARIO_FISICO'
+    ]);
+
     function inferTypeFromConcept(concepto, cantidad, total){
       const c = normalizarTextoClave(concepto||'');
       if(!c) return 'SIN_TIPO';
@@ -1249,6 +1340,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       const isTam = c.includes('TAMBO') || c.includes('235LT') || cap==='235LT';
       const isMac = c.includes('MACETA') || c.includes('MACETERO');
       const isBan = c.includes('BANCO');
+      if(TIPOS_IMPORTACION_CANONICOS.has(t)) return t;
       if(!t) return inferTypeFromConcept(concepto, 0, 0);
       if(t==='GASTO') return 'GASTO';
       if(t==='MERMA') return 'MERMA';
@@ -1272,44 +1364,48 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       return inferTypeFromConcept(concepto, 0, 0);
     }
 
-    function normalizeImportedMovement(raw){
+    function normalizeImportedMovement(raw, erroresFecha=null, filaReferencia=''){
       if(!raw) return null;
-      const fechaRaw = getRawValue(raw,['fecha','FECHA']);
-      let fecha = String(fechaRaw).trim();
-      if(fecha.includes('/')){
-        const p=fecha.split('/');
-        if(p.length===3){
-          let d=p[0].padStart(2,'0'), m=p[1].padStart(2,'0'), y=p[2];
-          if(y.length===2) y='20'+y;
-          fecha=`${y}-${m}-${d}`;
+
+      const fechaRaw = getRawValue(raw,[
+        'FECHA DEL MOVIMIENTO','FECHA MOVIMIENTO','fecha del movimiento','fecha movimiento',
+        'fecha','FECHA','date','DATE'
+      ]);
+      const fecha = normalizarFechaImportada(fechaRaw);
+      if(!fecha){
+        if(Array.isArray(erroresFecha)){
+          erroresFecha.push({fila:filaReferencia||'?', valor:String(fechaRaw||'').trim() || '(vacía)'});
         }
+        return null;
       }
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) fecha = hoyLocalISO();
 
       const cantidad = parseNumberLoose(getRawValue(raw,['cantidad','CANTIDAD','Cant','Cant.','CANT','QTY']));
-      const precio   = parseNumberLoose(getRawValue(raw,['precio','P. Uni','P UNI','PRECIO','PRECIOUNITARIO','PUNI','PUNITARIO']));
+      const precio   = parseNumberLoose(getRawValue(raw,[
+        'PRECIO UNI','PRECIO UNITARIO','PRECIOUNITARIO','precio','P. Uni','P UNI','PRECIO','PUNI','PUNITARIO'
+      ]));
       const total    = parseNumberLoose(getRawValue(raw,['total','TOTAL','IMPORTE']));
 
-      let vendedor = String(getRawValue(raw,['vendedor','Vendedor','responsable','RESP','Resp.'])).trim().toUpperCase();
-      const rawTipo = String(getRawValue(raw,['tipo','Tipo','movimiento','Movimiento'])).trim();
-      let tipo = '';
-      const concepto = String(getRawValue(raw,['concepto','Concepto','descripcion','Descripción'])).trim().toUpperCase();
-      const capacidad = String(getRawValue(raw,['capacidad','Capacidad'])).trim().toUpperCase() || null;
-      const colorUI = String(getRawValue(raw,['colorUI','color','Color'])).trim().toUpperCase() || null;
+      let vendedor = normalizarResponsableImportado(getRawValue(raw,[
+        'RESPONSABLE','responsable','vendedor','Vendedor','RESP','Resp.'
+      ]));
+      const rawTipo = String(getRawValue(raw,['tipo','Tipo','TIPO','movimiento','Movimiento'])).trim();
+      const concepto = String(getRawValue(raw,['concepto','Concepto','CONCEPTO','descripcion','Descripción'])).trim().toUpperCase();
+      const capacidad = normalizarCapacidadImportada(getRawValue(raw,['capacidad','Capacidad','CAPACIDAD']));
+      const colorRaw = String(getRawValue(raw,['colorUI','color','Color','COLOR'])).trim().toUpperCase();
+      const colorUI = colorRaw ? (normalizarColorUI(colorRaw) || colorRaw) : null;
       const idImportado = String(getRawValue(raw,['id','ID','Id'])).trim();
       const incluyeRaw = getRawValue(raw,['incluyeAccesorios','INCLUYEACCESORIOS','accesorios','ACCESORIOS']);
       const incluyeAccesorios = String(incluyeRaw).trim()==='' ? true : !['FALSE','0','NO','N'].includes(String(incluyeRaw).trim().toUpperCase());
 
-      if(!vendedor) vendedor = 'SISTEMA';
-      tipo = normalizeImportedType(rawTipo, concepto, capacidad);
+      const tipo = normalizeImportedType(rawTipo, concepto, capacidad);
 
       const conceptNorm = normalizarTextoClave(concepto);
       const coloresSueltos = ['BEIGE','NEGRO','AZUL','ROJO','VERDE','NATURAL','NARANJA','CAFE','BLANCO','VERDE INDUSTRIAL','MELON','CHOCOLATE','ROSA'];
       if(!conceptNorm && !cantidad && !precio && !total) return null;
-      if(!getRawValue(raw,['movimiento','Movimiento','tipo','Tipo']) && !cantidad && !precio && !total && coloresSueltos.includes(conceptNorm)) return null;
+      if(!getRawValue(raw,['movimiento','Movimiento','tipo','Tipo','TIPO']) && !cantidad && !precio && !total && coloresSueltos.includes(conceptNorm)) return null;
 
       return {
-        id: idImportado || (Date.now()+Math.random().toString(36).slice(2)),
+        id: idImportado || (`imp-${Date.now()}-${Math.random().toString(36).slice(2)}`),
         fecha,
         semana:getNumeroSemana(fecha),
         vendedor,
@@ -1334,67 +1430,115 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       if(mode!=='reemplazar'){
         const previo = getImportFingerprints().find(x=>x && x.hash===fingerprint);
         if(previo){
-          const repetir = confirm(`Este mismo archivo ya fue importado${previo.fecha ? ` el ${new Date(previo.fecha).toLocaleString('es-MX')}` : ''}.\n\nVolver a importarlo puede duplicar movimientos.\n\n¿Deseas continuar de todos modos?`);
+          const repetir = confirm(`Este mismo archivo ya fue importado${previo.fecha ? ` el ${new Date(previo.fecha).toLocaleString('es-MX')}` : ''}.\n\n¿Deseas revisarlo de nuevo? Los IDs ya existentes se omitirán.`);
           if(!repetir) return;
         }
       }
 
       let incoming=[];
+      const erroresFecha=[];
       try{
         if(file.name.toLowerCase().endsWith('.json')){
           const parsed = JSON.parse(txt);
-          incoming = (Array.isArray(parsed)?parsed:(parsed.data||parsed.movimientos||[]))
-            .map(normalizeImportedMovement).filter(Boolean);
+          const arr=(Array.isArray(parsed)?parsed:(parsed.data||parsed.movimientos||[]));
+          incoming = arr.map((raw,i)=>normalizeImportedMovement(raw, erroresFecha, i+1)).filter(Boolean);
         } else {
           const cleanTxt = txt.replace(/^\ufeff/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
           const lines = cleanTxt.split('\n').filter(line => String(line).trim() !== '');
           if(!lines.length) return alert('El archivo está vacío.');
           const delimiter = detectDelimiter(lines[0]);
           const headers = parseCSVLineSafe(lines[0], delimiter);
-          incoming = lines.slice(1).map(line=>{
+          incoming = lines.slice(1).map((line,rowIndex)=>{
             const vals=parseCSVLineSafe(line, delimiter);
             const obj={};
             headers.forEach((h,i)=>obj[h]=vals[i]??'');
-            return normalizeImportedMovement(obj);
+            return normalizeImportedMovement(obj, erroresFecha, rowIndex+2);
           }).filter(Boolean);
         }
-      }catch(err){ console.error(err); alert('El archivo no tiene un formato válido o está dañado. No se modificó el historial.'); return; }
+      }catch(err){
+        console.error(err);
+        alert('El archivo no tiene un formato válido o está dañado. No se modificó el historial.');
+        return;
+      }
 
+      if(erroresFecha.length){
+        const ejemplos=erroresFecha.slice(0,5).map(x=>`Fila ${x.fila}: ${x.valor}`).join('\n');
+        alert(`IMPORTACIÓN DETENIDA POR SEGURIDAD.\n\nSe encontraron ${erroresFecha.length} fila(s) sin una FECHA DEL MOVIMIENTO válida.\n\n${ejemplos}${erroresFecha.length>5?'\n…':''}\n\nNo se cambió ninguna fecha por la fecha de hoy y no se modificó el historial.`);
+        return;
+      }
       if(!incoming.length) return alert('No se encontraron movimientos válidos.');
+
+      const idsVistos=new Set(); const idsDuplicados=[];
+      incoming.forEach(r=>{ const id=String(r?.id??'').trim(); if(id){ if(idsVistos.has(id)) idsDuplicados.push(id); else idsVistos.add(id); } });
+      if(idsDuplicados.length){
+        alert(`IMPORTACIÓN DETENIDA. El archivo contiene ${idsDuplicados.length} ID(s) repetido(s). Ejemplo: ${idsDuplicados.slice(0,5).join(', ')}. Corrige el archivo antes de continuar.`);
+        return;
+      }
+
+      const fechas=incoming.map(r=>r.fecha).filter(Boolean).sort();
+      const primeraFecha=fechas[0]||'';
+      const ultimaFecha=fechas[fechas.length-1]||'';
+      const resumen=`Movimientos válidos: ${incoming.length}\nPrimera fecha: ${formatFechaVisible(primeraFecha)}\nÚltima fecha: ${formatFechaVisible(ultimaFecha)}`;
+
+      if(mode==='reemplazar'){
+        const ok=confirm(`REVISIÓN ANTES DE REEMPLAZAR\n\n${resumen}\n\nSe hará un respaldo local antes de reemplazar.\nLos registros importados NO se reenviarán automáticamente a Google Sheets ni se mezclarán con Supabase.\n\n¿Las fechas se ven correctas y deseas continuar?`);
+        if(!ok) return;
+      }
+
       const base = mode==='reemplazar' ? [] : getMovements();
       let aImportar = incoming;
       let omitidos = 0;
 
       if(mode!=='reemplazar' && base.length){
         const revision = separarDuplicadosProbables(incoming, base);
-        if(revision.duplicados.length){
-          const omitir = confirm(`Se detectaron ${revision.duplicados.length} movimiento(s) que coinciden con registros existentes.\n\nAceptar = OMITIR esas coincidencias probables.\nCancelar = importar todos como antes.`);
-          if(omitir){ aImportar = revision.nuevos; omitidos = revision.duplicados.length; }
+        aImportar = revision.nuevos;
+        omitidos = revision.duplicados.length;
+      }
+
+      if(mode==='reemplazar' || aImportar.length){
+        const respaldoOk=crearRespaldoLocalMovimientos(mode==='reemplazar' ? 'ANTES_DE_REEMPLAZAR_IMPORTACION' : 'ANTES_DE_IMPORTAR');
+        if(!respaldoOk && mode==='reemplazar'){
+          const seguir=confirm('No fue posible crear el respaldo local automático. ¿Deseas continuar de todos modos?');
+          if(!seguir) return;
         }
       }
 
-      if(mode==='reemplazar' || aImportar.length) crearRespaldoLocalMovimientos(mode==='reemplazar' ? 'ANTES_DE_REEMPLAZAR_IMPORTACION' : 'ANTES_DE_IMPORTAR');
       if(!aImportar.length){
         registrarImportFingerprint(fingerprint, file.name, incoming.length);
-        alert(`No se agregaron movimientos. Se omitieron ${omitidos} coincidencia(s) probable(s).`);
+        alert(`No se agregaron movimientos. Se omitieron ${omitidos} ID(s) que ya existían.`);
         return;
       }
 
-      const merged = ordenarDBCronologicamente([...base, ...aImportar]);
-      saveMovements(merged);
+      let merged = ordenarDBCronologicamente([...base, ...aImportar]);
+      if(!saveMovements(merged)){
+        alert('IMPORTACIÓN CANCELADA: el dispositivo no pudo guardar el historial. No se enviaron datos a Google Sheets ni a Supabase.');
+        return;
+      }
+
+      if(mode==='reemplazar'){
+        localStorage.setItem(STORAGE_KEYS.MASTER_HISTORY_IMPORTED,'1');
+        // Conservamos únicamente el baseline técnico de inventario; NO reinyectamos
+        // los movimientos operativos históricos de abril porque ahora vienen de la base maestra.
+        const baseline=seedApril2026BaselineIfMissing();
+        merged=baseline.db;
+      }
+
       state.movements = merged;
       reconstructStockFromMovements(merged);
       renderAll();
-      aImportar.forEach(reg=>{ try{ enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); }catch(_e){} });
       registrarImportFingerprint(fingerprint, file.name, incoming.length);
-      alert(`Importación completada: ${aImportar.length} movimiento(s) agregado(s)${omitidos ? `; ${omitidos} coincidencia(s) omitida(s)` : ''}.`);
+
+      alert(`Importación local completada.\n\n${aImportar.length} movimiento(s) importado(s)${omitidos ? `; ${omitidos} ID(s) existentes omitidos` : ''}.\nRango detectado: ${formatFechaVisible(primeraFecha)} a ${formatFechaVisible(ultimaFecha)}.\n\nPor seguridad, esta importación NO se volvió a enviar a Google Sheets ni se mezcló con el historial remoto de Supabase.`);
     }
+
 function getStockCache(){ const v=readLocalJSON(STORAGE_KEYS.STOCK, null); if(v && typeof v==='object' && !Array.isArray(v)) return v; const legacy=readLocalJSON(STORAGE_KEYS.STOCK_LEGACY, null); return legacy && typeof legacy==='object' && !Array.isArray(legacy) ? legacy : {}; }
     function saveStockCache(stock){ writeLocalJSON(STORAGE_KEYS.STOCK, stock||{}); writeLocalJSON(STORAGE_KEYS.STOCK_LEGACY, stock||{}); }
     function getInventoryCache(){ const v=readLocalJSON(STORAGE_KEYS.INVENTORY_CACHE, []); return Array.isArray(v) ? v : []; }
     function saveInventoryCache(rows){ writeLocalJSON(STORAGE_KEYS.INVENTORY_CACHE, Array.isArray(rows)?rows:[]); }
     function getMonthlyDrafts(){ const v=readLocalJSON(STORAGE_KEYS.MONTHLY_DRAFTS, []); return Array.isArray(v) ? v : []; }
     function saveMonthlyDrafts(rows){ writeLocalJSON(STORAGE_KEYS.MONTHLY_DRAFTS, Array.isArray(rows)?rows:[]); }
+    function getPendingEntries(){ const v=readLocalJSON(STORAGE_KEYS.PENDING_ENTRIES, []); return Array.isArray(v) ? v : []; }
+    function savePendingEntries(rows){ return writeLocalJSON(STORAGE_KEYS.PENDING_ENTRIES, Array.isArray(rows)?rows:[]); }
     function ordenarDBCronologicamente(db){ return db.map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{ const ta=fechaOrdenValor(a.fecha); const tb=fechaOrdenValor(b.fecha); if(ta!==tb) return ta-tb; return a._ord-b._ord; }).map(({_ord,...r})=>r); }
     function getTipoAmigable(tipo){ const m={ 'VENTA_TINACO':'VENTA','VENTA_TINACO_COBRO':'COBRO CONSIG.','TRASPASO_TINACO':'TRASPASO','TRASPASO_TINACO_COBRO':'COBRO SUC.','VENTA_TAMBO':'VENTA','VENTA_TAMBO_COBRO':'COBRO CONSIG.','TRASPASO_TAMBO':'TRASPASO','TRASPASO_TAMBO_COBRO':'COBRO SUC.','PROD_NORMAL_TINACO':'PROD. TINACO','PROD_NORMAL_TAMBO':'PROD. TAMBO','PROD_NORMAL_MACETA':'PROD. MACETA','PROD_EXTRA_TINACO':'EXT. TINACO','PROD_EXTRA_TAMBO':'EXT. TAMBO','PROD_EXTRA_MACETA':'EXT. MACETA','PROD_NORMAL_BANCO':'PROD. BANCO','PROD_EXTRA_BANCO':'EXT. BANCO','GASTO':'GASTO','COMPRA':'COMPRA','INVENTARIO_FISICO':'AUDITORIA','MERMA':'MERMA' }; return m[tipo] || tipo; }
     function esMovimientoConIngreso(r){ const tipo=String(r?.tipo||'').trim(); const concepto=String(r?.concepto||'').toUpperCase(); if(concepto.includes('ENTREGA CONSIGNACIÓN')) return false; if(concepto.includes('TRASPASO SUCURSAL')) return false; if(concepto.includes('GARANTÍA')) return false; return ['VENTA_TINACO','VENTA_TINACO_COBRO','VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TINACO_COBRO','TRASPASO_TAMBO_COBRO'].includes(tipo); }
@@ -2236,14 +2380,13 @@ async function loadInventoryCacheFromSupabase(){
     }
 
     async function sincronizarNubeAhora(){
-      setCloudMasterStatus('sincronizando…');
+      setCloudMasterStatus('subiendo pendientes…');
       const cola=await flushCloudSyncQueue();
-      const res=await reconciliarHistorialConNube();
-      if(!res.ok){ alert('No fue posible sincronizar con Supabase. Tus datos locales permanecen intactos.'); return; }
       await guardarConfiguracionMaestraEnSupabase();
-      await loadInventoryCacheFromSupabase();
-      alert(`Nube sincronizada. ${res.total} movimiento(s) disponibles; ${cola.sent + res.localOnly} operación(es) subida(s) en esta revisión.`);
+      setCloudMasterStatus(cola.pending ? `${cola.pending} operación(es) pendiente(s)` : 'copia pendiente sincronizada · historial local protegido', cola.pending ? 'warn' : 'ok');
+      alert(`Sincronización segura terminada. Se enviaron ${cola.sent} operación(es) pendiente(s).\n\nEl historial local NO se mezcló ni fue reemplazado con datos remotos.`);
     }
+
 
     async function restaurarHistorialDesdeNube(){
       if(!supabaseClient){ alert('Supabase no está disponible en este momento.'); return; }
@@ -3181,7 +3324,16 @@ function renderStockTables(){
 
     function obtenerDeudaConsignacion(vendedor, productoName){ let deuda=0; state.movements.forEach(r=>{ if(r.vendedor===vendedor){ if((r.concepto||'').includes('ENTREGA CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda += parseFloat(r.cantidad)||0; if((r.concepto||'').includes('COBRO CONSIGNACIÓN') && (r.concepto||'').includes(productoName)) deuda -= parseFloat(r.cantidad)||0; }}); return deuda; }
 
-    function addMovementToDB(reg){ state.movements.push(reg); state.movements = ordenarDBCronologicamente(state.movements); saveMovements(state.movements); enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); reconstructStockFromMovements(state.movements); renderAll(); }
+    function addMovementToDB(reg){
+      const merged=ordenarDBCronologicamente([...(state.movements||[]), reg]);
+      if(!saveMovements(merged)){ alert('No se pudo guardar el movimiento en este dispositivo. No se envió ninguna copia externa.'); return false; }
+      state.movements=merged;
+      enviarNube(reg);
+      syncOperationalMovementToSupabase(reg,'UPSERT');
+      reconstructStockFromMovements(state.movements);
+      renderAll();
+      return true;
+    }
 
 
     function createMovementRecord(vend,tipo,conc,cant,p,tot,cap,col,fecha,sem){
@@ -3190,6 +3342,7 @@ function renderStockTables(){
 
     function queueEntries(entries, origin){
       entries.forEach(entry=> state.pendingEntries.push({ ...entry, _pendingId:'p-'+Date.now()+Math.random().toString(36).slice(2), _origin:origin }));
+      if(!savePendingEntries(state.pendingEntries)) alert('No se pudo proteger la lista de movimientos pendientes en el almacenamiento local. No cierres la app hasta guardarlos.');
       renderPendingEntries();
     }
 
@@ -3213,8 +3366,8 @@ function renderStockTables(){
       }).join('') : '<tr><td colspan="9" class="pending-empty">No hay movimientos en revisión.</td></tr>';
     }
 
-    function removePendingEntry(id){ state.pendingEntries = (state.pendingEntries||[]).filter(x=>x._pendingId!==id); renderPendingEntries(); }
-    function clearPendingEntries(){ state.pendingEntries = []; renderPendingEntries(); }
+    function removePendingEntry(id){ state.pendingEntries = (state.pendingEntries||[]).filter(x=>x._pendingId!==id); savePendingEntries(state.pendingEntries); renderPendingEntries(); }
+    function clearPendingEntries(){ state.pendingEntries = []; savePendingEntries([]); renderPendingEntries(); }
 
     function buildTinacoPendingEntries(){
       const f=$('fecha').value || hoyLocalISO(), sem=getNumeroSemana(f), v=$('vendedor').value;
@@ -3272,11 +3425,21 @@ function renderStockTables(){
 
     function commitPendingEntries(){
       if(!state.pendingEntries.length){ alert('No hay movimientos en revisión para guardar.'); return; }
-      state.pendingEntries.forEach(({_pendingId,_origin,...reg})=>{ state.movements.push(reg); enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); });
-      state.movements = ordenarDBCronologicamente(state.movements);
-      saveMovements(state.movements);
+      const regs=state.pendingEntries.map(({_pendingId,_origin,...reg})=>reg);
+      crearRespaldoLocalMovimientos('ANTES_DE_GUARDAR_PENDIENTES');
+      const merged=ordenarDBCronologicamente([...(state.movements||[]), ...regs]);
+
+      // Primero confirmamos el guardado local. Solo después se envían copias externas.
+      if(!saveMovements(merged)){
+        alert('No se pudieron guardar los movimientos en este dispositivo. La lista de revisión se conserva y no se envió nada a Google Sheets ni a Supabase.');
+        return;
+      }
+
+      state.movements = merged;
+      regs.forEach(reg=>{ try{ enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); }catch(_e){} });
       reconstructStockFromMovements(state.movements);
       state.pendingEntries = [];
+      savePendingEntries([]);
       clearDailyInputs();
       renderAll();
       alert('Movimientos revisados guardados al historial.');
@@ -3317,7 +3480,18 @@ function renderStockTables(){
       alert(`Entrada sumada al stock. Registrado: ${cant} ${conceptoUnidad}${unidad.startsWith('BULTO') ? ` = ${cantidadReal.toFixed(2)} KG` : ''}.`);
     }
 
-    function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; const removed = state.movements.find(x=>String(x.id)===String(id)); if(!removed) return; crearRespaldoLocalMovimientos('ANTES_DE_BORRAR_MOVIMIENTO'); state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); enviarNube({...removed, tipo:`BORRADO_${removed.tipo||''}`}); syncOperationalMovementToSupabase(removed,'DELETE'); reconstructStockFromMovements(state.movements); renderAll(); }
+    function deleteHistoryMovement(id){
+      if(!confirm('¿Borrar este movimiento?')) return;
+      const removed = state.movements.find(x=>String(x.id)===String(id)); if(!removed) return;
+      crearRespaldoLocalMovimientos('ANTES_DE_BORRAR_MOVIMIENTO');
+      const restante=state.movements.filter(x=>String(x.id)!==String(id));
+      if(!saveMovements(restante)){ alert('No se pudo guardar el cambio. El movimiento NO fue borrado ni se envió una eliminación externa.'); return; }
+      state.movements=restante;
+      enviarNube({...removed, tipo:`BORRADO_${removed.tipo||''}`});
+      syncOperationalMovementToSupabase(removed,'DELETE');
+      reconstructStockFromMovements(state.movements);
+      renderAll();
+    }
     function editStockPrompt(material, actualVal, unidad){ let v=prompt(`Stock actual de ${material}: ${actualVal} ${unidad}.\nIngresa la nueva cantidad exacta:`, actualVal); if(v===null) return; const nuevo=parseFloat(v); if(isNaN(nuevo)||nuevo<0) return alert('Valor inválido.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL)`, cantidad:nuevo, precio:0, total:0, capacidad:null, colorUI:material }); }
     function deleteStockPrompt(material){ if(!confirm(`¿Borrar ${material} del inventario operativo dejándolo en cero?`)) return; addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL A 0)`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material }); }
     function resetearStock(){
@@ -4168,28 +4342,37 @@ function nombreMesReporte(fecha){
       fillStaticSelectors();
       bindEvents();
       seedInitialInventoryCacheIfEmpty();
+
       const seededBaseline = seedApril2026BaselineIfMissing();
-      const seededOperational = seedApril2026OperationalIfMissing(seededBaseline.db);
+      const historialMaestro = localStorage.getItem(STORAGE_KEYS.MASTER_HISTORY_IMPORTED)==='1';
+      const seededOperational = historialMaestro
+        ? {db:seededBaseline.db, added:[]}
+        : seedApril2026OperationalIfMissing(seededBaseline.db);
+
       state.movements = seededOperational.db;
+      state.pendingEntries = getPendingEntries();
       reconstructStockFromMovements(state.movements);
       state.inventoryCache = getInventoryCache();
       renderAll();
       updateCutDates();
+
       const nubeOk = await pingSupabase();
       if(nubeOk){
-        await syncApril2026BaselineIfNeeded([...(seededBaseline.added || []), ...(seededOperational.added || [])]);
+        // Solo salida: enviamos operaciones que ya estaban en cola.
+        // Nunca reconciliamos automáticamente el historial remoto contra el teléfono.
+        await syncApril2026BaselineIfNeeded(seededBaseline.added || []);
         await flushCloudSyncQueue();
-        await reconciliarHistorialConNube();
-        await loadInventoryCacheFromSupabase();
-        const cfgMaster = await cargarConfiguracionMaestraDesdeSupabase();
-        if(!cfgMaster) await guardarConfiguracionMaestraEnSupabase();
+        setCloudMasterStatus('conectada · historial local protegido', 'ok');
       } else {
         setCloudMasterStatus(`${getCloudSyncQueue().length} operación(es) pendiente(s); trabajando localmente`, 'warn');
       }
+
       loadMonthlyRows();
       renderAll();
     }
-    window.addEventListener?.('online', ()=>{ flushCloudSyncQueue().then(()=>reconciliarHistorialConNube()).then(()=>guardarConfiguracionMaestraEnSupabase()).catch(()=>{}); });
+    window.addEventListener?.('online', ()=>{
+      pingSupabase().then(ok=> ok ? flushCloudSyncQueue() : null).catch(()=>{});
+    });
     document.addEventListener('DOMContentLoaded', init);
 /* --- FUNCIONES NUEVAS DE DISEÑO --- */
 // Encender o apagar el Modo Oscuro

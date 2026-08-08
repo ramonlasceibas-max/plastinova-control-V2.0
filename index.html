@@ -544,13 +544,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             <div class="form-group"><label>Mes exacto</label><input type="month" id="graficaMesExacto" class="form-control"></div>
             <div class="form-group"><label>Vendedor / Productor</label><select id="filtroVendedorGrafica"></select></div>
           </div>
-          <div class="row">
-            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
-          </div>
-        </div>
-        <div class="stats">
-          <div class="row">
-            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
+         <div class="row">
+            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Resumen del periodo</button>
+            <button type="button" class="btn btn-warning" id="btnImprimirDetalladoGeneral">📄 Informe Detallado</button>
           </div>
         </div>
         <div class="stats">
@@ -3098,78 +3094,113 @@ function renderStockTables(){
         </div>`;
       printDocument(html, 'CORTE DE CAJA');
     }
-function imprimirDetalleProduccion() {
+function imprimirInformeDetalladoGeneral() {
       const data = getDashboardData();
       const db = getDashboardFilteredMovements();
-      const detalleProd = {};
-      const consumoMP = {};
+      const formatterMes = new Intl.DateTimeFormat('es-MX', { month: 'long' });
 
-      let totalPiezas = 0;
-      let totalMP = 0;
+      let filasVentas = '';
+      let filasProd = '';
+      let totalCantVentas = 0, totalMontoVentas = 0;
+      let totalCantProd = 0;
+      
+      let consumoMP = {};
+      let totalKilosMP = 0;
+      let consumoAcc = {};
+      let totalPiezasAcc = 0;
 
       db.forEach(r => {
-        const tipo = String(r.tipo||'');
-        if(tipo.includes('PROD_')) {
-          const cap = String(r.capacidad||'').toUpperCase();
-          const col = String(r.colorUI||'').toUpperCase();
-          const cant = parseFloat(r.cantidad)||0;
-          const productor = String(r.vendedor||'');
+        const fechaObj = parseLocalDate(r.fecha);
+        const mesStr = fechaObj ? formatterMes.format(fechaObj).toUpperCase() : '';
+        const fechaStr = formatFechaVisible(r.fecha);
+        const vend = escHtml(r.vendedor);
+        const cap = escHtml(r.capacidad || '-');
+        const col = escHtml(r.colorUI || '-');
+        const cant = parseFloat(r.cantidad) || 0;
+        const precio = parseFloat(r.precio) || 0;
+        const total = parseFloat(r.total) || 0;
 
-          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col) || `${tipo} ${cap} ${col}`;
+        let prodBase = r.tipo.includes('TINACO') ? 'TINACO' : (r.tipo.includes('TAMBO') ? 'TAMBO' : (r.tipo.includes('MACETA') ? 'MACETA' : escHtml(r.concepto.split(' ')[0])));
 
-          const prodKey = `${productor}|${fgName}`;
-          if(!detalleProd[prodKey]) detalleProd[prodKey] = { productor, producto: fgName, cant: 0 };
-          detalleProd[prodKey].cant += cant;
-          totalPiezas += cant;
-
+        if (esMovimientoConIngreso(r)) {
+          totalCantVentas += cant;
+          totalMontoVentas += total;
+          filasVentas += `<tr><td>${mesStr}</td><td class="center">${fechaStr}</td><td>${vend}</td><td>${prodBase}</td><td class="center">${cap}</td><td>${col}</td><td class="right">${cant.toFixed(2)}</td><td class="right">$${formato(precio)}</td><td class="right">$${formato(total)}</td></tr>`;
+          
+          if (movimientoConsumeAditamentos(r)) {
+            const recetaAcc = obtenerRecetaAccesoriosVenta(r.tipo, r.capacidad, r.colorUI) || {};
+            Object.keys(recetaAcc).forEach(acc => {
+              const qty = (parseFloat(recetaAcc[acc]) || 0) * cant;
+              consumoAcc[acc] = (consumoAcc[acc] || 0) + qty;
+              totalPiezasAcc += qty;
+            });
+          }
+        } else if (r.tipo.includes('PROD_')) {
+          totalCantProd += cant;
+          filasProd += `<tr><td>${mesStr}</td><td class="center">${fechaStr}</td><td>${vend}</td><td>${prodBase}</td><td class="center">${cap}</td><td>${col}</td><td class="right">${cant.toFixed(2)}</td><td class="center">-</td><td class="center">-</td></tr>`;
+          
           if (movimientoConsumeMateriaPrima(r)) {
-            const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
-            Object.keys(receta).forEach(mat => {
-              const qty = (parseFloat(receta[mat]) || 0) * cant;
+            const recetaMP = obtenerRecetaMateriales(r.tipo, r.capacidad, r.colorUI) || {};
+            Object.keys(recetaMP).forEach(mat => {
+              const qty = (parseFloat(recetaMP[mat]) || 0) * cant;
               consumoMP[mat] = (consumoMP[mat] || 0) + qty;
-              totalMP += qty;
+              totalKilosMP += qty;
             });
           }
         }
       });
 
-      const prodArr = Object.values(detalleProd).sort((a,b)=>a.productor.localeCompare(b.productor));
+      if(!filasVentas) filasVentas = '<tr><td colspan="9" class="center subtle">Sin ventas en este periodo.</td></tr>';
+      if(!filasProd) filasProd = '<tr><td colspan="9" class="center subtle">Sin producción en este periodo.</td></tr>';
+
       const mpArr = Object.entries(consumoMP).sort((a,b)=>a[0].localeCompare(b[0]));
-
-      const prodRows = prodArr.length 
-        ? prodArr.map(p => `<tr><td>${escHtml(p.productor)}</td><td>${escHtml(p.producto)}</td><td class="right">${p.cant.toFixed(2)}</td></tr>`).join('') 
-        : `<tr><td colspan="3" class="center">Sin producción en este periodo.</td></tr>`;
-
-      const mpRows = mpArr.length 
+      const filasMP = mpArr.length 
         ? mpArr.map(([mat, qty]) => `<tr><td>${escHtml(mat)}</td><td class="right">${qty.toFixed(2)}</td><td class="center">KG</td></tr>`).join('') 
-        : `<tr><td colspan="3" class="center">Sin consumo registrado.</td></tr>`;
+        : '<tr><td colspan="3" class="center subtle">Sin consumo de materia prima registrado.</td></tr>';
+
+      const accArr = Object.entries(consumoAcc).sort((a,b)=>a[0].localeCompare(b[0]));
+      const filasAcc = accArr.length 
+        ? accArr.map(([acc, qty]) => `<tr><td>${escHtml(acc.replace(' (PIEZAS)',''))}</td><td class="right">${qty.toFixed(0)}</td><td class="center">PZAS</td></tr>`).join('') 
+        : '<tr><td colspan="3" class="center subtle">Sin consumo de aditamentos registrado.</td></tr>';
 
       const html = `
-        <div class="center-title">REPORTE DETALLADO DE PRODUCCIÓN Y CONSUMOS</div>
-        <table style="margin-bottom:12px"><tbody>
-          <tr><td><strong>Periodo:</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Productor:</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+        <div class="center-title">INFORME DETALLADO DE VENTAS Y PRODUCCIÓN</div>
+        <table style="margin-bottom:12px; border: none;"><tbody>
+          <tr style="border: none;"><td style="border: none;"><strong>Periodo:</strong> ${escHtml(data.periodoLabel)}</td><td style="border: none;"><strong>Vendedor / Productor:</strong> ${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
         </tbody></table>
 
-        <div class="section-title">PIEZAS PRODUCIDAS (DETALLE)</div>
+        <div class="section-title">1. DESGLOSE DE VENTAS</div>
         <table>
-          <thead><tr><th>PRODUCTOR</th><th>PRODUCTO</th><th>CANTIDAD</th></tr></thead>
-          <tbody>${prodRows}</tbody>
-          <tfoot><tr><td colspan="2" class="right"><strong>TOTAL PIEZAS</strong></td><td class="right"><strong>${totalPiezas.toFixed(2)}</strong></td></tr></tfoot>
+          <thead><tr><th>MES</th><th>FECHA</th><th>VENDEDOR</th><th>PRODUCTO</th><th>CAPACIDAD (LT)</th><th>COLOR</th><th>CANTIDAD</th><th>PRECIO UNITARIO</th><th>MONTO TOTAL DE VENTA</th></tr></thead>
+          <tbody>${filasVentas}</tbody>
+          <tfoot><tr><td colspan="6" class="right"><strong>TOTAL VENTAS</strong></td><td class="right"><strong>${totalCantVentas.toFixed(2)}</strong></td><td></td><td class="right"><strong>$${formato(totalMontoVentas)}</strong></td></tr></tfoot>
+        </table>
+        
+        <div class="section-title" style="margin-top: 15px;">2. ADITAMENTOS INCLUIDOS EN ESTAS VENTAS</div>
+        <table>
+          <thead><tr><th>TIPO DE ADITAMENTO</th><th style="width:20%">CANTIDAD ENTREGADA</th><th style="width:20%">UNIDAD</th></tr></thead>
+          <tbody>${filasAcc}</tbody>
+          <tfoot><tr><td class="right"><strong>TOTAL ADITAMENTOS ENTREGADOS</strong></td><td class="right"><strong>${totalPiezasAcc.toFixed(0)}</strong></td><td class="center">PZAS</td></tr></tfoot>
         </table>
 
-        <div class="section-title" style="margin-top:16px">CONSUMO ESTIMADO DE MATERIA PRIMA</div>
+        <div class="section-title" style="margin-top: 20px;">3. DESGLOSE DE PRODUCCIÓN (PIEZAS)</div>
         <table>
-          <thead><tr><th>MATERIAL</th><th>CONSUMO ESTIMADO</th><th>UNIDAD</th></tr></thead>
-          <tbody>${mpRows}</tbody>
-          <tfoot><tr><td colspan="1" class="right"><strong>TOTAL KILOS ESTIMADOS</strong></td><td class="right"><strong>${totalMP.toFixed(2)}</strong></td><td class="center">KG</td></tr></tfoot>
+          <thead><tr><th>MES</th><th>FECHA</th><th>PRODUCTOR</th><th>PRODUCTO</th><th>CAPACIDAD (LT)</th><th>COLOR</th><th>CANTIDAD</th><th>PRECIO UNITARIO</th><th>MONTO TOTAL DE VENTA</th></tr></thead>
+          <tbody>${filasProd}</tbody>
+          <tfoot><tr><td colspan="6" class="right"><strong>TOTAL PRODUCCIÓN (PIEZAS)</strong></td><td class="right"><strong>${totalCantProd.toFixed(2)}</strong></td><td></td><td></td></tr></tfoot>
+        </table>
+
+        <div class="section-title" style="margin-top: 15px;">4. MATERIA PRIMA UTILIZADA EN ESTA PRODUCCIÓN</div>
+        <table>
+          <thead><tr><th>TIPO Y COLOR DE MATERIA PRIMA</th><th style="width:20%">CANTIDAD</th><th style="width:20%">UNIDAD</th></tr></thead>
+          <tbody>${filasMP}</tbody>
+          <tfoot><tr><td class="right"><strong>TOTAL MATERIA PRIMA UTILIZADA</strong></td><td class="right"><strong>${totalKilosMP.toFixed(2)}</strong></td><td class="center">KG</td></tr></tfoot>
         </table>
       `;
 
-      printDocument(html, `DETALLE PRODUCCIÓN - ${data.periodoLabel.toUpperCase()}`);
+      printDocument(html, `INFORME DETALLADO - ${data.periodoLabel.toUpperCase()}`);
     }
-
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
-
     function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); renderPriceEditor(); }
 
     function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes') previewCutSummary(); }
@@ -3218,6 +3249,7 @@ function imprimirDetalleProduccion() {
       $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
 $('btnImprimirDetalleProd')?.addEventListener('click', imprimirDetalleProduccion);
+$('btnImprimirDetalladoGeneral')?.addEventListener('click', imprimirInformeDetalladoGeneral);
     }
 
     function seedApril2026BaselineIfMissing(){

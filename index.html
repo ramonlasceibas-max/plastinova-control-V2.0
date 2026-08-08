@@ -3410,7 +3410,7 @@ function renderStockTables(){
         hizoTambosExtra:false,hizoTinacosExtra:false,hizoTambosExtraPedro:false,hizoTinacosExtraPedro:false,
         comExtPedro:0,comExtVendedor:0,totalPagosExtra:0,totalVentasGenerales:0,subtotalDespuesGastos:0,totalFinal:0
       });
-
+      
       if(!startDate || !endDate) return emptyResult('Selecciona una fecha inicial y una fecha final válidas.');
       if(startDate.getTime()>endDate.getTime()) return emptyResult('La fecha inicial no puede ser posterior a la fecha final.');
 

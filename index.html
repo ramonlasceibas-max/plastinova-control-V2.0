@@ -204,8 +204,15 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
     .gerencial-hbar-fill.prod{background:linear-gradient(90deg,#cf7b16,#f3ac39)}
     .gerencial-hbar-value{text-align:right;font-weight:900;color:#163f74}
     .gerencial-reading{margin-top:12px;padding:12px 14px;border-radius:14px;background:#eef6ff;border:1px solid #c8ddf5;color:#173f70;font-size:12px;line-height:1.5}
+    .gerencial-top-tinaco{margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,260px) 84px;gap:10px;align-items:center;border:1px solid #bdd8f8;border-radius:14px;padding:11px 13px;background:linear-gradient(90deg,#f7fbff,#edf6ff)}
+    .gerencial-top-tinaco .title{font-size:10px;font-weight:900;color:#5e6e85;text-transform:uppercase;letter-spacing:.35px}
+    .gerencial-top-tinaco .product{margin-top:3px;font-size:15px;font-weight:900;color:#123f77;white-space:normal;line-height:1.15}
+    .gerencial-top-tinaco .track{height:18px;background:#fff;border:1px solid #d4e2f2;border-radius:999px;overflow:hidden}
+    .gerencial-top-tinaco .fill{height:100%;background:linear-gradient(90deg,#0d4a89,#4da3ff);border-radius:999px;min-width:2px}
+    .gerencial-top-tinaco .value{text-align:right;font-size:15px;font-weight:900;color:#123f77}
+    .gerencial-top-tinaco .sub{display:block;font-size:9px;color:#6a7d93;font-weight:800;margin-top:2px}
     @media (max-width: 900px){.gerencial-kpis{grid-template-columns:1fr 1fr}.gerencial-grid{grid-template-columns:1fr}}
-    @media (max-width: 680px){.gerencial-kpis{grid-template-columns:1fr}.gerencial-quick .btn{width:100%}}
+    @media (max-width: 680px){.gerencial-kpis{grid-template-columns:1fr}.gerencial-quick .btn{width:100%}.gerencial-top-tinaco{grid-template-columns:1fr}.gerencial-top-tinaco .value{text-align:left}}
     .print-hidden{}
     @media (max-width: 1024px){
       .app-shell{padding:10px;display:block}
@@ -368,7 +375,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         <button type="button" class="nav-btn" data-tab="inventario">📦 Inventario</button>
       </div>
       <div class="nav-hint">
-        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.<br><strong>CORTES + REPORTES GERENCIALES · 2026-08-08</strong>
+        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.<br><strong>CORTES + REPORTES GERENCIALES · TINACO TOP · 2026-08-08</strong>
       </div>
     </aside>
 
@@ -3656,8 +3663,8 @@ function renderStockTables(){
       const ventas=registros.filter(esMovimientoConIngreso);
       const produccion=registros.filter(r=>String(r?.tipo||'').toUpperCase().includes('PROD_'));
       const gastos=registros.filter(r=>String(r?.tipo||'').toUpperCase()==='GASTO');
-      const ventasPor={}, prodPor={}, productos={}, prodProductos={};
-      let ventasTotal=0,piezasVendidas=0,produccionTotal=0,gastosTotal=0,cobrosConsignacion=0,prodNormal=0,prodExtra=0;
+      const ventasPor={}, prodPor={}, productos={}, prodProductos={}, tinacosVendidos={};
+      let ventasTotal=0,piezasVendidas=0,produccionTotal=0,gastosTotal=0,cobrosConsignacion=0,prodNormal=0,prodExtra=0,tinacosVendidosTotal=0;
       ventas.forEach(r=>{
         const vend=String(r.vendedor||'SIN RESPONSABLE').toUpperCase(); const cant=parseFloat(r.cantidad)||0; const total=parseFloat(r.total)||0;
         if(!ventasPor[vend]) ventasPor[vend]={nombre:vend,total:0,piezas:0,tin:0,tam:0,mac:0,ban:0};
@@ -3666,6 +3673,10 @@ function renderStockTables(){
         if(tipo.includes('TINACO')) ventasPor[vend].tin+=cant; else if(tipo.includes('TAMBO')) ventasPor[vend].tam+=cant; else if(tipo.includes('MACETA')) ventasPor[vend].mac+=cant; else if(tipo.includes('BANCO')) ventasPor[vend].ban+=cant;
         if(tipo.includes('_COBRO') && String(r.concepto||'').toUpperCase().includes('CONSIGN')) cobrosConsignacion+=total;
         const p=productoGerencial(r); if(!productos[p]) productos[p]={producto:p,piezas:0,total:0}; productos[p].piezas+=cant; productos[p].total+=total;
+        if(tipo.includes('TINACO')){
+          if(!tinacosVendidos[p]) tinacosVendidos[p]={producto:p,piezas:0,total:0};
+          tinacosVendidos[p].piezas+=cant; tinacosVendidos[p].total+=total; tinacosVendidosTotal+=cant;
+        }
       });
       produccion.forEach(r=>{
         const prod=String(r.vendedor||'SIN RESPONSABLE').toUpperCase(); const cant=parseFloat(r.cantidad)||0; const tipo=String(r.tipo||'').toUpperCase();
@@ -3680,10 +3691,14 @@ function renderStockTables(){
       const prodRows=Object.values(prodPor).sort((a,b)=>b.total-a.total);
       const topProductos=Object.values(productos).sort((a,b)=>b.piezas-a.piezas || b.total-a.total).slice(0,7);
       const topProdProductos=Object.entries(prodProductos).map(([producto,piezas])=>({producto,piezas})).sort((a,b)=>b.piezas-a.piezas).slice(0,7);
+      const tinacoRanking=Object.values(tinacosVendidos).sort((a,b)=>b.piezas-a.piezas || b.total-a.total);
+      const topTinaco=tinacoRanking[0]||null;
+      const topTinacoEmpatados=topTinaco ? tinacoRanking.filter(x=>x.piezas===topTinaco.piezas) : [];
+      const topTinacoPct=topTinaco && tinacosVendidosTotal>0 ? (topTinaco.piezas/tinacosVendidosTotal)*100 : 0;
       const liderVentas=ventasRows[0]||null, liderProd=prodRows[0]||null;
       const ventasMenosGastos=ventasTotal-gastosTotal;
       const estado=$('gerencialEstado')?.textContent||'REPORTE';
-      return {error:'',desde,hasta,periodo:etiquetaGerencialPeriodo(desde,hasta),estado,registros,ventas,produccion,gastos,ventasTotal,piezasVendidas,produccionTotal,gastosTotal,ventasMenosGastos,cobrosConsignacion,prodNormal,prodExtra,ventasRows,prodRows,topProductos,topProdProductos,liderVentas,liderProd};
+      return {error:'',desde,hasta,periodo:etiquetaGerencialPeriodo(desde,hasta),estado,registros,ventas,produccion,gastos,ventasTotal,piezasVendidas,produccionTotal,gastosTotal,ventasMenosGastos,cobrosConsignacion,prodNormal,prodExtra,ventasRows,prodRows,topProductos,topProdProductos,liderVentas,liderProd,topTinaco,topTinacoEmpatados,topTinacoPct,tinacosVendidosTotal};
     }
 
     function gerencialBarRows(rows, valueKey, kind, money=false){
@@ -3698,6 +3713,10 @@ function renderStockTables(){
       if(d.liderVentas) partes.push(`El vendedor con mayor venta fue <strong>${escHtml(d.liderVentas.nombre)}</strong> con <strong>$${formato(d.liderVentas.total)}</strong>.`);
       partes.push(`La producción fue de <strong>${d.produccionTotal.toFixed(0)} piezas</strong> (${d.prodNormal.toFixed(0)} normales y ${d.prodExtra.toFixed(0)} extras).`);
       if(d.liderProd) partes.push(`El productor con mayor volumen fue <strong>${escHtml(d.liderProd.nombre)}</strong> con <strong>${d.liderProd.total.toFixed(0)} piezas</strong>.`);
+      if(d.topTinaco){
+        const empate=d.topTinacoEmpatados?.length>1 ? ` (empate entre ${d.topTinacoEmpatados.map(x=>escHtml(x.producto)).join(' y ')})` : '';
+        partes.push(`El tinaco más vendido fue <strong>${escHtml(d.topTinaco.producto)}</strong> con <strong>${d.topTinaco.piezas.toFixed(0)} piezas</strong>${empate}.`);
+      }
       partes.push(`Los gastos registrados fueron <strong>$${formato(d.gastosTotal)}</strong>.`);
       return partes.join(' ');
     }
@@ -3724,6 +3743,7 @@ function renderStockTables(){
           <div class="gerencial-mini-chart"><h4>💰 Ventas por vendedor</h4>${gerencialBarRows(d.ventasRows,'total','sales',true)}</div>
           <div class="gerencial-mini-chart"><h4>🏭 Producción por productor</h4>${gerencialBarRows(d.prodRows,'total','prod',false)}</div>
         </div>
+        ${d.topTinaco ? `<div class="gerencial-top-tinaco"><div><div class="title">🚰 Tinaco más vendido</div><div class="product">${escHtml(d.topTinaco.producto)}</div><span class="sub">${d.topTinacoEmpatados.length>1?'Empate en el primer lugar':'Líder del periodo'} · ${d.tinacosVendidosTotal.toFixed(0)} tinacos vendidos</span></div><div class="track"><div class="fill" style="width:${Math.max(2,d.topTinacoPct)}%"></div></div><div class="value">${d.topTinaco.piezas.toFixed(0)} pzas<span class="sub">${d.topTinacoPct.toFixed(0)}%</span></div></div>` : ''}
         <div class="gerencial-grid">
           <div class="table-wrap"><table class="db-table"><thead><tr><th>Vendedor</th><th>Pzas</th><th>Venta</th></tr></thead><tbody>${ventaRows}</tbody></table></div>
           <div class="table-wrap"><table class="db-table"><thead><tr><th>Productor</th><th>Normal</th><th>Extra</th><th>Total</th></tr></thead><tbody>${prodRows}</tbody></table></div>
@@ -3777,6 +3797,7 @@ function renderStockTables(){
           <div class="owner-chart"><h3>VENTAS POR VENDEDOR</h3>${ownerBarRows(d.ventasRows,'total','sales',true)}</div>
           <div class="owner-chart"><h3>PRODUCCIÓN POR PRODUCTOR</h3>${ownerBarRows(d.prodRows,'total','prod',false)}</div>
         </div>
+        ${d.topTinaco ? `<div class="owner-top-tinaco"><div><strong>TINACO MÁS VENDIDO</strong><span>${escHtml(d.topTinaco.producto)}</span><small>${d.topTinacoEmpatados.length>1?'Empate en primer lugar · ':''}${d.tinacosVendidosTotal.toFixed(0)} tinacos vendidos en el periodo</small></div><div class="owner-top-track"><div class="owner-top-fill" style="width:${Math.max(2,d.topTinacoPct)}%"></div></div><div class="owner-top-value">${d.topTinaco.piezas.toFixed(0)}<small>PZAS · ${d.topTinacoPct.toFixed(0)}%</small></div></div>` : ''}
         <div class="owner-grid">
           <div><div class="section-title">VENTAS POR VENDEDOR</div><table class="owner-small-table"><thead><tr><th>VENDEDOR</th><th>PZAS</th><th>VENTA</th></tr></thead><tbody>${ventaTabla}</tbody></table></div>
           <div><div class="section-title">PRODUCCIÓN POR PRODUCTOR</div><table class="owner-small-table"><thead><tr><th>PRODUCTOR</th><th>NORMAL</th><th>EXTRA</th><th>TOTAL</th></tr></thead><tbody>${prodTabla}</tbody></table></div>
@@ -3978,6 +3999,14 @@ function renderStockTables(){
         .owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;page-break-inside:avoid}
         .owner-chart{border:1px solid #c6d6e8;border-radius:7px;padding:8px;background:#fff}
         .owner-chart h3{font-size:11px;margin:0 0 7px;color:#184c84}
+        .owner-top-tinaco{display:grid;grid-template-columns:minmax(0,1fr) 150px 76px;gap:8px;align-items:center;border:1px solid #b9cee6;border-radius:7px;padding:7px 9px;margin-top:8px;background:#f5f9ff;page-break-inside:avoid}
+        .owner-top-tinaco strong{display:block;font-size:7.5px;color:#5d6f82;letter-spacing:.25px}
+        .owner-top-tinaco span{display:block;font-size:11px;font-weight:900;color:#174d84;margin-top:2px;line-height:1.1}
+        .owner-top-tinaco small{display:block;font-size:7px;color:#66788b;margin-top:2px;font-weight:700}
+        .owner-top-track{height:12px;background:#fff;border:1px solid #d7e2ef;border-radius:999px;overflow:hidden}
+        .owner-top-fill{height:100%;background:#2d77ba;border-radius:999px;min-width:2px}
+        .owner-top-value{text-align:right;font-size:14px;font-weight:900;color:#174d84}
+        .owner-top-value small{font-size:6.8px}
         .owner-hbar{display:grid;grid-template-columns:74px 1fr 70px;gap:5px;align-items:center;margin:5px 0;font-size:8.5px}
         .owner-hbar .name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .owner-track{height:12px;border:1px solid #d6e0ec;background:#edf3f9;border-radius:99px;overflow:hidden}

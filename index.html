@@ -186,6 +186,26 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
     .pending-chip.mermas{background:#fff0f0;color:#b23737}
     .pending-chip.gastos{background:#f6efff;color:#6d3bb0}
 
+    /* --- Reportes gerenciales --- */
+    .gerencial-quick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px}
+    .gerencial-quick .btn{padding:10px 12px;font-size:12px}
+    .gerencial-status{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#eaf4ff;color:#0d4a89;border:1px solid #bdd8f8;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.35px}
+    .gerencial-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+    .gerencial-kpi{background:linear-gradient(180deg,#fff,#f6faff);border:1px solid #cbdcf1;border-radius:14px;padding:12px;min-width:0}
+    .gerencial-kpi strong{display:block;font-size:10px;color:#5e6e85;text-transform:uppercase;letter-spacing:.35px}
+    .gerencial-kpi span{display:block;margin-top:5px;font-size:19px;font-weight:900;color:#123f77;overflow-wrap:anywhere}
+    .gerencial-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+    .gerencial-mini-chart{border:1px solid #d8e5f4;border-radius:14px;background:#fff;padding:12px}
+    .gerencial-mini-chart h4{margin:0 0 10px;color:#174d84;font-size:13px}
+    .gerencial-hbar-row{display:grid;grid-template-columns:92px 1fr 88px;gap:8px;align-items:center;margin:7px 0;font-size:11px}
+    .gerencial-hbar-name{font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gerencial-hbar-track{height:18px;background:#edf3fa;border-radius:999px;overflow:hidden;border:1px solid #dce6f2}
+    .gerencial-hbar-fill{height:100%;background:linear-gradient(90deg,#1a73c9,#60adf3);border-radius:999px;min-width:2px}
+    .gerencial-hbar-fill.prod{background:linear-gradient(90deg,#cf7b16,#f3ac39)}
+    .gerencial-hbar-value{text-align:right;font-weight:900;color:#163f74}
+    .gerencial-reading{margin-top:12px;padding:12px 14px;border-radius:14px;background:#eef6ff;border:1px solid #c8ddf5;color:#173f70;font-size:12px;line-height:1.5}
+    @media (max-width: 900px){.gerencial-kpis{grid-template-columns:1fr 1fr}.gerencial-grid{grid-template-columns:1fr}}
+    @media (max-width: 680px){.gerencial-kpis{grid-template-columns:1fr}.gerencial-quick .btn{width:100%}}
     .print-hidden{}
     @media (max-width: 1024px){
       .app-shell{padding:10px;display:block}
@@ -344,11 +364,11 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         <button type="button" class="nav-btn active" data-tab="registro">📝 Diario</button>
         <button type="button" class="nav-btn" data-tab="bd">🗄️ Historial</button>
         <button type="button" class="nav-btn" data-tab="dashboard">📊 Gráficas</button>
-        <button type="button" class="nav-btn" data-tab="cortes">✂️ Cortes</button>
+        <button type="button" class="nav-btn" data-tab="cortes">📑 Cortes y Reportes</button>
         <button type="button" class="nav-btn" data-tab="inventario">📦 Inventario</button>
       </div>
       <div class="nav-hint">
-        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.<br><strong>BASE SEGURA PRE-REPORTES · 2026-08-08</strong>
+        Esta versión está pensada para que puedas operar desde PC y iPhone sin perder el flujo del negocio.<br><strong>CORTES + REPORTES GERENCIALES · 2026-08-08</strong>
       </div>
     </aside>
 
@@ -368,7 +388,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         <button type="button" class="mobile-tab active" data-tab="registro">📝 Diario</button>
         <button type="button" class="mobile-tab" data-tab="bd">🗄️ Historial</button>
         <button type="button" class="mobile-tab" data-tab="dashboard">📊 Gráficas</button>
-        <button type="button" class="mobile-tab" data-tab="cortes">✂️ Cortes</button>
+        <button type="button" class="mobile-tab" data-tab="cortes">📑 Cortes y Reportes</button>
         <button type="button" class="mobile-tab" data-tab="inventario">📦 Inventario</button>
       </div>
 
@@ -617,8 +637,38 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
 
       </section>
       <section id="tab-cortes" class="tab-panel">
+        <div class="card print-hidden section-accent">
+          <h3>📊 Reporte gerencial <span class="subtle">Resumen ejecutivo para dirección</span></h3>
+          <div class="mini-note">Elige el periodo. <strong>“Cómo va…”</strong> genera un avance hasta la fecha; los periodos anteriores se identifican como cierres. Siempre se usa <strong>FECHA DEL MOVIMIENTO</strong>.</div>
+          <div class="gerencial-quick">
+            <button type="button" class="btn btn-primary gerencial-period-btn" data-periodo="semana_actual">📈 Cómo va esta semana</button>
+            <button type="button" class="btn btn-secondary gerencial-period-btn" data-periodo="semana_anterior">📅 Semana anterior</button>
+            <button type="button" class="btn btn-primary gerencial-period-btn" data-periodo="mes_actual">📈 Cómo va este mes</button>
+            <button type="button" class="btn btn-secondary gerencial-period-btn" data-periodo="mes_anterior">🗓️ Mes anterior</button>
+          </div>
+          <div class="row">
+            <div class="form-group"><label>Mes histórico</label><input type="month" id="gerencialMes"></div>
+            <div class="form-group"><label>Desde</label><input type="date" id="gerencialDesde"></div>
+            <div class="form-group"><label>Hasta</label><input type="date" id="gerencialHasta"></div>
+          </div>
+          <div class="row" style="align-items:center">
+            <button type="button" class="btn btn-secondary" id="btnGerencialMes">📆 Usar mes elegido</button>
+            <button type="button" class="btn btn-secondary" id="btnGerencialRango">🎯 Usar rango personalizado</button>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800"><input type="checkbox" id="gerencialAnexo"> Incluir detalle de movimientos como anexo</label>
+          </div>
+          <div class="row" style="align-items:center;margin-top:4px">
+            <span class="gerencial-status" id="gerencialEstado">Sin periodo</span>
+            <button type="button" class="btn btn-primary" id="btnActualizarGerencial">🔄 Actualizar vista</button>
+            <button type="button" class="btn btn-success" id="btnPDFGerencial">🖨️ PDF ejecutivo para el dueño</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>👔 Vista ejecutiva <span class="subtle" id="gerencialPeriodoLabel">Selecciona un periodo</span></h3>
+          <div id="previewGerencial"><div class="mini-note">Aquí aparecerá el resumen de ventas, producción, gastos y gráficas.</div></div>
+        </div>
+
         <div class="card print-hidden">
-          <h3>✂️ Generador de cortes</h3>
+          <h3>✂️ Corte individual de vendedor <span class="subtle">Comisiones, gastos y firma</span></h3>
           <div class="row">
             <div class="form-group"><label>Vendedor</label><select id="vendedorCorte"></select></div>
             <div class="form-group"><label>Desde</label><input type="date" id="fechaDesde"></div>
@@ -3528,6 +3578,221 @@ function renderStockTables(){
     }
 
     function updateDateDefaults(){ $('fecha').value = hoyLocalISO(); $('invMensualFecha').value = hoyLocalISO(); $('pillDate').textContent = new Date().toLocaleDateString('es-MX'); syncSemanaDesdeFecha(); }
+    let gerencialModoActual = 'semana_actual';
+
+    function fechaISODateGerencial(d){
+      const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+    function clonarFechaGerencial(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+    function inicioSemanaGerencial(d){
+      const x=clonarFechaGerencial(d); const dow=x.getDay()===0?7:x.getDay(); x.setDate(x.getDate()-dow+1); return x;
+    }
+    function finSemanaNegocioGerencial(d){ const x=inicioSemanaGerencial(d); x.setDate(x.getDate()+5); return x; }
+    function ultimoDiaMesGerencial(y,m0){ return new Date(y,m0+1,0); }
+
+    function setGerencialPeriodo(modo){
+      const hoy=parseLocalDate(hoyLocalISO()) || new Date();
+      let desde=clonarFechaGerencial(hoy), hasta=clonarFechaGerencial(hoy), etiqueta='REPORTE';
+      gerencialModoActual=modo;
+      if(modo==='semana_actual'){
+        desde=inicioSemanaGerencial(hoy); hasta=clonarFechaGerencial(hoy); etiqueta='AVANCE SEMANAL';
+      } else if(modo==='semana_anterior'){
+        const base=inicioSemanaGerencial(hoy); base.setDate(base.getDate()-7); desde=clonarFechaGerencial(base); hasta=finSemanaNegocioGerencial(base); etiqueta='CIERRE SEMANAL';
+      } else if(modo==='mes_actual'){
+        desde=new Date(hoy.getFullYear(),hoy.getMonth(),1); hasta=clonarFechaGerencial(hoy); etiqueta='AVANCE MENSUAL';
+      } else if(modo==='mes_anterior'){
+        const y=hoy.getMonth()===0?hoy.getFullYear()-1:hoy.getFullYear(); const m=hoy.getMonth()===0?11:hoy.getMonth()-1;
+        desde=new Date(y,m,1); hasta=ultimoDiaMesGerencial(y,m); etiqueta='CIERRE MENSUAL';
+      }
+      $('gerencialDesde').value=fechaISODateGerencial(desde);
+      $('gerencialHasta').value=fechaISODateGerencial(hasta);
+      if($('gerencialMes')) $('gerencialMes').value=`${desde.getFullYear()}-${String(desde.getMonth()+1).padStart(2,'0')}`;
+      if($('gerencialEstado')) $('gerencialEstado').textContent=etiqueta;
+      renderGerencialPreview();
+    }
+
+    function setGerencialMesElegido(){
+      const val=$('gerencialMes')?.value; if(!val){ alert('Selecciona un mes.'); return; }
+      const [y,m]=val.split('-').map(Number); if(!y||!m){ alert('Mes inválido.'); return; }
+      const hoy=parseLocalDate(hoyLocalISO()) || new Date();
+      const desde=new Date(y,m-1,1); let hasta=ultimoDiaMesGerencial(y,m-1);
+      const esActual=(y===hoy.getFullYear() && m-1===hoy.getMonth());
+      if(esActual && hasta>hoy) hasta=clonarFechaGerencial(hoy);
+      $('gerencialDesde').value=fechaISODateGerencial(desde); $('gerencialHasta').value=fechaISODateGerencial(hasta);
+      gerencialModoActual=esActual?'mes_actual':'mes_historico';
+      $('gerencialEstado').textContent=esActual?'AVANCE MENSUAL':'CIERRE MENSUAL';
+      renderGerencialPreview();
+    }
+
+    function setGerencialRangoPersonalizado(){
+      const desde=$('gerencialDesde')?.value, hasta=$('gerencialHasta')?.value;
+      if(!parseLocalDate(desde) || !parseLocalDate(hasta) || desde>hasta){ alert('Revisa el rango de fechas.'); return; }
+      gerencialModoActual='rango'; $('gerencialEstado').textContent='REPORTE POR RANGO'; renderGerencialPreview();
+    }
+
+    function etiquetaGerencialPeriodo(desde,hasta){
+      const d1=parseLocalDate(desde), d2=parseLocalDate(hasta); if(!d1||!d2) return '';
+      if(desde===hasta) return formatFechaVisible(desde);
+      return `${formatFechaVisible(desde)} AL ${formatFechaVisible(hasta)}`;
+    }
+
+    function productoGerencial(r){
+      const tipo=String(r?.tipo||'').toUpperCase();
+      const cap=String(r?.capacidad||'').toUpperCase();
+      const col=String(r?.colorUI || extraerColorDesdeConcepto(r?.concepto) || '').toUpperCase();
+      let familia='PRODUCTO';
+      if(tipo.includes('TINACO')) familia='TINACO'; else if(tipo.includes('TAMBO')) familia='TAMBO'; else if(tipo.includes('MACETA')) familia='MACETA'; else if(tipo.includes('BANCO')) familia='BANCO';
+      const partes=[familia,cap,col].filter(Boolean);
+      return partes.join(' ').replace(/\s+/g,' ').trim() || String(r?.concepto||'PRODUCTO').trim().toUpperCase();
+    }
+
+    function buildGerencialData(){
+      const desde=$('gerencialDesde')?.value||'', hasta=$('gerencialHasta')?.value||'';
+      const d1=parseLocalDate(desde), d2=parseLocalDate(hasta);
+      if(!d1||!d2 || desde>hasta) return {error:'Selecciona un periodo válido.'};
+      const ini=d1.getTime(), fin=d2.getTime();
+      const registros=(state.movements||[]).filter(r=>{ const d=parseLocalDate(r?.fecha); if(!d) return false; const t=d.getTime(); return t>=ini && t<=fin; });
+      const ventas=registros.filter(esMovimientoConIngreso);
+      const produccion=registros.filter(r=>String(r?.tipo||'').toUpperCase().includes('PROD_'));
+      const gastos=registros.filter(r=>String(r?.tipo||'').toUpperCase()==='GASTO');
+      const ventasPor={}, prodPor={}, productos={}, prodProductos={};
+      let ventasTotal=0,piezasVendidas=0,produccionTotal=0,gastosTotal=0,cobrosConsignacion=0,prodNormal=0,prodExtra=0;
+      ventas.forEach(r=>{
+        const vend=String(r.vendedor||'SIN RESPONSABLE').toUpperCase(); const cant=parseFloat(r.cantidad)||0; const total=parseFloat(r.total)||0;
+        if(!ventasPor[vend]) ventasPor[vend]={nombre:vend,total:0,piezas:0,tin:0,tam:0,mac:0,ban:0};
+        ventasPor[vend].total+=total; ventasPor[vend].piezas+=cant; ventasTotal+=total; piezasVendidas+=cant;
+        const tipo=String(r.tipo||'').toUpperCase();
+        if(tipo.includes('TINACO')) ventasPor[vend].tin+=cant; else if(tipo.includes('TAMBO')) ventasPor[vend].tam+=cant; else if(tipo.includes('MACETA')) ventasPor[vend].mac+=cant; else if(tipo.includes('BANCO')) ventasPor[vend].ban+=cant;
+        if(tipo.includes('_COBRO') && String(r.concepto||'').toUpperCase().includes('CONSIGN')) cobrosConsignacion+=total;
+        const p=productoGerencial(r); if(!productos[p]) productos[p]={producto:p,piezas:0,total:0}; productos[p].piezas+=cant; productos[p].total+=total;
+      });
+      produccion.forEach(r=>{
+        const prod=String(r.vendedor||'SIN RESPONSABLE').toUpperCase(); const cant=parseFloat(r.cantidad)||0; const tipo=String(r.tipo||'').toUpperCase();
+        if(!prodPor[prod]) prodPor[prod]={nombre:prod,total:0,normal:0,extra:0,tin:0,tam:0,mac:0,ban:0};
+        prodPor[prod].total+=cant; produccionTotal+=cant;
+        if(tipo.includes('EXTRA')){prodPor[prod].extra+=cant;prodExtra+=cant;} else {prodPor[prod].normal+=cant;prodNormal+=cant;}
+        if(tipo.includes('TINACO')) prodPor[prod].tin+=cant; else if(tipo.includes('TAMBO')) prodPor[prod].tam+=cant; else if(tipo.includes('MACETA')) prodPor[prod].mac+=cant; else if(tipo.includes('BANCO')) prodPor[prod].ban+=cant;
+        const p=productoGerencial(r); prodProductos[p]=(prodProductos[p]||0)+cant;
+      });
+      gastos.forEach(r=>gastosTotal+=(parseFloat(r.total)||parseFloat(r.precio)||0));
+      const ventasRows=Object.values(ventasPor).sort((a,b)=>b.total-a.total);
+      const prodRows=Object.values(prodPor).sort((a,b)=>b.total-a.total);
+      const topProductos=Object.values(productos).sort((a,b)=>b.piezas-a.piezas || b.total-a.total).slice(0,7);
+      const topProdProductos=Object.entries(prodProductos).map(([producto,piezas])=>({producto,piezas})).sort((a,b)=>b.piezas-a.piezas).slice(0,7);
+      const liderVentas=ventasRows[0]||null, liderProd=prodRows[0]||null;
+      const ventasMenosGastos=ventasTotal-gastosTotal;
+      const estado=$('gerencialEstado')?.textContent||'REPORTE';
+      return {error:'',desde,hasta,periodo:etiquetaGerencialPeriodo(desde,hasta),estado,registros,ventas,produccion,gastos,ventasTotal,piezasVendidas,produccionTotal,gastosTotal,ventasMenosGastos,cobrosConsignacion,prodNormal,prodExtra,ventasRows,prodRows,topProductos,topProdProductos,liderVentas,liderProd};
+    }
+
+    function gerencialBarRows(rows, valueKey, kind, money=false){
+      const max=Math.max(0,...rows.map(r=>parseFloat(r[valueKey])||0));
+      if(!rows.length) return '<div class="subtle">Sin movimientos en el periodo.</div>';
+      return rows.map(r=>{ const v=parseFloat(r[valueKey])||0; const pct=max>0?Math.max(2,(v/max)*100):0; return `<div class="gerencial-hbar-row"><div class="gerencial-hbar-name">${escHtml(r.nombre)}</div><div class="gerencial-hbar-track"><div class="gerencial-hbar-fill ${kind==='prod'?'prod':''}" style="width:${pct}%"></div></div><div class="gerencial-hbar-value">${money?'$'+formato(v):v.toFixed(0)}</div></div>`; }).join('');
+    }
+
+    function lecturaGerencial(d){
+      const partes=[];
+      partes.push(`En el periodo se registraron <strong>$${formato(d.ventasTotal)}</strong> en ventas por <strong>${d.piezasVendidas.toFixed(0)} piezas</strong>.`);
+      if(d.liderVentas) partes.push(`El vendedor con mayor venta fue <strong>${escHtml(d.liderVentas.nombre)}</strong> con <strong>$${formato(d.liderVentas.total)}</strong>.`);
+      partes.push(`La producción fue de <strong>${d.produccionTotal.toFixed(0)} piezas</strong> (${d.prodNormal.toFixed(0)} normales y ${d.prodExtra.toFixed(0)} extras).`);
+      if(d.liderProd) partes.push(`El productor con mayor volumen fue <strong>${escHtml(d.liderProd.nombre)}</strong> con <strong>${d.liderProd.total.toFixed(0)} piezas</strong>.`);
+      partes.push(`Los gastos registrados fueron <strong>$${formato(d.gastosTotal)}</strong>.`);
+      return partes.join(' ');
+    }
+
+    function renderGerencialPreview(){
+      if(!$('previewGerencial')) return;
+      const d=buildGerencialData();
+      if(d.error){$('previewGerencial').innerHTML=`<div class="mini-note status-bad">${escHtml(d.error)}</div>`;return;}
+      $('gerencialPeriodoLabel').textContent=`${d.estado} · ${d.periodo}`;
+      const ventaRows=d.ventasRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td>${r.piezas.toFixed(0)}</td><td>$${formato(r.total)}</td></tr>`).join('')||'<tr><td colspan="3">Sin ventas</td></tr>';
+      const prodRows=d.prodRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td>${r.normal.toFixed(0)}</td><td>${r.extra.toFixed(0)}</td><td>${r.total.toFixed(0)}</td></tr>`).join('')||'<tr><td colspan="4">Sin producción</td></tr>';
+      const topRows=d.topProductos.map(r=>`<tr><td>${escHtml(r.producto)}</td><td>${r.piezas.toFixed(0)}</td><td>$${formato(r.total)}</td></tr>`).join('')||'<tr><td colspan="3">Sin ventas</td></tr>';
+      $('previewGerencial').innerHTML=`
+        <div class="gerencial-status">${escHtml(d.estado)} · ${escHtml(d.periodo)}</div>
+        <div class="gerencial-kpis">
+          <div class="gerencial-kpi"><strong>Ventas</strong><span>$${formato(d.ventasTotal)}</span></div>
+          <div class="gerencial-kpi"><strong>Piezas vendidas</strong><span>${d.piezasVendidas.toFixed(0)}</span></div>
+          <div class="gerencial-kpi"><strong>Producción</strong><span>${d.produccionTotal.toFixed(0)}</span></div>
+          <div class="gerencial-kpi"><strong>Gastos</strong><span>$${formato(d.gastosTotal)}</span></div>
+          <div class="gerencial-kpi"><strong>Ventas - gastos</strong><span>$${formato(d.ventasMenosGastos)}</span></div>
+        </div>
+        <div class="gerencial-reading"><strong>Lectura rápida:</strong> ${lecturaGerencial(d)}</div>
+        <div class="gerencial-grid">
+          <div class="gerencial-mini-chart"><h4>💰 Ventas por vendedor</h4>${gerencialBarRows(d.ventasRows,'total','sales',true)}</div>
+          <div class="gerencial-mini-chart"><h4>🏭 Producción por productor</h4>${gerencialBarRows(d.prodRows,'total','prod',false)}</div>
+        </div>
+        <div class="gerencial-grid">
+          <div class="table-wrap"><table class="db-table"><thead><tr><th>Vendedor</th><th>Pzas</th><th>Venta</th></tr></thead><tbody>${ventaRows}</tbody></table></div>
+          <div class="table-wrap"><table class="db-table"><thead><tr><th>Productor</th><th>Normal</th><th>Extra</th><th>Total</th></tr></thead><tbody>${prodRows}</tbody></table></div>
+        </div>
+        <div class="table-wrap" style="margin-top:14px"><table class="db-table"><thead><tr><th>Productos más vendidos</th><th>Pzas</th><th>Importe</th></tr></thead><tbody>${topRows}</tbody></table></div>`;
+    }
+
+    function ownerBarRows(rows,valueKey,kind,money=false){
+      const max=Math.max(0,...rows.map(r=>parseFloat(r[valueKey])||0));
+      if(!rows.length) return '<div class="soft-note">Sin movimientos.</div>';
+      return rows.map(r=>{const v=parseFloat(r[valueKey])||0;const pct=max>0?Math.max(2,(v/max)*100):0;return `<div class="owner-hbar"><div class="name">${escHtml(r.nombre)}</div><div class="owner-track"><div class="owner-fill ${kind==='prod'?'prod':''}" style="width:${pct}%"></div></div><div class="value">${money?'$'+formato(v):v.toFixed(0)}</div></div>`;}).join('');
+    }
+
+    function tablaDetalleGerencial(rows,cols){
+      if(!rows.length) return '<p class="soft-note">Sin movimientos.</p>';
+      return `<table class="report-long"><thead><tr>${cols.map(c=>`<th>${escHtml(c.t)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td class="${c.cls||''}">${c.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+
+    function generarPDFGerencial(){
+      const d=buildGerencialData(); if(d.error){alert(d.error);return;}
+      const ventaTabla=d.ventasRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td class="center">${r.piezas.toFixed(0)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('')||'<tr><td colspan="3">Sin ventas</td></tr>';
+      const prodTabla=d.prodRows.map(r=>`<tr><td>${escHtml(r.nombre)}</td><td class="center">${r.normal.toFixed(0)}</td><td class="center">${r.extra.toFixed(0)}</td><td class="center">${r.total.toFixed(0)}</td></tr>`).join('')||'<tr><td colspan="4">Sin producción</td></tr>';
+      const topTabla=d.topProductos.map(r=>`<tr><td>${escHtml(r.producto)}</td><td class="center">${r.piezas.toFixed(0)}</td><td class="right">$${formato(r.total)}</td></tr>`).join('')||'<tr><td colspan="3">Sin ventas</td></tr>';
+      let anexo='';
+      if($('gerencialAnexo')?.checked){
+        const ventasDetalle=tablaDetalleGerencial(d.ventas,[
+          {t:'FECHA',f:r=>escHtml(formatFechaVisible(r.fecha))},{t:'VENDEDOR',f:r=>escHtml(r.vendedor||'')},{t:'PRODUCTO',f:r=>escHtml(productoGerencial(r))},{t:'CANT.',cls:'center',f:r=>(parseFloat(r.cantidad)||0).toFixed(2)},{t:'P. UNI',cls:'right',f:r=>'$'+formato(parseFloat(r.precio)||0)},{t:'TOTAL',cls:'right',f:r=>'$'+formato(parseFloat(r.total)||0)}
+        ]);
+        const prodDetalle=tablaDetalleGerencial(d.produccion,[
+          {t:'FECHA',f:r=>escHtml(formatFechaVisible(r.fecha))},{t:'PRODUCTOR',f:r=>escHtml(r.vendedor||'')},{t:'MODALIDAD',f:r=>String(r.tipo||'').includes('EXTRA')?'EXTRA':'NORMAL'},{t:'PRODUCTO',f:r=>escHtml(productoGerencial(r))},{t:'CANT.',cls:'center',f:r=>(parseFloat(r.cantidad)||0).toFixed(2)}
+        ]);
+        const gastoDetalle=tablaDetalleGerencial(d.gastos,[
+          {t:'FECHA',f:r=>escHtml(formatFechaVisible(r.fecha))},{t:'RESPONSABLE',f:r=>escHtml(r.vendedor||'')},{t:'CONCEPTO',f:r=>escHtml(r.concepto||'')},{t:'IMPORTE',cls:'right',f:r=>'$'+formato(parseFloat(r.total)||parseFloat(r.precio)||0)}
+        ]);
+        anexo=`<div class="owner-page-break"><div class="center-title">ANEXO DETALLADO · ${escHtml(d.periodo)}</div><div class="section-title">VENTAS</div>${ventasDetalle}<div class="section-title">PRODUCCIÓN</div>${prodDetalle}<div class="section-title">GASTOS</div>${gastoDetalle}</div>`;
+      }
+      const html=`
+        <div class="center-title">REPORTE GERENCIAL PLASTINOVA</div>
+        <div class="owner-badge">${escHtml(d.estado)}</div>
+        <div class="owner-period">PERIODO: ${escHtml(d.periodo)}</div>
+        <div class="owner-cutoff">Información calculada exclusivamente con la FECHA DEL MOVIMIENTO registrada en la operación.</div>
+        <div class="owner-kpis">
+          <div class="owner-kpi"><strong>Ventas</strong><span>$${formato(d.ventasTotal)}</span></div>
+          <div class="owner-kpi"><strong>Piezas vendidas</strong><span>${d.piezasVendidas.toFixed(0)}</span></div>
+          <div class="owner-kpi"><strong>Producción</strong><span>${d.produccionTotal.toFixed(0)}</span></div>
+          <div class="owner-kpi"><strong>Gastos</strong><span>$${formato(d.gastosTotal)}</span></div>
+          <div class="owner-kpi"><strong>Ventas - gastos</strong><span>$${formato(d.ventasMenosGastos)}</span></div>
+        </div>
+        <div class="owner-reading"><strong>LECTURA RÁPIDA:</strong> ${lecturaGerencial(d)}</div>
+        <div class="owner-grid">
+          <div class="owner-chart"><h3>VENTAS POR VENDEDOR</h3>${ownerBarRows(d.ventasRows,'total','sales',true)}</div>
+          <div class="owner-chart"><h3>PRODUCCIÓN POR PRODUCTOR</h3>${ownerBarRows(d.prodRows,'total','prod',false)}</div>
+        </div>
+        <div class="owner-grid">
+          <div><div class="section-title">VENTAS POR VENDEDOR</div><table class="owner-small-table"><thead><tr><th>VENDEDOR</th><th>PZAS</th><th>VENTA</th></tr></thead><tbody>${ventaTabla}</tbody></table></div>
+          <div><div class="section-title">PRODUCCIÓN POR PRODUCTOR</div><table class="owner-small-table"><thead><tr><th>PRODUCTOR</th><th>NORMAL</th><th>EXTRA</th><th>TOTAL</th></tr></thead><tbody>${prodTabla}</tbody></table></div>
+        </div>
+        <div class="section-title">PRODUCTOS MÁS VENDIDOS</div>
+        <table class="owner-small-table"><thead><tr><th>PRODUCTO</th><th>PZAS</th><th>IMPORTE</th></tr></thead><tbody>${topTabla}</tbody></table>
+        <div class="report-note">Nota: “Ventas - gastos” es un control operativo del periodo; no representa utilidad contable porque no descuenta costo de materia prima, comisiones, impuestos ni otros costos.</div>
+        ${anexo}`;
+      printDocument(html, `REPORTE GERENCIAL · ${d.estado}`);
+    }
+
+    function initGerencialReportes(){
+      if(!$('gerencialDesde')) return;
+      setGerencialPeriodo('semana_actual');
+    }
+
     function updateCutDates(){ const v=$('vendedorCorte').value; let d=new Date(); let diaActual=d.getDay()===0?7:d.getDay(); let fIni=new Date(d), fFin=new Date(d); if(v==='ISIDRO'){ fIni.setDate(d.getDate()-diaActual-1); fFin.setDate(d.getDate()-diaActual+5); } else if(v==='OFELIA'){ fIni.setDate(d.getDate()-diaActual+2); fFin.setDate(d.getDate()-diaActual+7); } else { fIni.setDate(d.getDate()-diaActual+1); fFin.setDate(d.getDate()-diaActual+6); } $('fechaDesde').valueAsDate=fIni; $('fechaHasta').valueAsDate=fFin; previewCutSummary(); }
 
     function formatCutConcept(reg){
@@ -3702,6 +3967,25 @@ function renderStockTables(){
         table.report-long th,table.report-long td{font-size:9.5px;padding:4px 5px}
         .report-summary{margin-bottom:10px;page-break-inside:avoid}
         .report-note{font-size:10px;color:#516885;margin:8px 0 0;line-height:1.35}
+        .owner-badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#e7f1ff;color:#184c84;border:1px solid #b9d0ea;font-size:10px;font-weight:900;letter-spacing:.4px;text-transform:uppercase}
+        .owner-period{font-size:15px;font-weight:900;margin:8px 0 2px;color:#111}
+        .owner-cutoff{font-size:10px;color:#516885;margin-bottom:10px}
+        .owner-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:8px 0 10px;page-break-inside:avoid}
+        .owner-kpi{border:1px solid #bdd0e8;background:#f5f9ff;border-radius:8px;padding:8px;text-align:center}
+        .owner-kpi strong{display:block;font-size:8px;color:#536981;text-transform:uppercase;letter-spacing:.25px}
+        .owner-kpi span{display:block;font-size:16px;color:#174d84;font-weight:900;margin-top:4px}
+        .owner-reading{border:1px solid #c6d9ef;background:#eef6ff;border-radius:8px;padding:8px 10px;line-height:1.45;font-size:10.5px;margin:8px 0 10px;page-break-inside:avoid}
+        .owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;page-break-inside:avoid}
+        .owner-chart{border:1px solid #c6d6e8;border-radius:7px;padding:8px;background:#fff}
+        .owner-chart h3{font-size:11px;margin:0 0 7px;color:#184c84}
+        .owner-hbar{display:grid;grid-template-columns:74px 1fr 70px;gap:5px;align-items:center;margin:5px 0;font-size:8.5px}
+        .owner-hbar .name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .owner-track{height:12px;border:1px solid #d6e0ec;background:#edf3f9;border-radius:99px;overflow:hidden}
+        .owner-fill{height:100%;background:#2c6aa6;border-radius:99px;min-width:1px}
+        .owner-fill.prod{background:#d68a25}
+        .owner-hbar .value{text-align:right;font-weight:900}
+        .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
+        .owner-page-break{page-break-before:always}
       </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
       return true;
@@ -4143,7 +4427,7 @@ function nombreMesReporte(fecha){
 
     function renderAll(){ renderHistory(); renderDashboard(); renderStockTables(); previewCutSummary(); renderMonthlyClosures(); renderPendingEntries(); renderPriceEditor(); }
 
-    function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes') previewCutSummary(); }
+    function switchTab(tab){ document.querySelectorAll('.tab-panel').forEach(el=>el.classList.toggle('active', el.id===`tab-${tab}`)); document.querySelectorAll('.nav-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); document.querySelectorAll('.mobile-tab').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab)); if(tab==='inventario'){ updateMonthlyCategories(); renderStockTables(); } if(tab==='dashboard') renderDashboard(); if(tab==='bd') renderHistory(); if(tab==='cortes'){ previewCutSummary(); renderGerencialPreview(); } }
 
     function bindEvents(){
 // --- MAGIA: Convertir Inventario en Pestañas Desplegables ---
@@ -4180,6 +4464,13 @@ function nombreMesReporte(fecha){
       $('graficaFechaExacta')?.addEventListener('change', () => { if($('graficaMesExacto')) $('graficaMesExacto').value=''; renderDashboard(); });
       $('graficaMesExacto')?.addEventListener('change', () => { if($('graficaFechaExacta')) $('graficaFechaExacta').value=''; renderDashboard(); });
  $('capTinaco').addEventListener('change', updatePriceFields); $('tipoPrecioTinaco').addEventListener('change', updatePriceFields); $('capTambo').addEventListener('change', updatePriceFields); $('tipoPrecioTambo').addEventListener('change', updatePriceFields);
+      document.querySelectorAll('.gerencial-period-btn').forEach(btn=>btn.addEventListener('click',()=>setGerencialPeriodo(btn.dataset.periodo)));
+      $('btnGerencialMes')?.addEventListener('click', setGerencialMesElegido);
+      $('btnGerencialRango')?.addEventListener('click', setGerencialRangoPersonalizado);
+      $('btnActualizarGerencial')?.addEventListener('click', renderGerencialPreview);
+      $('btnPDFGerencial')?.addEventListener('click', generarPDFGerencial);
+      $('gerencialDesde')?.addEventListener('change', ()=>{ gerencialModoActual='rango'; $('gerencialEstado').textContent='REPORTE POR RANGO'; renderGerencialPreview(); });
+      $('gerencialHasta')?.addEventListener('change', ()=>{ gerencialModoActual='rango'; $('gerencialEstado').textContent='REPORTE POR RANGO'; renderGerencialPreview(); });
       $('tipoProdFabricado').addEventListener('change', updateCapProd); $('mermaCategoria').addEventListener('change', updateMermaProducts); $('vendedorCorte').addEventListener('change', updateCutDates); $('fechaDesde').addEventListener('change', previewCutSummary); $('fechaHasta').addEventListener('change', previewCutSummary); $('chkTinacos').addEventListener('change', previewCutSummary); $('chkTambos').addEventListener('change', previewCutSummary);
       $('invMensualUbicacion').addEventListener('change', updateMonthlyCategories); $('invMensualCategoria').addEventListener('change', loadMonthlyRows); $('btnCargarInventarioMensual').addEventListener('click', loadMonthlyRows); $('btnAgregarRenglonManual').addEventListener('click', addManualMonthlyRow);
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
@@ -4355,6 +4646,7 @@ function nombreMesReporte(fecha){
       state.inventoryCache = getInventoryCache();
       renderAll();
       updateCutDates();
+      initGerencialReportes();
 
       const nubeOk = await pingSupabase();
       if(nubeOk){

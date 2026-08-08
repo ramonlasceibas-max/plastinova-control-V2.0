@@ -485,6 +485,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             <button type="button" class="btn btn-primary" id="btnAplicarFiltroHistorial">🔎 Filtrar</button>
             <button type="button" class="btn btn-secondary" id="btnLimpiarFiltroHistorial">↺ Ver todos</button>
             <button type="button" class="btn btn-warning" id="btnImprimirHistorial">🖨️ Imprimir historial</button>
+            <button type="button" class="btn btn-secondary" id="btnDescargarRespaldo">💾 Descargar respaldo</button>
             <button type="button" class="btn btn-danger" id="btnBorrarTodoHistorial">🗑️ Borrar todo</button>
           </div>
           <div class="price-box">
@@ -545,12 +546,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             <div class="form-group"><label>Vendedor / Productor</label><select id="filtroVendedorGrafica"></select></div>
           </div>
           <div class="row">
-            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
-          </div>
-        </div>
-        <div class="stats">
-          <div class="row">
-            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte del periodo</button>
+            <button type="button" class="btn btn-success" id="btnReporteVentas">📄 Reporte de ventas</button>
+            <button type="button" class="btn btn-warning" id="btnReporteProduccion">🏭 Reporte producción + MP</button>
+            <button type="button" class="btn btn-primary" id="btnImprimirReportePro">🖨️ Reporte operativo completo</button>
           </div>
         </div>
         <div class="stats">
@@ -567,7 +565,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         <div class="card" style="margin-top: 16px;">
           <div class="row print-hidden" style="justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <h3 style="margin:0;">⚙️ Historial Detallado de Producción</h3>
-            <button type="button" class="btn btn-secondary" id="btnImprimirDetalleProd">🖨️ Imprimir / PDF de Producción</button>
+            <button type="button" class="btn btn-secondary" id="btnImprimirDetalleProd">🖨️ Reporte producción + materia prima</button>
           </div>
           <div class="grid-2">
             <div>
@@ -733,7 +731,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       APRIL_BASELINE_SYNC: 'plastinova_seed_baseline_20260401_sync_v1',
       APRIL_BASELINE_VERSION: 'plastinova_seed_baseline_20260401_version_v1',
       APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2',
-      PRICE_SETTINGS: 'plastinova_price_settings_v1'
+      PRICE_SETTINGS: 'plastinova_price_settings_v1',
+      BACKUP_MOVS: 'plastinova_backup_movimientos_ultimo_v1',
+      IMPORT_FINGERPRINTS: 'plastinova_import_fingerprints_v1'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -1058,10 +1058,87 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
     function getNumeroSemana(fechaInput){ const d=parseLocalDate(fechaInput); if(!d||isNaN(d.getTime())) return 0; d.setHours(0,0,0,0); let diaSemana=d.getDay()||7; d.setDate(d.getDate()+4-diaSemana); const yearStart=new Date(d.getFullYear(),0,1); return Math.ceil((((d-yearStart)/86400000)+1)/7); }
     function syncSemanaDesdeFecha(){ $('semana').value = getNumeroSemana($('fecha').value || hoyLocalISO()); }
     function enviarNube(registro){ fetch(URL_GOOGLE_SHEETS,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(registro)}).catch(()=>{}); }
-    function getMovements(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVS)) || JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVS_LEGACY)) || []; }
-    function saveMovements(db){ localStorage.setItem(STORAGE_KEYS.MOVS, JSON.stringify(db)); localStorage.setItem(STORAGE_KEYS.MOVS_LEGACY, JSON.stringify(db)); }
 
-    
+    function safeJSONParse(raw, fallback=null, etiqueta='dato local'){
+      if(raw===null || raw===undefined || raw==='') return fallback;
+      try { const parsed = JSON.parse(raw); return parsed===null ? fallback : parsed; }
+      catch(err){ console.warn(`No se pudo leer ${etiqueta}; se usará el respaldo disponible.`, err); return fallback; }
+    }
+    function readLocalJSON(key, fallback=null){ return safeJSONParse(localStorage.getItem(key), fallback, key); }
+    function writeLocalJSON(key, value){
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch(err){ console.error(`No se pudo guardar ${key}.`, err); return false; }
+    }
+    function getMovements(){
+      const principal = readLocalJSON(STORAGE_KEYS.MOVS, null);
+      if(Array.isArray(principal)) return principal;
+      const legacy = readLocalJSON(STORAGE_KEYS.MOVS_LEGACY, null);
+      return Array.isArray(legacy) ? legacy : [];
+    }
+    function saveMovements(db){
+      const data = Array.isArray(db) ? db : [];
+      const okPrincipal = writeLocalJSON(STORAGE_KEYS.MOVS, data);
+      const okLegacy = writeLocalJSON(STORAGE_KEYS.MOVS_LEGACY, data);
+      if(!okPrincipal && !okLegacy) alert('No fue posible guardar el historial en este dispositivo. Revisa el espacio disponible del navegador antes de continuar.');
+      return okPrincipal || okLegacy;
+    }
+    function crearRespaldoLocalMovimientos(motivo='RESPALDO'){
+      try{
+        const respaldo = { version:1, creadoEn:new Date().toISOString(), motivo, movimientos:[...(state?.movements || getMovements())] };
+        return writeLocalJSON(STORAGE_KEYS.BACKUP_MOVS, respaldo);
+      }catch(err){ console.warn('No se pudo crear el respaldo local.', err); return false; }
+    }
+    function descargarRespaldoCompleto(){
+      try{
+        const payload = {
+          formato:'PLASTINOVA_RESPALDO_V1',
+          generadoEn:new Date().toISOString(),
+          movimientos:[...(state?.movements || getMovements())],
+          stock:{...(state?.stock || getStockCache())},
+          inventario:Array.isArray(state?.inventoryCache) ? state.inventoryCache : getInventoryCache(),
+          cierres:getMonthlyDrafts(),
+          precios:readLocalJSON(STORAGE_KEYS.PRICE_SETTINGS, null)
+        };
+        const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = hoyLocalISO().replaceAll('-','');
+        a.href = url; a.download = `PLASTINOVA_RESPALDO_${stamp}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      }catch(err){ console.error(err); alert('No se pudo generar el archivo de respaldo.'); }
+    }
+    function hashTextoSimple(texto){
+      let h = 2166136261;
+      const s = String(texto||'');
+      for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return (h>>>0).toString(16).padStart(8,'0') + '-' + s.length;
+    }
+    function getImportFingerprints(){ const v=readLocalJSON(STORAGE_KEYS.IMPORT_FINGERPRINTS, []); return Array.isArray(v)?v:[]; }
+    function registrarImportFingerprint(hash, nombre, cantidad){
+      const prev = getImportFingerprints().filter(x=>x && x.hash!==hash);
+      prev.unshift({hash,nombre:String(nombre||''),cantidad:parseInt(cantidad)||0,fecha:new Date().toISOString()});
+      writeLocalJSON(STORAGE_KEYS.IMPORT_FINGERPRINTS, prev.slice(0,30));
+    }
+    function claveMovimientoImportado(r){
+      return [
+        String(r?.fecha||''), textoSeguro(r?.vendedor||''), String(r?.tipo||'').toUpperCase(), normalizarTextoClave(r?.concepto||''),
+        Number(parseFloat(r?.cantidad)||0).toFixed(4), Number(parseFloat(r?.precio)||0).toFixed(2), Number(parseFloat(r?.total)||0).toFixed(2),
+        String(r?.capacidad||'').toUpperCase(), normalizarTextoClave(r?.colorUI||'')
+      ].join('|');
+    }
+    function separarDuplicadosProbables(incoming, existentes){
+      const disponibles = new Map();
+      (existentes||[]).forEach(r=>{ const k=claveMovimientoImportado(r); disponibles.set(k,(disponibles.get(k)||0)+1); });
+      const usados = new Map(); const nuevos=[]; const duplicados=[];
+      (incoming||[]).forEach(r=>{
+        const k=claveMovimientoImportado(r), usadosK=(usados.get(k)||0), ya=(disponibles.get(k)||0);
+        usados.set(k, usadosK+1);
+        if(usadosK < ya) duplicados.push(r); else nuevos.push(r);
+      });
+      return {nuevos, duplicados};
+    }
+
     function parseCSVLineSafe(line, delimiter=','){
       const out=[]; let cur=''; let inQuotes=false;
       for(let i=0;i<line.length;i++){
@@ -1185,6 +1262,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       const concepto = String(getRawValue(raw,['concepto','Concepto','descripcion','Descripción'])).trim().toUpperCase();
       const capacidad = String(getRawValue(raw,['capacidad','Capacidad'])).trim().toUpperCase() || null;
       const colorUI = String(getRawValue(raw,['colorUI','color','Color'])).trim().toUpperCase() || null;
+      const idImportado = String(getRawValue(raw,['id','ID','Id'])).trim();
+      const incluyeRaw = getRawValue(raw,['incluyeAccesorios','INCLUYEACCESORIOS','accesorios','ACCESORIOS']);
+      const incluyeAccesorios = String(incluyeRaw).trim()==='' ? true : !['FALSE','0','NO','N'].includes(String(incluyeRaw).trim().toUpperCase());
 
       if(!vendedor) vendedor = 'SISTEMA';
       tipo = normalizeImportedType(rawTipo, concepto, capacidad);
@@ -1195,7 +1275,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       if(!getRawValue(raw,['movimiento','Movimiento','tipo','Tipo']) && !cantidad && !precio && !total && coloresSueltos.includes(conceptNorm)) return null;
 
       return {
-        id: Date.now()+Math.random().toString(36).slice(2),
+        id: idImportado || (Date.now()+Math.random().toString(36).slice(2)),
         fecha,
         semana:getNumeroSemana(fecha),
         vendedor,
@@ -1205,47 +1285,82 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         precio,
         total,
         capacidad,
-        colorUI
+        colorUI,
+        incluyeAccesorios
       };
     }
 
     async function importHistoryFile(file, mode='agregar'){
       if(!file){ alert('Selecciona un archivo CSV o JSON.'); return; }
-      const txt = await file.text();
-      let incoming=[];
-      if(file.name.toLowerCase().endsWith('.json')){
-        const parsed = JSON.parse(txt);
-        incoming = (Array.isArray(parsed)?parsed:(parsed.data||parsed.movimientos||[]))
-          .map(normalizeImportedMovement).filter(Boolean);
-      } else {
-        const cleanTxt = txt.replace(/^\ufeff/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-        const lines = cleanTxt.split('\n').filter(line => String(line).trim() !== '');
-        if(!lines.length) return alert('El archivo está vacío.');
-        const delimiter = detectDelimiter(lines[0]);
-        const headers = parseCSVLineSafe(lines[0], delimiter);
-        incoming = lines.slice(1).map(line=>{
-          const vals=parseCSVLineSafe(line, delimiter);
-          const obj={};
-          headers.forEach((h,i)=>obj[h]=vals[i]??'');
-          return normalizeImportedMovement(obj);
-        }).filter(Boolean);
+      let txt='';
+      try { txt = await file.text(); }
+      catch(err){ console.error(err); alert('No se pudo leer el archivo seleccionado.'); return; }
+
+      const fingerprint = hashTextoSimple(txt);
+      if(mode!=='reemplazar'){
+        const previo = getImportFingerprints().find(x=>x && x.hash===fingerprint);
+        if(previo){
+          const repetir = confirm(`Este mismo archivo ya fue importado${previo.fecha ? ` el ${new Date(previo.fecha).toLocaleString('es-MX')}` : ''}.\n\nVolver a importarlo puede duplicar movimientos.\n\n¿Deseas continuar de todos modos?`);
+          if(!repetir) return;
+        }
       }
+
+      let incoming=[];
+      try{
+        if(file.name.toLowerCase().endsWith('.json')){
+          const parsed = JSON.parse(txt);
+          incoming = (Array.isArray(parsed)?parsed:(parsed.data||parsed.movimientos||[]))
+            .map(normalizeImportedMovement).filter(Boolean);
+        } else {
+          const cleanTxt = txt.replace(/^\ufeff/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+          const lines = cleanTxt.split('\n').filter(line => String(line).trim() !== '');
+          if(!lines.length) return alert('El archivo está vacío.');
+          const delimiter = detectDelimiter(lines[0]);
+          const headers = parseCSVLineSafe(lines[0], delimiter);
+          incoming = lines.slice(1).map(line=>{
+            const vals=parseCSVLineSafe(line, delimiter);
+            const obj={};
+            headers.forEach((h,i)=>obj[h]=vals[i]??'');
+            return normalizeImportedMovement(obj);
+          }).filter(Boolean);
+        }
+      }catch(err){ console.error(err); alert('El archivo no tiene un formato válido o está dañado. No se modificó el historial.'); return; }
+
       if(!incoming.length) return alert('No se encontraron movimientos válidos.');
       const base = mode==='reemplazar' ? [] : getMovements();
-      const merged = ordenarDBCronologicamente([...base, ...incoming]);
+      let aImportar = incoming;
+      let omitidos = 0;
+
+      if(mode!=='reemplazar' && base.length){
+        const revision = separarDuplicadosProbables(incoming, base);
+        if(revision.duplicados.length){
+          const omitir = confirm(`Se detectaron ${revision.duplicados.length} movimiento(s) que coinciden con registros existentes.\n\nAceptar = OMITIR esas coincidencias probables.\nCancelar = importar todos como antes.`);
+          if(omitir){ aImportar = revision.nuevos; omitidos = revision.duplicados.length; }
+        }
+      }
+
+      if(mode==='reemplazar' || aImportar.length) crearRespaldoLocalMovimientos(mode==='reemplazar' ? 'ANTES_DE_REEMPLAZAR_IMPORTACION' : 'ANTES_DE_IMPORTAR');
+      if(!aImportar.length){
+        registrarImportFingerprint(fingerprint, file.name, incoming.length);
+        alert(`No se agregaron movimientos. Se omitieron ${omitidos} coincidencia(s) probable(s).`);
+        return;
+      }
+
+      const merged = ordenarDBCronologicamente([...base, ...aImportar]);
       saveMovements(merged);
       state.movements = merged;
       reconstructStockFromMovements(merged);
       renderAll();
-      incoming.forEach(reg=>{ try{ enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); }catch(_e){} });
-      alert(`Importación completada: ${incoming.length} movimientos.`);
+      aImportar.forEach(reg=>{ try{ enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); }catch(_e){} });
+      registrarImportFingerprint(fingerprint, file.name, incoming.length);
+      alert(`Importación completada: ${aImportar.length} movimiento(s) agregado(s)${omitidos ? `; ${omitidos} coincidencia(s) omitida(s)` : ''}.`);
     }
-function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.STOCK)) || JSON.parse(localStorage.getItem(STORAGE_KEYS.STOCK_LEGACY)) || {}; }
-    function saveStockCache(stock){ localStorage.setItem(STORAGE_KEYS.STOCK, JSON.stringify(stock)); localStorage.setItem(STORAGE_KEYS.STOCK_LEGACY, JSON.stringify(stock)); }
-    function getInventoryCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.INVENTORY_CACHE)) || []; }
-    function saveInventoryCache(rows){ localStorage.setItem(STORAGE_KEYS.INVENTORY_CACHE, JSON.stringify(rows||[])); }
-    function getMonthlyDrafts(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.MONTHLY_DRAFTS)) || []; }
-    function saveMonthlyDrafts(rows){ localStorage.setItem(STORAGE_KEYS.MONTHLY_DRAFTS, JSON.stringify(rows||[])); }
+function getStockCache(){ const v=readLocalJSON(STORAGE_KEYS.STOCK, null); if(v && typeof v==='object' && !Array.isArray(v)) return v; const legacy=readLocalJSON(STORAGE_KEYS.STOCK_LEGACY, null); return legacy && typeof legacy==='object' && !Array.isArray(legacy) ? legacy : {}; }
+    function saveStockCache(stock){ writeLocalJSON(STORAGE_KEYS.STOCK, stock||{}); writeLocalJSON(STORAGE_KEYS.STOCK_LEGACY, stock||{}); }
+    function getInventoryCache(){ const v=readLocalJSON(STORAGE_KEYS.INVENTORY_CACHE, []); return Array.isArray(v) ? v : []; }
+    function saveInventoryCache(rows){ writeLocalJSON(STORAGE_KEYS.INVENTORY_CACHE, Array.isArray(rows)?rows:[]); }
+    function getMonthlyDrafts(){ const v=readLocalJSON(STORAGE_KEYS.MONTHLY_DRAFTS, []); return Array.isArray(v) ? v : []; }
+    function saveMonthlyDrafts(rows){ writeLocalJSON(STORAGE_KEYS.MONTHLY_DRAFTS, Array.isArray(rows)?rows:[]); }
     function ordenarDBCronologicamente(db){ return db.map((r,idx)=>({...r,_ord:idx})).sort((a,b)=>{ const ta=fechaOrdenValor(a.fecha); const tb=fechaOrdenValor(b.fecha); if(ta!==tb) return ta-tb; return a._ord-b._ord; }).map(({_ord,...r})=>r); }
     function getTipoAmigable(tipo){ const m={ 'VENTA_TINACO':'VENTA','VENTA_TINACO_COBRO':'COBRO CONSIG.','TRASPASO_TINACO':'TRASPASO','TRASPASO_TINACO_COBRO':'COBRO SUC.','VENTA_TAMBO':'VENTA','VENTA_TAMBO_COBRO':'COBRO CONSIG.','TRASPASO_TAMBO':'TRASPASO','TRASPASO_TAMBO_COBRO':'COBRO SUC.','PROD_NORMAL_TINACO':'PROD. TINACO','PROD_NORMAL_TAMBO':'PROD. TAMBO','PROD_NORMAL_MACETA':'PROD. MACETA','PROD_EXTRA_TINACO':'EXT. TINACO','PROD_EXTRA_TAMBO':'EXT. TAMBO','PROD_EXTRA_MACETA':'EXT. MACETA','PROD_NORMAL_BANCO':'PROD. BANCO','PROD_EXTRA_BANCO':'EXT. BANCO','GASTO':'GASTO','COMPRA':'COMPRA','INVENTARIO_FISICO':'AUDITORIA','MERMA':'MERMA' }; return m[tipo] || tipo; }
     function esMovimientoConIngreso(r){ const tipo=String(r?.tipo||'').trim(); const concepto=String(r?.concepto||'').toUpperCase(); if(concepto.includes('ENTREGA CONSIGNACIÓN')) return false; if(concepto.includes('TRASPASO SUCURSAL')) return false; if(concepto.includes('GARANTÍA')) return false; return ['VENTA_TINACO','VENTA_TINACO_COBRO','VENTA_TAMBO','VENTA_TAMBO_COBRO','TRASPASO_TINACO_COBRO','TRASPASO_TAMBO_COBRO'].includes(tipo); }
@@ -1255,33 +1370,45 @@ function getStockCache(){ return JSON.parse(localStorage.getItem(STORAGE_KEYS.ST
     function normalizarColorUI(color){ const buscado=normalizarTextoClave(color); if(!buscado) return null; return COLORES_UI_DETECTABLES.find(c=>normalizarTextoClave(c)===buscado) || color; }
 
     function obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI){
-      let consumo = {};
+      const consumo = {};
+      tipoMovimiento = String(tipoMovimiento||'').toUpperCase();
+      capacidad = String(capacidad||'').toUpperCase();
       colorUI = normalizarColorUI(colorUI);
       const mapeoColor = { 'NEGRO': 'ROTOLENE NEGRO - BLACK', 'BEIGE': 'ROTOLENE BEIGE', 'AZUL': 'ROTOLENE AZUL #5', 'VERDE': 'ROTOLENE VERDE #15', 'NATURAL': 'ROTOLENE NATURAL', 'NARANJA': 'ROTOLENE NARANJA II', 'CAFÉ': 'ROTOLENE CAFÉ', 'BLANCO': 'ROTOLENE BLANCO', 'ROJO': 'ROTOLENE ROJO 14', 'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.' };
-      let matColorBase = mapeoColor[colorUI] || `ROTOLENE ${colorUI}`;
+      const matColorBase = mapeoColor[colorUI] || (colorUI ? `ROTOLENE ${colorUI}` : null);
+      const sumar = (material, cantidad) => {
+        if(!material) return;
+        const q = parseFloat(cantidad) || 0;
+        if(!q) return;
+        consumo[material] = (parseFloat(consumo[material]) || 0) + q;
+      };
+
       if (!tipoMovimiento.includes('_COBRO') && (tipoMovimiento.includes('VENTA') || tipoMovimiento.includes('TRASPASO'))) {
-        if (tipoMovimiento.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => consumo[m] = 1);
-        else if (tipoMovimiento.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => consumo[m] = 1);
+        if (tipoMovimiento.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => sumar(m,1));
+        else if (tipoMovimiento.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => sumar(m,1));
       } else if (tipoMovimiento.includes('PROD_')) {
         const ignorar = ['GRANITO BEIGE','GRANITO','DUVALIN','TERRACOTA','MENTA','PISTACHE','UVA','MELON','OXFORD'];
         if (!ignorar.includes(colorUI)) {
-          if (capacidad === '1200LT') { consumo[matColorBase] = 6; consumo['ROTOFOAM NEGRO AR'] = 5; consumo['ROTOLENE BLANCO'] = 5; }
-          else if (capacidad === '1100LT') { consumo[matColorBase] = 5; consumo['ROTOFOAM NEGRO AR'] = 5; consumo['ROTOLENE BLANCO'] = 4; }
-          else if (capacidad === '750LT') { consumo[matColorBase] = 4.5; consumo['ROTOFOAM NEGRO AR'] = 4; consumo['ROTOLENE BLANCO'] = 3; }
+          // Se SUMA cada capa de la receta. Esto evita que, por ejemplo, un tinaco BLANCO
+          // reemplace la primera carga de Rotolene blanco con la segunda.
+          if (capacidad === '1200LT') { sumar(matColorBase,6); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',5); }
+          else if (capacidad === '1100LT') { sumar(matColorBase,5); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',4); }
+          else if (capacidad === '750LT') { sumar(matColorBase,4.5); sumar('ROTOFOAM NEGRO AR',4); sumar('ROTOLENE BLANCO',3); }
           else if (capacidad === '235LT') {
-            if (colorUI.includes('CON BLANCO')) { let cPrimario = colorUI.split(' ')[0]; consumo['ROTOLENE BLANCO'] = 0.65; consumo[mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`] = 1.35; consumo['ROTOFOAM BLANCO AR'] = 2.5; }
-            else { consumo[matColorBase] = 2; consumo['ROTOFOAM BLANCO AR'] = 2.5; }
-          } else if (capacidad === 'GRANDE' || capacidad === 'CHICA') {
-            let isCombinada = colorUI.includes('CON BLANCO') || colorUI === 'MELON';
-            let cPrimario = colorUI.split(' ')[0];
-            let rotoleneSuelto = mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`;
-            consumo['ROTOFOAM BLANCO AR'] = 1.0;
+            if (String(colorUI||'').includes('CON BLANCO')) { const cPrimario = String(colorUI).split(' ')[0]; sumar('ROTOLENE BLANCO',0.65); sumar(mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`,1.35); sumar('ROTOFOAM BLANCO AR',2.5); }
+            else { sumar(matColorBase,2); sumar('ROTOFOAM BLANCO AR',2.5); }
+          } else if (capacidad === 'GRANDE' || capacidad === 'CHICA' || capacidad === 'CHICO') {
+            // MACETA usa CHICA; BANCO usa CHICO. Ambos comparten la receta pequeña existente.
+            const isCombinada = String(colorUI||'').includes('CON BLANCO') || colorUI === 'MELON';
+            const cPrimario = String(colorUI||'').split(' ')[0];
+            const rotoleneSuelto = mapeoColor[cPrimario] || (cPrimario ? `ROTOLENE ${cPrimario}` : null);
+            sumar('ROTOFOAM BLANCO AR',1.0);
             if (capacidad === 'GRANDE') {
-              if (isCombinada) { consumo[rotoleneSuelto] = 1.35; consumo['ROTOLENE BLANCO'] = 0.65; }
-              else { consumo[matColorBase] = 2.0; }
+              if (isCombinada) { sumar(rotoleneSuelto,1.35); sumar('ROTOLENE BLANCO',0.65); }
+              else sumar(matColorBase,2.0);
             } else {
-              if (isCombinada) { consumo[rotoleneSuelto] = 0.675; consumo['ROTOLENE BLANCO'] = 0.325; }
-              else { consumo[matColorBase] = 1.0; }
+              if (isCombinada) { sumar(rotoleneSuelto,0.675); sumar('ROTOLENE BLANCO',0.325); }
+              else sumar(matColorBase,1.0);
             }
           }
         }
@@ -1745,14 +1872,6 @@ async function pingSupabase(){
       return [textoSeguro(item.ubicacion),textoSeguro(item.categoria),textoSeguro(item.producto),textoSeguro(item.tipo),textoSeguro(item.medida),textoSeguro(item.color),textoSeguro(item.unidad)].join('|');
     }
 
-    async function loadInventoryCacheFromSupabase(){
-      if(!supabaseClient) { state.inventoryCache = getInventoryCache(); return state.inventoryCache; }
-      const { data, error } = await supabaseClient.from('inventario').select('*').order('ubicacion').order('categoria').order('producto');
-      if(error){ state.inventoryCache = getInventoryCache(); return state.inventoryCache; }
-      state.inventoryCache = data || [];
-      saveInventoryCache(state.inventoryCache);
-      return state.inventoryCache;
-    }
 async function loadInventoryCacheFromSupabase(){
       if(!supabaseClient) { state.inventoryCache = getInventoryCache(); return state.inventoryCache; }
       try {
@@ -2634,12 +2753,12 @@ function renderBarMeta(chips, kind='sales'){
           if(!detalleProd[prodKey]) detalleProd[prodKey] = { productor, producto: fgName, cant: 0 };
           detalleProd[prodKey].cant += cant;
 
-          if (movimientoConsumeMateriaPrima(r)) {
-            const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
-            Object.keys(receta).forEach(mat => {
-              consumoMP[mat] = (consumoMP[mat] || 0) + ((parseFloat(receta[mat]) || 0) * cant);
-            });
-          }
+          // Vista gerencial: estimación por receta para cualquier periodo histórico.
+          // El corte FECHA_BASE_MATERIA_PRIMA se conserva únicamente para afectar inventario.
+          const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+          Object.keys(receta).forEach(mat => {
+            consumoMP[mat] = (consumoMP[mat] || 0) + ((parseFloat(receta[mat]) || 0) * cant);
+          });
         }
       });
 
@@ -2876,10 +2995,41 @@ function renderStockTables(){
       alert(`Entrada sumada al stock. Registrado: ${cant} ${conceptoUnidad}${unidad.startsWith('BULTO') ? ` = ${cantidadReal.toFixed(2)} KG` : ''}.`);
     }
 
-    function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; const removed = state.movements.find(x=>String(x.id)===String(id)); state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); if(removed){ enviarNube({...removed, tipo:`BORRADO_${removed.tipo||''}`}); syncOperationalMovementToSupabase(removed,'DELETE'); } reconstructStockFromMovements(state.movements); renderAll(); }
+    function deleteHistoryMovement(id){ if(!confirm('¿Borrar este movimiento?')) return; const removed = state.movements.find(x=>String(x.id)===String(id)); if(!removed) return; crearRespaldoLocalMovimientos('ANTES_DE_BORRAR_MOVIMIENTO'); state.movements = state.movements.filter(x=>String(x.id)!==String(id)); saveMovements(state.movements); enviarNube({...removed, tipo:`BORRADO_${removed.tipo||''}`}); syncOperationalMovementToSupabase(removed,'DELETE'); reconstructStockFromMovements(state.movements); renderAll(); }
     function editStockPrompt(material, actualVal, unidad){ let v=prompt(`Stock actual de ${material}: ${actualVal} ${unidad}.\nIngresa la nueva cantidad exacta:`, actualVal); if(v===null) return; const nuevo=parseFloat(v); if(isNaN(nuevo)||nuevo<0) return alert('Valor inválido.'); addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL)`, cantidad:nuevo, precio:0, total:0, capacidad:null, colorUI:material }); }
     function deleteStockPrompt(material){ if(!confirm(`¿Borrar ${material} del inventario operativo dejándolo en cero?`)) return; addMovementToDB({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (AJUSTE MANUAL A 0)`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material }); }
-    function resetearStock(){ if(!confirm('¿Poner todo el stock operativo en cero?')) return; Object.keys(state.stock).forEach(material=>{ const actual=parseFloat(state.stock[material])||0; if(actual!==0){ state.movements.push({ id:Date.now()+Math.random(), fecha:$('fecha').value||hoyLocalISO(), semana:getNumeroSemana($('fecha').value||hoyLocalISO()), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (RESETEADO A 0 DESDE ${actual})`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material }); } }); state.movements = ordenarDBCronologicamente(state.movements); saveMovements(state.movements); reconstructStockFromMovements(state.movements); renderAll(); }
+    function resetearStock(){
+      const materiales = Object.keys(state.stock||{}).filter(material=>(parseFloat(state.stock[material])||0)!==0);
+      if(!materiales.length) return alert('El stock operativo ya está en cero.');
+      if(!confirm(`¿Poner todo el stock operativo en cero?\n\nSe crearán ${materiales.length} movimiento(s) de auditoría y se conservará un respaldo local previo.`)) return;
+      crearRespaldoLocalMovimientos('ANTES_DE_RESETEAR_STOCK');
+      const fecha = $('fecha').value||hoyLocalISO();
+      const ajustes = materiales.map(material=>{
+        const actual=parseFloat(state.stock[material])||0;
+        return { id:Date.now()+Math.random().toString(36).slice(2), fecha, semana:getNumeroSemana(fecha), vendedor:'AJUSTE_MANUAL', tipo:'INVENTARIO_FISICO', concepto:`REAL: ${material} (RESETEADO A 0 DESDE ${actual})`, cantidad:0, precio:0, total:0, capacidad:null, colorUI:material };
+      });
+      state.movements.push(...ajustes);
+      state.movements = ordenarDBCronologicamente(state.movements);
+      saveMovements(state.movements);
+      ajustes.forEach(reg=>{ try{ enviarNube(reg); syncOperationalMovementToSupabase(reg,'UPSERT'); }catch(_e){} });
+      reconstructStockFromMovements(state.movements);
+      renderAll();
+      alert(`Stock reseteado. Se registraron ${ajustes.length} movimiento(s) de auditoría.`);
+    }
+
+    function borrarTodoHistorialSeguro(){
+      const total = (state.movements||[]).length;
+      if(!total) return alert('El historial ya está vacío.');
+      if(!confirm(`Vas a borrar ${total} movimiento(s) del historial local.\n\nAntes se guardará un respaldo local automático. ¿Deseas continuar?`)) return;
+      const verificacion = prompt('Para confirmar, escribe BORRAR:','');
+      if(String(verificacion||'').trim().toUpperCase()!=='BORRAR') return alert('Operación cancelada. No se borró ningún movimiento.');
+      crearRespaldoLocalMovimientos('ANTES_DE_BORRAR_TODO_HISTORIAL');
+      state.movements=[];
+      saveMovements([]);
+      reconstructStockFromMovements([]);
+      renderAll();
+      alert('Historial local borrado. El último respaldo automático quedó guardado en este dispositivo.');
+    }
 
     function updateDateDefaults(){ $('fecha').value = hoyLocalISO(); $('invMensualFecha').value = hoyLocalISO(); $('pillDate').textContent = new Date().toLocaleDateString('es-MX'); syncSemanaDesdeFecha(); }
     function updateCutDates(){ const v=$('vendedorCorte').value; let d=new Date(); let diaActual=d.getDay()===0?7:d.getDay(); let fIni=new Date(d), fFin=new Date(d); if(v==='ISIDRO'){ fIni.setDate(d.getDate()-diaActual-1); fFin.setDate(d.getDate()-diaActual+5); } else if(v==='OFELIA'){ fIni.setDate(d.getDate()-diaActual+2); fFin.setDate(d.getDate()-diaActual+7); } else { fIni.setDate(d.getDate()-diaActual+1); fFin.setDate(d.getDate()-diaActual+6); } $('fechaDesde').valueAsDate=fIni; $('fechaHasta').valueAsDate=fFin; previewCutSummary(); }
@@ -2918,7 +3068,8 @@ function renderStockTables(){
     function printDocument(htmlContent, tituloDocumento){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
       const win = window.open('', '_blank');
-      win.document.write(`<!DOCTYPE html><html><head><title>${tituloDocumento}</title><style>
+      if(!win){ alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.'); return false; }
+      win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(tituloDocumento)}</title><style>
         @page{size:landscape;margin:8mm}
         *{box-sizing:border-box}
         body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -2945,8 +3096,16 @@ function renderStockTables(){
         .firma{margin-top:16px;font-size:12px}
         .empty td{height:25px}
         .soft-note{color:#516885}
+        table.report-long{page-break-inside:auto;table-layout:fixed}
+        table.report-long thead{display:table-header-group}
+        table.report-long tfoot{display:table-row-group}
+        table.report-long tr{page-break-inside:avoid;page-break-after:auto}
+        table.report-long th,table.report-long td{font-size:9.5px;padding:4px 5px}
+        .report-summary{margin-bottom:10px;page-break-inside:avoid}
+        .report-note{font-size:10px;color:#516885;margin:8px 0 0;line-height:1.35}
       </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
       win.document.close();
+      return true;
     }
 
     function generateCutPDF(){
@@ -3098,74 +3257,275 @@ function renderStockTables(){
         </div>`;
       printDocument(html, 'CORTE DE CAJA');
     }
-function imprimirDetalleProduccion() {
+function nombreMesReporte(fecha){
+      const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+      const d = parseLocalDate(fecha);
+      return d ? meses[d.getMonth()] : '';
+    }
+
+    function tipoProductoReporte(reg){
+      const tipo = String(reg?.tipo || '').toUpperCase();
+      const concepto = normalizarTextoClave(reg?.concepto || '');
+      if(tipo.includes('TINACO') || concepto.includes('TINACO')) return 'TINACO';
+      if(tipo.includes('TAMBO') || concepto.includes('TAMBO')) return 'TAMBO';
+      if(tipo.includes('MACETA') || concepto.includes('MACETA') || concepto.includes('MACETERO')) return 'MACETA';
+      if(tipo.includes('BANCO') || concepto.includes('BANCO')) return 'BANCO';
+      return 'PRODUCTO';
+    }
+
+    function capacidadReporte(valor){
+      const s = String(valor || '').trim().toUpperCase();
+      if(!s) return '';
+      const match = s.match(/-?\d+(?:[.,]\d+)?/);
+      if(match && /LT/.test(s)) return (parseFloat(match[0].replace(',','.')) || 0).toFixed(2);
+      return s.replace(/LT\b/g,'').trim();
+    }
+
+    function vendedorReporte(reg){
+      const vendedor = String(reg?.vendedor || '').trim().toUpperCase();
+      // En el reporte histórico de referencia las ventas de OFELIA se muestran como sucursal.
+      return vendedor === 'OFELIA' ? 'OFELIA SUCURSAL' : vendedor;
+    }
+
+    function generarReporteVentas(){
       const data = getDashboardData();
       const db = getDashboardFilteredMovements();
-      const detalleProd = {};
-      const consumoMP = {};
+      const rows = db
+        .map((r, index)=>({r,index}))
+        .filter(x=>esMovimientoConIngreso(x.r))
+        .map(({r,index})=>({
+          index,
+          mes:nombreMesReporte(r.fecha),
+          fecha:r.fecha,
+          vendedor:vendedorReporte(r),
+          producto:tipoProductoReporte(r),
+          capacidad:capacidadReporte(r.capacidad),
+          color:String(r.colorUI || extraerColorDesdeConcepto(r.concepto) || '').toUpperCase(),
+          cantidad:parseFloat(r.cantidad)||0,
+          precio:parseFloat(r.precio)||0,
+          total:parseFloat(r.total)||0
+        }));
 
-      let totalPiezas = 0;
-      let totalMP = 0;
-
-      db.forEach(r => {
-        const tipo = String(r.tipo||'');
-        if(tipo.includes('PROD_')) {
-          const cap = String(r.capacidad||'').toUpperCase();
-          const col = String(r.colorUI||'').toUpperCase();
-          const cant = parseFloat(r.cantidad)||0;
-          const productor = String(r.vendedor||'');
-
-          let fgName = buildFinishedGoodNameFromParts(tipo, cap, col) || `${tipo} ${cap} ${col}`;
-
-          const prodKey = `${productor}|${fgName}`;
-          if(!detalleProd[prodKey]) detalleProd[prodKey] = { productor, producto: fgName, cant: 0 };
-          detalleProd[prodKey].cant += cant;
-          totalPiezas += cant;
-
-          if (movimientoConsumeMateriaPrima(r)) {
-            const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
-            Object.keys(receta).forEach(mat => {
-              const qty = (parseFloat(receta[mat]) || 0) * cant;
-              consumoMP[mat] = (consumoMP[mat] || 0) + qty;
-              totalMP += qty;
-            });
-          }
-        }
+      // Replica la lógica visual del reporte de referencia: mes cronológico y cantidad mayor primero.
+      rows.sort((a,b)=>{
+        const da=parseLocalDate(a.fecha), dbb=parseLocalDate(b.fecha);
+        const ya=da?da.getFullYear():0, yb=dbb?dbb.getFullYear():0;
+        if(ya!==yb) return ya-yb;
+        const ma=da?da.getMonth():0, mb=dbb?dbb.getMonth():0;
+        if(ma!==mb) return ma-mb;
+        if(b.cantidad!==a.cantidad) return b.cantidad-a.cantidad;
+        return a.index-b.index;
       });
 
-      const prodArr = Object.values(detalleProd).sort((a,b)=>a.productor.localeCompare(b.productor));
-      const mpArr = Object.entries(consumoMP).sort((a,b)=>a[0].localeCompare(b[0]));
+      const fmtMoney = val => '$ ' + formato(parseFloat(val)||0);
+      const fmtQty = val => (parseFloat(val)||0).toFixed(2);
+      const fechaVisible = fecha => String(fecha||'').split('-').reverse().join('/');
+      const totalCantidad = rows.reduce((s,r)=>s+r.cantidad,0);
+      const totalPrecios = rows.reduce((s,r)=>s+r.precio,0);
+      const totalVenta = rows.reduce((s,r)=>s+r.total,0);
 
-      const prodRows = prodArr.length 
-        ? prodArr.map(p => `<tr><td>${escHtml(p.productor)}</td><td>${escHtml(p.producto)}</td><td class="right">${p.cant.toFixed(2)}</td></tr>`).join('') 
-        : `<tr><td colspan="3" class="center">Sin producción en este periodo.</td></tr>`;
-
-      const mpRows = mpArr.length 
-        ? mpArr.map(([mat, qty]) => `<tr><td>${escHtml(mat)}</td><td class="right">${qty.toFixed(2)}</td><td class="center">KG</td></tr>`).join('') 
-        : `<tr><td colspan="3" class="center">Sin consumo registrado.</td></tr>`;
+      const bodyRows = rows.length ? rows.map(r=>`<tr>
+        <td class="center">${escHtml(r.mes)}</td>
+        <td class="center">${escHtml(fechaVisible(r.fecha))}</td>
+        <td class="center">${escHtml(r.vendedor)}</td>
+        <td class="center">${escHtml(r.producto)}</td>
+        <td class="center">${escHtml(r.capacidad)}</td>
+        <td class="center">${escHtml(r.color)}</td>
+        <td class="right">${fmtQty(r.cantidad)}</td>
+        <td class="right">${fmtMoney(r.precio)}</td>
+        <td class="right">${fmtMoney(r.total)}</td>
+      </tr>`).join('') : `<tr><td colspan="9" class="center">Sin ventas en este periodo.</td></tr>`;
 
       const html = `
-        <div class="center-title">REPORTE DETALLADO DE PRODUCCIÓN Y CONSUMOS</div>
-        <table style="margin-bottom:12px"><tbody>
-          <tr><td><strong>Periodo:</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Productor:</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+        <div class="center-title">REPORTE DE VENTAS</div>
+        <table class="report-summary"><tbody>
+          <tr><td><strong>Periodo</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Vendedor</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+          <tr><td><strong>Registros</strong></td><td>${rows.length}</td><td><strong>Monto total</strong></td><td><strong>${fmtMoney(totalVenta)}</strong></td></tr>
         </tbody></table>
-
-        <div class="section-title">PIEZAS PRODUCIDAS (DETALLE)</div>
-        <table>
-          <thead><tr><th>PRODUCTOR</th><th>PRODUCTO</th><th>CANTIDAD</th></tr></thead>
-          <tbody>${prodRows}</tbody>
-          <tfoot><tr><td colspan="2" class="right"><strong>TOTAL PIEZAS</strong></td><td class="right"><strong>${totalPiezas.toFixed(2)}</strong></td></tr></tfoot>
-        </table>
-
-        <div class="section-title" style="margin-top:16px">CONSUMO ESTIMADO DE MATERIA PRIMA</div>
-        <table>
-          <thead><tr><th>MATERIAL</th><th>CONSUMO ESTIMADO</th><th>UNIDAD</th></tr></thead>
-          <tbody>${mpRows}</tbody>
-          <tfoot><tr><td colspan="1" class="right"><strong>TOTAL KILOS ESTIMADOS</strong></td><td class="right"><strong>${totalMP.toFixed(2)}</strong></td><td class="center">KG</td></tr></tfoot>
+        <table class="report-long">
+          <thead><tr>
+            <th style="width:8%">MES</th>
+            <th style="width:10%">FECHA</th>
+            <th style="width:14%">VENDEDOR</th>
+            <th style="width:10%">PRODUCTO</th>
+            <th style="width:12%">CAPACIDAD (LT)</th>
+            <th style="width:12%">COLOR</th>
+            <th style="width:9%">CANTIDAD</th>
+            <th style="width:12%">PRECIO UNITARIO</th>
+            <th style="width:13%">MONTO TOTAL DE VENTA</th>
+          </tr></thead>
+          <tbody>${bodyRows}</tbody>
+          <tfoot><tr>
+            <td colspan="6" class="right"><strong>TOTAL</strong></td>
+            <td class="right"><strong>${fmtQty(totalCantidad)}</strong></td>
+            <td class="right"><strong>${fmtMoney(totalPrecios)}</strong></td>
+            <td class="right"><strong>${fmtMoney(totalVenta)}</strong></td>
+          </tr></tfoot>
         </table>
       `;
+      printDocument(html, `REPORTE DE VENTAS - ${String(data.periodoLabel||'').toUpperCase()}`);
+    }
 
-      printDocument(html, `DETALLE PRODUCCIÓN - ${data.periodoLabel.toUpperCase()}`);
+    function imprimirDetalleProduccion() {
+      const data = getDashboardData();
+      const db = getDashboardFilteredMovements();
+      const fechaVisible = fecha => String(fecha||'').split('-').reverse().join('/');
+      const fmtQty = val => (parseFloat(val)||0).toFixed(2);
+
+      const produccion = db
+        .map((r,index)=>({r,index}))
+        .filter(x=>String(x.r.tipo||'').toUpperCase().includes('PROD_'))
+        .map(({r,index})=>{
+          const tipo = String(r.tipo||'').toUpperCase();
+          const cap = String(r.capacidad||'').toUpperCase();
+          const col = String(r.colorUI || extraerColorDesdeConcepto(r.concepto) || '').toUpperCase();
+          const cant = parseFloat(r.cantidad)||0;
+          // Para el REPORTE calculamos la receta para cualquier fecha histórica.
+          // No usamos movimientoConsumeMateriaPrima(), porque esa función tiene un corte contable
+          // para afectar inventario y dejaría sin cálculo periodos anteriores al corte.
+          const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+          const kgPorPieza = Object.values(receta).reduce((s,v)=>s+(parseFloat(v)||0),0);
+          return {
+            index, r, tipo, cap, col, cant, receta, kgPorPieza,
+            kgTotal:kgPorPieza*cant,
+            mes:nombreMesReporte(r.fecha),
+            fecha:r.fecha,
+            productor:String(r.vendedor||'').toUpperCase(),
+            producto:tipoProductoReporte(r),
+            modalidad:tipo.includes('EXTRA') ? 'EXTRA' : 'NORMAL'
+          };
+        });
+
+      produccion.sort((a,b)=>{
+        const da=parseLocalDate(a.fecha), dbb=parseLocalDate(b.fecha);
+        const ya=da?da.getFullYear():0, yb=dbb?dbb.getFullYear():0;
+        if(ya!==yb) return ya-yb;
+        const ma=da?da.getMonth():0, mb=dbb?dbb.getMonth():0;
+        if(ma!==mb) return ma-mb;
+        if(String(a.fecha)!==String(b.fecha)) return String(a.fecha).localeCompare(String(b.fecha));
+        if(a.productor!==b.productor) return a.productor.localeCompare(b.productor);
+        return a.index-b.index;
+      });
+
+      const consumoMP = {};
+      const consumoPorProducto = {};
+      const resumenPorProductor = {};
+      const consumoPorProductorMaterial = {};
+      const sinRecetaDetalle = {};
+      let totalPiezas = 0;
+      let totalMP = 0;
+      let registrosSinReceta = 0;
+
+      produccion.forEach(p=>{
+        totalPiezas += p.cant;
+        totalMP += p.kgTotal;
+        if(p.cant>0 && !Object.keys(p.receta).length){
+          registrosSinReceta++;
+          const kSin = `${p.producto}|${p.cap}|${p.col}`;
+          if(!sinRecetaDetalle[kSin]) sinRecetaDetalle[kSin] = {producto:p.producto,cap:p.cap,col:p.col,piezas:0};
+          sinRecetaDetalle[kSin].piezas += p.cant;
+        }
+        if(!resumenPorProductor[p.productor]) resumenPorProductor[p.productor] = {piezas:0,kg:0};
+        resumenPorProductor[p.productor].piezas += p.cant;
+        resumenPorProductor[p.productor].kg += p.kgTotal;
+        Object.entries(p.receta).forEach(([mat,kgPza])=>{
+          const kg = (parseFloat(kgPza)||0) * p.cant;
+          consumoMP[mat] = (consumoMP[mat]||0) + kg;
+          const kPM = `${p.productor}|${mat}`;
+          if(!consumoPorProductorMaterial[kPM]) consumoPorProductorMaterial[kPM] = {productor:p.productor,material:mat,kg:0};
+          consumoPorProductorMaterial[kPM].kg += kg;
+        });
+        const claveProd = `${p.producto} ${p.cap} ${p.col}`.trim();
+        if(!consumoPorProducto[claveProd]) consumoPorProducto[claveProd] = { piezas:0, kg:0 };
+        consumoPorProducto[claveProd].piezas += p.cant;
+        consumoPorProducto[claveProd].kg += p.kgTotal;
+      });
+
+      const prodRows = produccion.length ? produccion.map(p=>`<tr>
+        <td class="center">${escHtml(p.mes)}</td>
+        <td class="center">${escHtml(fechaVisible(p.fecha))}</td>
+        <td>${escHtml(p.productor)}</td>
+        <td class="center">${escHtml(p.producto)}</td>
+        <td class="center">${escHtml(capacidadReporte(p.cap))}</td>
+        <td>${escHtml(p.col)}</td>
+        <td class="center">${escHtml(p.modalidad)}</td>
+        <td class="right">${fmtQty(p.cant)}</td>
+        <td class="right">${fmtQty(p.kgPorPieza)}</td>
+        <td class="right">${fmtQty(p.kgTotal)}</td>
+      </tr>`).join('') : `<tr><td colspan="10" class="center">Sin producción en este periodo.</td></tr>`;
+
+      const mpArr = Object.entries(consumoMP).sort((a,b)=>b[1]-a[1]);
+      const mpRows = mpArr.length ? mpArr.map(([mat,qty])=>`<tr>
+        <td>${escHtml(mat)}</td>
+        <td class="right">${fmtQty(qty)}</td>
+        <td class="center">KG</td>
+        <td class="right">${totalMP>0 ? ((qty/totalMP)*100).toFixed(1) : '0.0'}%</td>
+      </tr>`).join('') : `<tr><td colspan="4" class="center">No hay materia prima calculable con las recetas actuales.</td></tr>`;
+
+      const porProductoArr = Object.entries(consumoPorProducto).sort((a,b)=>b[1].kg-a[1].kg);
+      const porProductoRows = porProductoArr.length ? porProductoArr.map(([producto,val])=>`<tr>
+        <td>${escHtml(producto)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td>
+      </tr>`).join('') : `<tr><td colspan="4" class="center">Sin producción.</td></tr>`;
+
+      const productorRows = Object.entries(resumenPorProductor).sort((a,b)=>b[1].kg-a[1].kg).map(([productor,val])=>`<tr>
+        <td>${escHtml(productor)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td>
+      </tr>`).join('') || `<tr><td colspan="4" class="center">Sin producción.</td></tr>`;
+
+      const productorMaterialRows = Object.values(consumoPorProductorMaterial).sort((a,b)=>a.productor.localeCompare(b.productor) || b.kg-a.kg).map(x=>`<tr>
+        <td>${escHtml(x.productor)}</td><td>${escHtml(x.material)}</td><td class="right">${fmtQty(x.kg)}</td><td class="center">KG</td>
+      </tr>`).join('') || `<tr><td colspan="4" class="center">Sin consumo calculable.</td></tr>`;
+
+      const sinRecetaRows = Object.values(sinRecetaDetalle).sort((a,b)=>a.producto.localeCompare(b.producto)).map(x=>`<tr>
+        <td>${escHtml(x.producto)}</td><td class="center">${escHtml(capacidadReporte(x.cap))}</td><td>${escHtml(x.col)}</td><td class="right">${fmtQty(x.piezas)}</td>
+      </tr>`).join('');
+
+      const html = `
+        <div class="center-title">REPORTE DE PRODUCCIÓN Y CONSUMO DE MATERIA PRIMA</div>
+        <table class="report-summary"><tbody>
+          <tr><td><strong>Periodo</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Productor</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
+          <tr><td><strong>Total producido</strong></td><td>${fmtQty(totalPiezas)} pzas</td><td><strong>Materia prima calculada</strong></td><td>${fmtQty(totalMP)} kg</td></tr>
+        </tbody></table>
+
+        <div class="section-title">DETALLE DE PRODUCCIÓN</div>
+        <table class="report-long">
+          <thead><tr>
+            <th style="width:7%">MES</th><th style="width:9%">FECHA</th><th style="width:11%">PRODUCTOR</th><th style="width:9%">PRODUCTO</th>
+            <th style="width:9%">CAP./MEDIDA</th><th style="width:12%">COLOR</th><th style="width:8%">TIPO</th><th style="width:8%">CANT.</th>
+            <th style="width:12%">KG / PZA</th><th style="width:15%">KG TOTAL</th>
+          </tr></thead>
+          <tbody>${prodRows}</tbody>
+          <tfoot><tr><td colspan="7" class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalPiezas)}</strong></td><td></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td></tr></tfoot>
+        </table>
+
+        <div class="section-title" style="margin-top:14px">MATERIA PRIMA CONSUMIDA - RESUMEN POR MATERIAL</div>
+        <table class="report-long">
+          <thead><tr><th>MATERIAL</th><th style="width:22%">CONSUMO CALCULADO</th><th style="width:12%">UNIDAD</th><th style="width:14%">% DEL TOTAL</th></tr></thead>
+          <tbody>${mpRows}</tbody>
+          <tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td><td class="center">KG</td><td class="right"><strong>${totalMP>0?'100.0%':'0.0%'}</strong></td></tr></tfoot>
+        </table>
+
+        <div class="section-title" style="margin-top:14px">RESUMEN DE CONSUMO POR PRODUCTOR</div>
+        <table class="report-long">
+          <thead><tr><th>PRODUCTOR</th><th style="width:20%">PIEZAS</th><th style="width:24%">MATERIA PRIMA</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <tbody>${productorRows}</tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:14px">MATERIA PRIMA CONSUMIDA POR PRODUCTOR</div>
+        <table class="report-long">
+          <thead><tr><th style="width:24%">PRODUCTOR</th><th>MATERIAL</th><th style="width:22%">CONSUMO</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <tbody>${productorMaterialRows}</tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:14px">CONSUMO DE MATERIA PRIMA POR PRODUCTO</div>
+        <table class="report-long">
+          <thead><tr><th>PRODUCTO / CAPACIDAD / COLOR</th><th style="width:18%">PIEZAS</th><th style="width:22%">MATERIA PRIMA</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <tbody>${porProductoRows}</tbody>
+        </table>
+        ${sinRecetaRows ? `<div class="section-title" style="margin-top:14px">PRODUCCIÓN SIN RECETA CONFIGURADA</div><table class="report-long"><thead><tr><th>PRODUCTO</th><th>CAP./MEDIDA</th><th>COLOR</th><th>PIEZAS</th></tr></thead><tbody>${sinRecetaRows}</tbody></table>` : ''}
+        <div class="report-note"><strong>Nota:</strong> el consumo se calcula con las recetas configuradas en la app (kg por pieza × piezas producidas). No modifica inventario. ${registrosSinReceta ? `Hay ${registrosSinReceta} registro(s) de producción sin receta configurada; se separan en una tabla para no inventar consumos.` : 'Todos los registros del periodo tienen una receta calculable.'}</div>
+      `;
+
+      printDocument(html, `PRODUCCIÓN Y MATERIA PRIMA - ${String(data.periodoLabel||'').toUpperCase()}`);
     }
 
     function imprimirTabla(tablaId, titulo){ printDocument($(tablaId).outerHTML, titulo); }
@@ -3214,10 +3574,12 @@ function imprimirDetalleProduccion() {
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
       $('btnAgregarTinaco').addEventListener('click', ()=>{ const entries=buildTinacoPendingEntries(); if(entries.length){ queueEntries(entries,'tinacos'); $('qTinaco').value=''; }}); $('btnAgregarTambo').addEventListener('click', ()=>{ const entries=buildTamboPendingEntries(); if(entries.length){ queueEntries(entries,'tambos'); $('qTambo').value=''; }}); $('btnAgregarProduccion').addEventListener('click', ()=>{ const entries=buildProductionPendingEntries(); if(entries.length){ queueEntries(entries,'produccion'); $('qProdNormal').value=''; $('qProdExtra').value=''; }}); $('btnAgregarGasto').addEventListener('click', ()=>{ const entries=buildGastoPendingEntries(); if(entries.length){ queueEntries(entries,'gastos'); $('montoGasto').value=''; $('descGasto').value=''; }}); $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnLimpiarPendientes').addEventListener('click', clearPendingEntries); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
-      $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnBorrarTodoHistorial').addEventListener('click', ()=>{ if(confirm('¿Borrar todo el historial?')){ state.movements=[]; saveMovements([]); reconstructStockFromMovements([]); renderAll(); } }); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
+      $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnDescargarRespaldo')?.addEventListener('click', descargarRespaldoCompleto); $('btnBorrarTodoHistorial').addEventListener('click', borrarTodoHistorialSeguro); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
       $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
-      $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro').addEventListener('click', generateDashboardReport);
-$('btnImprimirDetalleProd')?.addEventListener('click', imprimirDetalleProduccion);
+      $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro')?.addEventListener('click', generateDashboardReport);
+      $('btnReporteVentas')?.addEventListener('click', generarReporteVentas);
+      $('btnReporteProduccion')?.addEventListener('click', imprimirDetalleProduccion);
+      $('btnImprimirDetalleProd')?.addEventListener('click', imprimirDetalleProduccion);
     }
 
     function seedApril2026BaselineIfMissing(){
@@ -3403,18 +3765,19 @@ function toggleFab() {
 // Pintar palabras clave de colores
 function aplicarEtiqueta(texto) {
     if(!texto) return '';
-    const t = texto.toUpperCase();
-    if(t.includes('TINACO')) return `<span class="etiqueta etiqueta-tinaco">${texto}</span>`;
-    if(t.includes('TAMBO')) return `<span class="etiqueta etiqueta-tambo">${texto}</span>`;
-    if(t.includes('MERMA')) return `<span class="etiqueta etiqueta-merma">${texto}</span>`;
-    return texto;
+    const t = String(texto).toUpperCase();
+    const seguro = escHtml(texto);
+    if(t.includes('TINACO')) return `<span class="etiqueta etiqueta-tinaco">${seguro}</span>`;
+    if(t.includes('TAMBO')) return `<span class="etiqueta etiqueta-tambo">${seguro}</span>`;
+    if(t.includes('MERMA')) return `<span class="etiqueta etiqueta-merma">${seguro}</span>`;
+    return seguro;
 }
   </script>
 <!-- Botón Flotante para Tinacos y Tambos -->
 <div id="fab-container">
     <div id="fab-menu">
-        <button onclick="document.getElementById('diario-tab').click();" class="fab-btn" style="background:#1e40af; font-size:16px;">🚰</button>
-        <button onclick="document.getElementById('diario-tab').click();" class="fab-btn" style="background:#c2410c; font-size:16px;">🛢️</button>
+        <button onclick="switchTab('registro'); document.getElementById('capTinaco')?.scrollIntoView({behavior:'smooth',block:'center'});" class="fab-btn" style="background:#1e40af; font-size:16px;" title="Ir a Tinacos">🚰</button>
+        <button onclick="switchTab('registro'); document.getElementById('capTambo')?.scrollIntoView({behavior:'smooth',block:'center'});" class="fab-btn" style="background:#c2410c; font-size:16px;" title="Ir a Tambos">🛢️</button>
     </div>
     <button class="fab-btn" onclick="toggleFab()">⚡</button>
 </div>

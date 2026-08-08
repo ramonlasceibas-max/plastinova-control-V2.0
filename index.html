@@ -486,8 +486,11 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
             <button type="button" class="btn btn-secondary" id="btnLimpiarFiltroHistorial">↺ Ver todos</button>
             <button type="button" class="btn btn-warning" id="btnImprimirHistorial">🖨️ Imprimir historial</button>
             <button type="button" class="btn btn-secondary" id="btnDescargarRespaldo">💾 Descargar respaldo</button>
+            <button type="button" class="btn btn-success" id="btnSincronizarNube">☁️ Sincronizar nube</button>
+            <button type="button" class="btn btn-warning" id="btnRestaurarNube">♻️ Restaurar desde nube</button>
             <button type="button" class="btn btn-danger" id="btnBorrarTodoHistorial">🗑️ Borrar todo</button>
           </div>
+          <div class="mini-note" id="cloudMasterStatus" style="margin-top:8px"><strong>Nube maestra:</strong> pendiente de verificar.</div>
           <div class="price-box">
             <h4>💲 Actualización de precios</h4>
             <div class="mini-note">Programa precios nuevos sin alterar ventas anteriores. La app usará estos precios solo desde la fecha indicada.</div>
@@ -556,6 +559,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
           <div class="stat"><strong>Tinacos vendidos</strong><span id="dashTinacosTotal">0</span></div>
           <div class="stat"><strong>Tambos vendidos</strong><span id="dashTambosTotal">0</span></div>
           <div class="stat"><strong>Producción total</strong><span id="dashProdTotal">0</span></div>
+          <div class="stat"><strong>Costo MP producción</strong><span id="dashCostoMPTotal">$0.00</span></div>
         </div>
         <div class="grid-2">
           <div class="card"><h3>💰 Ventas por persona</h3><div class="chart-bars" id="graficaVentas"></div></div>
@@ -578,7 +582,7 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
               </div>
             </div>
             <div>
-              <h4 style="color:var(--brand);margin-bottom:8px;font-size:13px;">🧪 Materia Prima Estimada</h4>
+              <h4 style="color:var(--brand);margin-bottom:8px;font-size:13px;">🧪 Materia Prima según receta</h4>
               <div class="table-wrap">
                 <table class="db-table" id="tablaConsumoMP">
                   <thead><tr><th>Material</th><th>Consumo (KG)</th></tr></thead>
@@ -587,6 +591,28 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="card print-hidden" style="margin-top:16px;">
+          <h3>🧾 Recetas estándar confirmadas <span class="subtle">KG por pieza producida</span></h3>
+          <div class="mini-note" style="margin-bottom:12px;">Estas son las recetas que usa el reporte de producción. Costo confirmado: <strong>$39.00 por KG</strong> para todos los Rotolene y para Rotofoam Negro/Blanco AR. El inventario solo descuenta colores cuyo Rotolene está identificado de forma exacta; los colores especiales aún no confirmados se calculan en el reporte, pero no se descuentan de un material equivocado.</div>
+          <div class="table-wrap">
+            <table class="db-table" id="tablaRecetasProduccion">
+              <thead><tr><th>Producto</th><th>Variante</th><th>Color exterior / principal</th><th>Rotofoam</th><th>Blanco adicional</th><th>Total KG/Pza</th><th>Costo MP/Pza</th></tr></thead>
+              <tbody>
+                <tr><td>Tinaco</td><td>1200 LT</td><td>6.000 KG</td><td>5.000 KG Negro AR</td><td>5.000 KG</td><td><strong>16.000</strong></td><td><strong>$624.00</strong></td></tr>
+                <tr><td>Tinaco</td><td>1100 LT</td><td>5.000 KG</td><td>5.000 KG Negro AR</td><td>4.000 KG</td><td><strong>14.000</strong></td><td><strong>$546.00</strong></td></tr>
+                <tr><td>Tinaco</td><td>750 LT</td><td>4.500 KG</td><td>4.000 KG Negro AR</td><td>3.000 KG</td><td><strong>11.500</strong></td><td><strong>$448.50</strong></td></tr>
+                <tr><td>Tambo</td><td>235 LT sólido</td><td>2.000 KG</td><td>2.500 KG Blanco AR</td><td>-</td><td><strong>4.500</strong></td><td><strong>$175.50</strong></td></tr>
+                <tr><td>Tambo</td><td>235 LT con blanco</td><td>1.350 KG principal</td><td>2.500 KG Blanco AR</td><td>0.650 KG</td><td><strong>4.500</strong></td><td><strong>$175.50</strong></td></tr>
+                <tr><td>Maceta / Banco</td><td>Grande sólido</td><td>2.000 KG</td><td>1.000 KG Blanco AR</td><td>-</td><td><strong>3.000</strong></td><td><strong>$117.00</strong></td></tr>
+                <tr><td>Maceta / Banco</td><td>Grande con blanco</td><td>1.350 KG principal</td><td>1.000 KG Blanco AR</td><td>0.650 KG</td><td><strong>3.000</strong></td><td><strong>$117.00</strong></td></tr>
+                <tr><td>Maceta / Banco</td><td>Chica / Chico sólido</td><td>1.000 KG</td><td>1.000 KG Blanco AR</td><td>-</td><td><strong>2.000</strong></td><td><strong>$78.00</strong></td></tr>
+                <tr><td>Maceta / Banco</td><td>Chica / Chico con blanco</td><td>0.675 KG principal</td><td>1.000 KG Blanco AR</td><td>0.325 KG</td><td><strong>2.000</strong></td><td><strong>$78.00</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mini-note" style="margin-top:12px;"><strong>Regla de combinado:</strong> se aplica únicamente cuando el color registrado contiene “CON BLANCO”. Un nombre como MELON, GRANITO, TERRACOTA, etc. no se considera combinado por sí solo.</div>
         </div>
 
       </section>
@@ -733,7 +759,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
       APRIL_OPERATIONAL_VERSION: 'plastinova_seed_operativo_abril_2026_v2',
       PRICE_SETTINGS: 'plastinova_price_settings_v1',
       BACKUP_MOVS: 'plastinova_backup_movimientos_ultimo_v1',
-      IMPORT_FINGERPRINTS: 'plastinova_import_fingerprints_v1'
+      IMPORT_FINGERPRINTS: 'plastinova_import_fingerprints_v1',
+      CLOUD_SYNC_QUEUE: 'plastinova_cloud_sync_queue_v1',
+      CLOUD_LAST_SYNC: 'plastinova_cloud_last_sync_v1'
     };
 
     const VENDEDORES = ['FERNANDO','HUSAI','ISIDRO','IVAN','OFELIA','PEDRO','RAMON'];
@@ -823,6 +851,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
     };
 
     const FECHA_BASE_MATERIA_PRIMA = '2026-08-01';
+    const VERSION_RECETAS_PRODUCCION = 'PLASTINOVA-RECETAS-V2-DEFINITIVA-2026-08-07';
+    const COSTO_KG_ROTOLENE = 39;
+    const COSTO_KG_ROTOFOAM = 39;
     const FECHA_BASE_ADITAMENTOS = '2026-04-07';
 
     const APRIL_OPENING_ROUTE_20260401 = {
@@ -1093,6 +1124,9 @@ body.dark-mode input, body.dark-mode select { background-color: #0b132b !importa
         const payload = {
           formato:'PLASTINOVA_RESPALDO_V1',
           generadoEn:new Date().toISOString(),
+          versionRecetasProduccion:VERSION_RECETAS_PRODUCCION,
+          configuracionMateriaPrima:{fechaBase:FECHA_BASE_MATERIA_PRIMA,costoKgRotolene:COSTO_KG_ROTOLENE,costoKgRotofoam:COSTO_KG_ROTOFOAM},
+          nubeMaestra:true,
           movimientos:[...(state?.movements || getMovements())],
           stock:{...(state?.stock || getStockCache())},
           inventario:Array.isArray(state?.inventoryCache) ? state.inventoryCache : getInventoryCache(),
@@ -1369,53 +1403,108 @@ function getStockCache(){ const v=readLocalJSON(STORAGE_KEYS.STOCK, null); if(v 
     function extraerColorDesdeConcepto(concepto){ const conceptoNorm=normalizarTextoClave(concepto); if(!conceptoNorm) return null; const match=COLORES_UI_DETECTABLES.find(c=>conceptoNorm.includes(normalizarTextoClave(c))); return match || null; }
     function normalizarColorUI(color){ const buscado=normalizarTextoClave(color); if(!buscado) return null; return COLORES_UI_DETECTABLES.find(c=>normalizarTextoClave(c)===buscado) || color; }
 
-    function obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI){
+    function resolverMaterialColorProduccion(colorUI, permitirGenerico=false){
+      const color = normalizarColorUI(colorUI);
+      if(!color) return null;
+      const principal = String(color).replace(/\s+CON\s+BLANCO.*$/i,'').trim().toUpperCase();
+      const mapeoColor = {
+        'NEGRO': 'ROTOLENE NEGRO - BLACK',
+        'BEIGE': 'ROTOLENE BEIGE',
+        'AZUL': 'ROTOLENE AZUL #5',
+        'VERDE': 'ROTOLENE VERDE #15',
+        'NATURAL': 'ROTOLENE NATURAL',
+        'NARANJA': 'ROTOLENE NARANJA II',
+        'CAFÉ': 'ROTOLENE CAFÉ',
+        'BLANCO': 'ROTOLENE BLANCO',
+        'ROJO': 'ROTOLENE ROJO 14',
+        'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.',
+        'GRANITO BEIGE': 'ROTOLENE GRANITO 15',
+        'OXFORD': 'ROTOLENE GRIS OXFORD'
+      };
+      if(mapeoColor[principal]) return mapeoColor[principal];
+      // En reportes sí mostramos el nombre genérico para conservar los KG de la receta.
+      // En inventario NO inventamos equivalencias de materiales que no estén confirmadas.
+      return permitirGenerico ? `ROTOLENE ${principal}` : null;
+    }
+
+    function colorProduccionTieneMapeoInventario(colorUI){
+      return !!resolverMaterialColorProduccion(colorUI, false);
+    }
+
+    function costoKgMateriaPrima(material){
+      const m = normalizarTextoClave(material || '');
+      if(m.startsWith('ROTOLENE ')) return COSTO_KG_ROTOLENE;
+      if(m.startsWith('ROTOFOAM ')) return COSTO_KG_ROTOFOAM;
+      return 0;
+    }
+
+    function costoRecetaMateriaPrima(receta){
+      return Object.entries(receta || {}).reduce((sum,[material,kg]) => sum + ((parseFloat(kg)||0) * costoKgMateriaPrima(material)), 0);
+    }
+
+    function calcularRecetaMateriaPrimaProduccion(tipoMovimiento, capacidad, colorUI, permitirGenerico=false){
       const consumo = {};
-      tipoMovimiento = String(tipoMovimiento||'').toUpperCase();
-      capacidad = String(capacidad||'').toUpperCase();
-      colorUI = normalizarColorUI(colorUI);
-      const mapeoColor = { 'NEGRO': 'ROTOLENE NEGRO - BLACK', 'BEIGE': 'ROTOLENE BEIGE', 'AZUL': 'ROTOLENE AZUL #5', 'VERDE': 'ROTOLENE VERDE #15', 'NATURAL': 'ROTOLENE NATURAL', 'NARANJA': 'ROTOLENE NARANJA II', 'CAFÉ': 'ROTOLENE CAFÉ', 'BLANCO': 'ROTOLENE BLANCO', 'ROJO': 'ROTOLENE ROJO 14', 'VERDE INDUSTRIAL': 'ROTOLENE VERDE INDUST.' };
-      const matColorBase = mapeoColor[colorUI] || (colorUI ? `ROTOLENE ${colorUI}` : null);
+      const tipo = String(tipoMovimiento||'').toUpperCase();
+      const cap = String(capacidad||'').toUpperCase();
+      const color = normalizarColorUI(colorUI);
+      if(!tipo.includes('PROD_') || !color || !cap) return consumo;
+
       const sumar = (material, cantidad) => {
         if(!material) return;
         const q = parseFloat(cantidad) || 0;
         if(!q) return;
         consumo[material] = (parseFloat(consumo[material]) || 0) + q;
       };
+      const matExterior = resolverMaterialColorProduccion(color, permitirGenerico);
+      if(!matExterior) return consumo; // Evita descontar un material incorrecto del stock.
+      const combinada = String(color).toUpperCase().includes('CON BLANCO');
 
-      if (!tipoMovimiento.includes('_COBRO') && (tipoMovimiento.includes('VENTA') || tipoMovimiento.includes('TRASPASO'))) {
-        if (tipoMovimiento.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => sumar(m,1));
-        else if (tipoMovimiento.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => sumar(m,1));
-      } else if (tipoMovimiento.includes('PROD_')) {
-        const ignorar = ['GRANITO BEIGE','GRANITO','DUVALIN','TERRACOTA','MENTA','PISTACHE','UVA','MELON','OXFORD'];
-        if (!ignorar.includes(colorUI)) {
-          // Se SUMA cada capa de la receta. Esto evita que, por ejemplo, un tinaco BLANCO
-          // reemplace la primera carga de Rotolene blanco con la segunda.
-          if (capacidad === '1200LT') { sumar(matColorBase,6); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',5); }
-          else if (capacidad === '1100LT') { sumar(matColorBase,5); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',4); }
-          else if (capacidad === '750LT') { sumar(matColorBase,4.5); sumar('ROTOFOAM NEGRO AR',4); sumar('ROTOLENE BLANCO',3); }
-          else if (capacidad === '235LT') {
-            if (String(colorUI||'').includes('CON BLANCO')) { const cPrimario = String(colorUI).split(' ')[0]; sumar('ROTOLENE BLANCO',0.65); sumar(mapeoColor[cPrimario] || `ROTOLENE ${cPrimario}`,1.35); sumar('ROTOFOAM BLANCO AR',2.5); }
-            else { sumar(matColorBase,2); sumar('ROTOFOAM BLANCO AR',2.5); }
-          } else if (capacidad === 'GRANDE' || capacidad === 'CHICA' || capacidad === 'CHICO') {
-            // MACETA usa CHICA; BANCO usa CHICO. Ambos comparten la receta pequeña existente.
-            const isCombinada = String(colorUI||'').includes('CON BLANCO') || colorUI === 'MELON';
-            const cPrimario = String(colorUI||'').split(' ')[0];
-            const rotoleneSuelto = mapeoColor[cPrimario] || (cPrimario ? `ROTOLENE ${cPrimario}` : null);
-            sumar('ROTOFOAM BLANCO AR',1.0);
-            if (capacidad === 'GRANDE') {
-              if (isCombinada) { sumar(rotoleneSuelto,1.35); sumar('ROTOLENE BLANCO',0.65); }
-              else sumar(matColorBase,2.0);
-            } else {
-              if (isCombinada) { sumar(rotoleneSuelto,0.675); sumar('ROTOLENE BLANCO',0.325); }
-              else sumar(matColorBase,1.0);
-            }
-          }
+      // RECETAS CONFIRMADAS POR PLASTINOVA - KG POR PIEZA
+      if(tipo.includes('TINACO')){
+        if(cap === '1200LT') { sumar(matExterior,6); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',5); }
+        else if(cap === '1100LT') { sumar(matExterior,5); sumar('ROTOFOAM NEGRO AR',5); sumar('ROTOLENE BLANCO',4); }
+        else if(cap === '750LT') { sumar(matExterior,4.5); sumar('ROTOFOAM NEGRO AR',4); sumar('ROTOLENE BLANCO',3); }
+      }
+      else if(tipo.includes('TAMBO') && cap === '235LT'){
+        if(combinada){ sumar(matExterior,1.35); sumar('ROTOLENE BLANCO',0.65); }
+        else sumar(matExterior,2);
+        sumar('ROTOFOAM BLANCO AR',2.5);
+      }
+      else if(tipo.includes('MACETA') || tipo.includes('BANCO')){
+        const grande = cap === 'GRANDE';
+        const chica = cap === 'CHICA' || cap === 'CHICO';
+        if(!grande && !chica) return {};
+        if(grande){
+          if(combinada){ sumar(matExterior,1.35); sumar('ROTOLENE BLANCO',0.65); }
+          else sumar(matExterior,2);
+        } else {
+          if(combinada){ sumar(matExterior,0.675); sumar('ROTOLENE BLANCO',0.325); }
+          else sumar(matExterior,1);
         }
+        sumar('ROTOFOAM BLANCO AR',1);
       }
       return consumo;
     }
 
+    function obtenerRecetaMateriales(tipoMovimiento, capacidad, colorUI){
+      const consumo = {};
+      const tipo = String(tipoMovimiento||'').toUpperCase();
+      // Aditamentos por venta / traspaso: se conserva exactamente la lógica existente.
+      if (!tipo.includes('_COBRO') && (tipo.includes('VENTA') || tipo.includes('TRASPASO'))) {
+        const sumar = (material, cantidad=1) => { consumo[material] = (parseFloat(consumo[material]) || 0) + (parseFloat(cantidad)||0); };
+        if (tipo.includes('TINACO')) ['KIT COMPLETO (PIEZAS)','TAPA (PIEZAS)','JARRO DE AIRE (PIEZAS)','BRIDA (PIEZAS)','CAPUCHON (PIEZAS)','FILTRO (PIEZAS)','ETIQUETA (PIEZAS)','VALVULA (PIEZAS)'].forEach(m => sumar(m,1));
+        else if (tipo.includes('TAMBO')) ['TAPA (PIEZAS)','BRIDA (PIEZAS)','ETIQUETA (PIEZAS)'].forEach(m => sumar(m,1));
+        return consumo;
+      }
+      // Modo inventario: solo descuenta colores cuyo material de stock está confirmado.
+      return calcularRecetaMateriaPrimaProduccion(tipo, capacidad, colorUI, false);
+    }
+
+    function obtenerRecetaMaterialesReporte(tipoMovimiento, capacidad, colorUI){
+      // Modo reporte: conserva los KG estándar incluso si un color especial aún no tiene
+      // equivalencia exacta configurada en el catálogo de inventario.
+      return calcularRecetaMateriaPrimaProduccion(tipoMovimiento, capacidad, colorUI, true);
+    }
 
     function adjustStockValue(bucket,key,delta){
       if(!bucket || !key) return;
@@ -1929,27 +2018,255 @@ async function loadInventoryCacheFromSupabase(){
     }
   
 
-    async function syncOperationalMovementToSupabase(reg, action='UPSERT'){
-      if(!supabaseClient || !reg) return;
-      try{
-        await supabaseClient.from('movimientos_inventario').insert([{
-          producto_id:null,
-          tipo_movimiento:`OPERACION_${action}_${String(reg.tipo||'SIN_TIPO').toUpperCase()}`,
+    function setCloudMasterStatus(texto, estado=''){
+      const el = $('cloudMasterStatus');
+      if(!el) return;
+      const prefijo = estado==='ok' ? '✅' : (estado==='warn' ? '⚠️' : (estado==='bad' ? '❌' : '☁️'));
+      el.innerHTML = `<strong>Nube maestra:</strong> ${prefijo} ${escHtml(texto || '')}`;
+    }
+
+    function getCloudSyncQueue(){
+      const q = readLocalJSON(STORAGE_KEYS.CLOUD_SYNC_QUEUE, []);
+      return Array.isArray(q) ? q : [];
+    }
+    function saveCloudSyncQueue(rows){ writeLocalJSON(STORAGE_KEYS.CLOUD_SYNC_QUEUE, Array.isArray(rows)?rows:[]); }
+    function cloudMovementId(reg){ return String(reg?.id ?? '').trim(); }
+    function enqueueCloudSync(reg, action='UPSERT'){
+      if(!reg) return;
+      const id = cloudMovementId(reg) || claveMovimientoImportado(reg);
+      const q = getCloudSyncQueue().filter(x => String(x?.id||'') !== id);
+      q.push({id, action:String(action||'UPSERT').toUpperCase(), reg:{...reg}, queuedAt:new Date().toISOString(), attempts:0});
+      saveCloudSyncQueue(q);
+      setCloudMasterStatus(`${q.length} operación(es) pendiente(s) de subir`, 'warn');
+    }
+    function removeCloudQueueForMovement(reg){
+      const id = cloudMovementId(reg) || claveMovimientoImportado(reg);
+      const q = getCloudSyncQueue().filter(x => String(x?.id||'') !== id);
+      saveCloudSyncQueue(q);
+      return q.length;
+    }
+
+    async function sendOperationalMovementToSupabase(reg, action='UPSERT'){
+      if(!supabaseClient || !reg) throw new Error('Supabase no disponible');
+      const syncAt = new Date().toISOString();
+      const { error } = await supabaseClient.from('movimientos_inventario').insert([{
+        producto_id:null,
+        tipo_movimiento:`OPERACION_${String(action||'UPSERT').toUpperCase()}_${String(reg.tipo||'SIN_TIPO').toUpperCase()}`,
+        cantidad:parseFloat(reg.cantidad)||0,
+        fecha:(reg.fecha ? `${reg.fecha}T12:00:00` : syncAt),
+        vendedor:textoSeguro(reg.vendedor||'SISTEMA'),
+        origen:'APP_MASTER',
+        referencia:JSON.stringify({
+          syncVersion:2,
+          syncAt,
+          id:reg.id||null,
+          fecha:reg.fecha||'',
+          semana:parseInt(reg.semana)||getNumeroSemana(reg.fecha||hoyLocalISO()),
+          vendedor:reg.vendedor||'',
+          tipo:reg.tipo||'',
+          concepto:reg.concepto||'',
           cantidad:parseFloat(reg.cantidad)||0,
-          fecha:(reg.fecha ? `${reg.fecha}T12:00:00` : new Date().toISOString()),
-          vendedor:textoSeguro(reg.vendedor||'SISTEMA'),
-          origen:'APP',
-          referencia:JSON.stringify({
-            id:reg.id||null,
-            fecha:reg.fecha||'',
-            tipo:reg.tipo||'',
-            concepto:reg.concepto||'',
-            capacidad:reg.capacidad||'',
-            colorUI:reg.colorUI||'',
-            total:parseFloat(reg.total)||0
-          })
-        }]);
-      }catch(_e){}
+          precio:parseFloat(reg.precio)||0,
+          total:parseFloat(reg.total)||0,
+          capacidad:reg.capacidad||'',
+          colorUI:reg.colorUI||'',
+          incluyeAccesorios:reg.incluyeAccesorios !== false
+        })
+      }]);
+      if(error) throw error;
+      return true;
+    }
+
+    async function syncOperationalMovementToSupabase(reg, action='UPSERT'){
+      if(!reg) return false;
+      // Primero queda en cola local; así, incluso si se cierra el navegador durante el envío,
+      // el movimiento sigue pendiente y se reintentará al volver a tener conexión.
+      enqueueCloudSync(reg, action);
+      if(!supabaseClient) return false;
+      try{
+        await sendOperationalMovementToSupabase(reg, action);
+        const pendientes = removeCloudQueueForMovement(reg);
+        if(pendientes===0) setCloudMasterStatus('sincronizada', 'ok');
+        return true;
+      }catch(err){
+        console.warn('Movimiento pendiente de sincronizar con Supabase.', err);
+        return false;
+      }
+    }
+
+    async function flushCloudSyncQueue(){
+      const original = getCloudSyncQueue();
+      if(!original.length){ setCloudMasterStatus('sincronizada', 'ok'); return {sent:0,pending:0}; }
+      if(!supabaseClient){ setCloudMasterStatus(`${original.length} operación(es) pendiente(s); sin conexión`, 'warn'); return {sent:0,pending:original.length}; }
+      const restantes=[]; let sent=0;
+      for(const item of original){
+        try{ await sendOperationalMovementToSupabase(item.reg, item.action); sent++; }
+        catch(err){ restantes.push({...item,attempts:(parseInt(item.attempts)||0)+1,lastError:String(err?.message||err||'')}); }
+      }
+      saveCloudSyncQueue(restantes);
+      if(restantes.length) setCloudMasterStatus(`${restantes.length} operación(es) pendiente(s)`, 'warn');
+      else { localStorage.setItem(STORAGE_KEYS.CLOUD_LAST_SYNC,new Date().toISOString()); setCloudMasterStatus('sincronizada', 'ok'); }
+      return {sent,pending:restantes.length};
+    }
+
+    function parseReferenciaNube(row){
+      const raw = row?.referencia;
+      if(raw && typeof raw === 'object') return raw;
+      if(typeof raw === 'string' && raw.trim()) return safeJSONParse(raw, {}, 'referencia Supabase') || {};
+      return {};
+    }
+    function rangoEventoNube(row, ref, index){
+      const ts = Date.parse(ref?.syncAt || row?.created_at || row?.updated_at || '');
+      if(Number.isFinite(ts)) return ts;
+      const idNum = Number(row?.id);
+      if(Number.isFinite(idNum)) return idNum;
+      return index;
+    }
+    function reconstruirMovimientoDesdeEventoNube(row, ref){
+      const tipoMov = String(row?.tipo_movimiento||'').toUpperCase();
+      const tipo = String(ref?.tipo || tipoMov.replace(/^OPERACION_(UPSERT|DELETE)_/, '') || 'SIN_TIPO');
+      const fecha = String(ref?.fecha || String(row?.fecha||'').slice(0,10) || '');
+      const cantidad = parseFloat(ref?.cantidad ?? row?.cantidad) || 0;
+      const total = parseFloat(ref?.total) || 0;
+      const precio = ref && Object.prototype.hasOwnProperty.call(ref,'precio') ? (parseFloat(ref.precio)||0) : (cantidad ? total/cantidad : 0);
+      const mov = {
+        id:ref?.id ?? null, fecha, semana:parseInt(ref?.semana)||getNumeroSemana(fecha),
+        vendedor:String(ref?.vendedor || row?.vendedor || 'SISTEMA'), tipo, concepto:String(ref?.concepto||''),
+        cantidad, precio, total, capacidad:ref?.capacidad || null, colorUI:ref?.colorUI || null
+      };
+      if(ref && Object.prototype.hasOwnProperty.call(ref,'incluyeAccesorios')) mov.incluyeAccesorios = ref.incluyeAccesorios !== false;
+      return mov;
+    }
+
+    async function cargarMovimientosMaestrosDesdeSupabase(){
+      if(!supabaseClient) return {ok:false,error:new Error('Supabase no disponible'),movements:[],deletedIds:new Set(),deletedKeys:new Set(),eventCount:0};
+      const rows=[]; const pageSize=1000;
+      try{
+        for(let from=0; from<50000; from+=pageSize){
+          const {data,error} = await supabaseClient.from('movimientos_inventario').select('*').like('tipo_movimiento','OPERACION_%').range(from, from+pageSize-1);
+          if(error) throw error;
+          const part = Array.isArray(data) ? data : []; rows.push(...part);
+          if(part.length < pageSize) break;
+        }
+      }catch(error){ return {ok:false,error,movements:[],deletedIds:new Set(),deletedKeys:new Set(),eventCount:rows.length}; }
+
+      const byId = new Map();
+      rows.forEach((row,index)=>{
+        const ref=parseReferenciaNube(row);
+        const id=String(ref?.id ?? '').trim();
+        if(!id) return;
+        const action=String(row?.tipo_movimiento||'').toUpperCase().includes('OPERACION_DELETE_') ? 'DELETE' : 'UPSERT';
+        const rank=rangoEventoNube(row,ref,index);
+        const slot=byId.get(id)||{upsert:null,del:null};
+        const ev={row,ref,rank,index};
+        if(action==='DELETE'){ if(!slot.del || rank>=slot.del.rank) slot.del=ev; }
+        else { if(!slot.upsert || rank>=slot.upsert.rank) slot.upsert=ev; }
+        byId.set(id,slot);
+      });
+      const movements=[]; const deletedIds=new Set(); const deletedKeys=new Set();
+      byId.forEach((slot,id)=>{
+        if(slot.del && (!slot.upsert || slot.del.rank>=slot.upsert.rank)){
+          deletedIds.add(id);
+          if(slot.upsert){ const borrado=reconstruirMovimientoDesdeEventoNube(slot.upsert.row,slot.upsert.ref); deletedKeys.add(claveMovimientoImportado(borrado)); }
+          return;
+        }
+        if(slot.upsert){ const mov=reconstruirMovimientoDesdeEventoNube(slot.upsert.row,slot.upsert.ref); if(mov.id!==null) movements.push(mov); }
+      });
+      return {ok:true,movements:ordenarDBCronologicamente(movements),deletedIds,deletedKeys,eventCount:rows.length};
+    }
+
+    async function guardarConfiguracionMaestraEnSupabase(){
+      if(!supabaseClient) return false;
+      try{
+        const payload={
+          formato:'PLASTINOVA_MASTER_CONFIG_V2', versionRecetasProduccion:VERSION_RECETAS_PRODUCCION,
+          generadoEn:new Date().toISOString(), fechaBaseMateriaPrima:FECHA_BASE_MATERIA_PRIMA,
+          costoKgRotolene:COSTO_KG_ROTOLENE, costoKgRotofoam:COSTO_KG_ROTOFOAM,
+          cierres:getMonthlyDrafts(), precios:getPriceSettings()
+        };
+        const {error}=await supabaseClient.from('movimientos_inventario').insert([{producto_id:null,tipo_movimiento:'APP_MASTER_SNAPSHOT',cantidad:(state.movements||[]).length,fecha:new Date().toISOString(),vendedor:'SISTEMA',origen:'APP_MASTER',referencia:JSON.stringify(payload)}]);
+        if(error) throw error;
+        return true;
+      }catch(err){ console.warn('No se pudo guardar la configuración maestra en Supabase.',err); return false; }
+    }
+
+    async function cargarConfiguracionMaestraDesdeSupabase(){
+      if(!supabaseClient) return null;
+      try{
+        const {data,error}=await supabaseClient.from('movimientos_inventario').select('*').eq('tipo_movimiento','APP_MASTER_SNAPSHOT').order('fecha',{ascending:false}).limit(1);
+        if(error) throw error;
+        if(!Array.isArray(data)||!data.length) return null;
+        const cfg=parseReferenciaNube(data[0]);
+        return cfg?.formato==='PLASTINOVA_MASTER_CONFIG_V2' ? cfg : null;
+      }catch(err){ console.warn('No se pudo leer la configuración maestra.',err); return null; }
+    }
+
+    async function reconciliarHistorialConNube(){
+      const cloud=await cargarMovimientosMaestrosDesdeSupabase();
+      if(!cloud.ok){ setCloudMasterStatus('no se pudo leer el historial remoto', 'bad'); return {ok:false,error:cloud.error}; }
+      const local=Array.isArray(state.movements)?[...state.movements]:getMovements();
+      const localById=new Map(local.map(r=>[String(r?.id??''),r]));
+      const remoteIds=new Set(); const remoteKeys=new Set();
+      const merged=cloud.movements.map(r=>{
+        const id=String(r?.id??''); remoteIds.add(id); remoteKeys.add(claveMovimientoImportado(r));
+        const l=localById.get(id);
+        if(!l) return r;
+        const out={...r};
+        ['concepto','capacidad','colorUI'].forEach(k=>{ if((out[k]===null||out[k]===undefined||out[k]==='') && l[k]) out[k]=l[k]; });
+        if(!out.precio && l.precio) out.precio=l.precio;
+        if(l.incluyeAccesorios===false && out.incluyeAccesorios===undefined) out.incluyeAccesorios=false;
+        return out;
+      });
+      const paraSubir=[];
+      local.forEach(r=>{
+        const id=String(r?.id??'');
+        if(id && cloud.deletedIds.has(id)) return;
+        const key=claveMovimientoImportado(r);
+        if((id && remoteIds.has(id)) || remoteKeys.has(key) || cloud.deletedKeys?.has(key)) return;
+        merged.push(r); remoteKeys.add(key); if(id) remoteIds.add(id); paraSubir.push(r);
+      });
+      state.movements=ordenarDBCronologicamente(merged);
+      saveMovements(state.movements); reconstructStockFromMovements(state.movements);
+      paraSubir.forEach(r=>enqueueCloudSync(r,'UPSERT'));
+      renderAll();
+      if(paraSubir.length) await flushCloudSyncQueue();
+      localStorage.setItem(STORAGE_KEYS.CLOUD_LAST_SYNC,new Date().toISOString());
+      setCloudMasterStatus(`sincronizada · ${state.movements.length} movimientos`, 'ok');
+      return {ok:true,remote:cloud.movements.length,localOnly:paraSubir.length,total:state.movements.length,eventCount:cloud.eventCount};
+    }
+
+    async function sincronizarNubeAhora(){
+      setCloudMasterStatus('sincronizando…');
+      const cola=await flushCloudSyncQueue();
+      const res=await reconciliarHistorialConNube();
+      if(!res.ok){ alert('No fue posible sincronizar con Supabase. Tus datos locales permanecen intactos.'); return; }
+      await guardarConfiguracionMaestraEnSupabase();
+      await loadInventoryCacheFromSupabase();
+      alert(`Nube sincronizada. ${res.total} movimiento(s) disponibles; ${cola.sent + res.localOnly} operación(es) subida(s) en esta revisión.`);
+    }
+
+    async function restaurarHistorialDesdeNube(){
+      if(!supabaseClient){ alert('Supabase no está disponible en este momento.'); return; }
+      if(!confirm('Se reemplazará el historial local por la copia maestra de Supabase. Antes se creará un respaldo local automático. ¿Continuar?')) return;
+      setCloudMasterStatus('preparando restauración…');
+      await flushCloudSyncQueue();
+      const cloud=await cargarMovimientosMaestrosDesdeSupabase();
+      if(!cloud.ok){ setCloudMasterStatus('error al leer la copia maestra', 'bad'); alert('No se pudo leer la copia maestra de Supabase. No se modificó nada local.'); return; }
+      if(!cloud.movements.length){ setCloudMasterStatus('la nube no contiene movimientos restaurables', 'warn'); alert('Supabase no contiene movimientos operativos restaurables. No se modificó nada.'); return; }
+      const palabra=prompt(`Se encontraron ${cloud.movements.length} movimientos activos en la nube. Escribe RESTAURAR para reemplazar el historial local:`,'');
+      if(String(palabra||'').trim().toUpperCase()!=='RESTAURAR'){ setCloudMasterStatus('restauración cancelada'); return; }
+      crearRespaldoLocalMovimientos('ANTES_DE_RESTAURAR_DESDE_SUPABASE');
+      const cfg=await cargarConfiguracionMaestraDesdeSupabase();
+      state.movements=ordenarDBCronologicamente(cloud.movements); saveMovements(state.movements);
+      if(cfg){
+        if(Array.isArray(cfg.cierres)) saveMonthlyDrafts(cfg.cierres);
+        if(cfg.precios) savePriceSettings(cfg.precios); else localStorage.removeItem(STORAGE_KEYS.PRICE_SETTINGS);
+      }
+      await loadInventoryCacheFromSupabase();
+      reconstructStockFromMovements(state.movements); loadMonthlyRows(); renderAll(); updatePriceFields();
+      localStorage.setItem(STORAGE_KEYS.CLOUD_LAST_SYNC,new Date().toISOString());
+      setCloudMasterStatus(`restaurada · ${state.movements.length} movimientos`, 'ok');
+      alert(`Restauración terminada: ${state.movements.length} movimiento(s) recuperado(s) desde Supabase${cfg?' junto con cierres y configuración de precios':''}.`);
     }
 
     function populateSelect(select, items, placeholder=null){ select.innerHTML=''; if(placeholder){ const op=document.createElement('option'); op.value=''; op.textContent=placeholder; select.appendChild(op); }
@@ -2102,6 +2419,7 @@ async function loadInventoryCacheFromSupabase(){
       savePriceSettings({vigenteDesde, precios});
       renderPriceEditor();
       updatePriceFields();
+      guardarConfiguracionMaestraEnSupabase();
       alert(`Precios guardados. Aplicarán desde ${formatFechaVisible(vigenteDesde)}.`);
     }
 
@@ -2110,6 +2428,7 @@ async function loadInventoryCacheFromSupabase(){
       savePriceSettings(null);
       renderPriceEditor();
       updatePriceFields();
+      guardarConfiguracionMaestraEnSupabase();
     }
 
     function updatePriceFields(){
@@ -2354,7 +2673,7 @@ async function loadInventoryCacheFromSupabase(){
       const categoria = $('invMensualCategoria').value;
       const drafts = getMonthlyDrafts();
       const entry = { id: Date.now()+Math.random(), fecha, ubicacion, categoria, rows: state.monthlyRows.map(r=>({producto:r.producto,tipo:r.tipo,medida:r.medida,color:r.color,sistema:r.sistema,fisico:r.fisico,diferencia:r.diferencia,estado:r.estado,unidad:r.unidad,sourceName:r.sourceName||''})) };
-      drafts.unshift(entry); saveMonthlyDrafts(drafts); renderMonthlyClosures();
+      drafts.unshift(entry); saveMonthlyDrafts(drafts); renderMonthlyClosures(); guardarConfiguracionMaestraEnSupabase();
       if(!applyChanges){ alert('Cierre guardado sin aplicar.'); return; }
       let db = getMovements();
       for(const row of state.monthlyRows){
@@ -2755,12 +3074,15 @@ function renderBarMeta(chips, kind='sales'){
 
           // Vista gerencial: estimación por receta para cualquier periodo histórico.
           // El corte FECHA_BASE_MATERIA_PRIMA se conserva únicamente para afectar inventario.
-          const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+          const receta = obtenerRecetaMaterialesReporte(tipo, cap, col) || {};
           Object.keys(receta).forEach(mat => {
             consumoMP[mat] = (consumoMP[mat] || 0) + ((parseFloat(receta[mat]) || 0) * cant);
           });
         }
       });
+
+      const costoMPPeriodo = Object.entries(consumoMP).reduce((sum,[mat,qty]) => sum + ((parseFloat(qty)||0) * costoKgMateriaPrima(mat)), 0);
+      if($('dashCostoMPTotal')) $('dashCostoMPTotal').textContent = '$'+formato(costoMPPeriodo);
 
       const tbProd = $('tablaDetalleProd')?.querySelector('tbody');
       if(tbProd) {
@@ -3383,11 +3705,11 @@ function nombreMesReporte(fecha){
           // Para el REPORTE calculamos la receta para cualquier fecha histórica.
           // No usamos movimientoConsumeMateriaPrima(), porque esa función tiene un corte contable
           // para afectar inventario y dejaría sin cálculo periodos anteriores al corte.
-          const receta = obtenerRecetaMateriales(tipo, cap, col) || {};
+          const receta = obtenerRecetaMaterialesReporte(tipo, cap, col) || {};
           const kgPorPieza = Object.values(receta).reduce((s,v)=>s+(parseFloat(v)||0),0);
           return {
             index, r, tipo, cap, col, cant, receta, kgPorPieza,
-            kgTotal:kgPorPieza*cant,
+            kgTotal:kgPorPieza*cant, costoPorPieza:costoRecetaMateriaPrima(receta), costoTotal:costoRecetaMateriaPrima(receta)*cant,
             mes:nombreMesReporte(r.fecha),
             fecha:r.fecha,
             productor:String(r.vendedor||'').toUpperCase(),
@@ -3414,31 +3736,38 @@ function nombreMesReporte(fecha){
       const sinRecetaDetalle = {};
       let totalPiezas = 0;
       let totalMP = 0;
+      let totalCostoMP = 0;
       let registrosSinReceta = 0;
+      const coloresSinMapeoInventario = new Set();
 
       produccion.forEach(p=>{
         totalPiezas += p.cant;
+        if(p.cant>0 && p.col && !colorProduccionTieneMapeoInventario(p.col)) coloresSinMapeoInventario.add(p.col);
         totalMP += p.kgTotal;
+        totalCostoMP += p.costoTotal;
         if(p.cant>0 && !Object.keys(p.receta).length){
           registrosSinReceta++;
           const kSin = `${p.producto}|${p.cap}|${p.col}`;
           if(!sinRecetaDetalle[kSin]) sinRecetaDetalle[kSin] = {producto:p.producto,cap:p.cap,col:p.col,piezas:0};
           sinRecetaDetalle[kSin].piezas += p.cant;
         }
-        if(!resumenPorProductor[p.productor]) resumenPorProductor[p.productor] = {piezas:0,kg:0};
+        if(!resumenPorProductor[p.productor]) resumenPorProductor[p.productor] = {piezas:0,kg:0,costo:0};
         resumenPorProductor[p.productor].piezas += p.cant;
         resumenPorProductor[p.productor].kg += p.kgTotal;
+        resumenPorProductor[p.productor].costo += p.costoTotal;
         Object.entries(p.receta).forEach(([mat,kgPza])=>{
           const kg = (parseFloat(kgPza)||0) * p.cant;
           consumoMP[mat] = (consumoMP[mat]||0) + kg;
           const kPM = `${p.productor}|${mat}`;
-          if(!consumoPorProductorMaterial[kPM]) consumoPorProductorMaterial[kPM] = {productor:p.productor,material:mat,kg:0};
+          if(!consumoPorProductorMaterial[kPM]) consumoPorProductorMaterial[kPM] = {productor:p.productor,material:mat,kg:0,costo:0};
           consumoPorProductorMaterial[kPM].kg += kg;
+          consumoPorProductorMaterial[kPM].costo += kg * costoKgMateriaPrima(mat);
         });
         const claveProd = `${p.producto} ${p.cap} ${p.col}`.trim();
-        if(!consumoPorProducto[claveProd]) consumoPorProducto[claveProd] = { piezas:0, kg:0 };
+        if(!consumoPorProducto[claveProd]) consumoPorProducto[claveProd] = { piezas:0, kg:0, costo:0 };
         consumoPorProducto[claveProd].piezas += p.cant;
         consumoPorProducto[claveProd].kg += p.kgTotal;
+        consumoPorProducto[claveProd].costo += p.costoTotal;
       });
 
       const prodRows = produccion.length ? produccion.map(p=>`<tr>
@@ -3452,28 +3781,31 @@ function nombreMesReporte(fecha){
         <td class="right">${fmtQty(p.cant)}</td>
         <td class="right">${fmtQty(p.kgPorPieza)}</td>
         <td class="right">${fmtQty(p.kgTotal)}</td>
-      </tr>`).join('') : `<tr><td colspan="10" class="center">Sin producción en este periodo.</td></tr>`;
+        <td class="right">$${formato(p.costoTotal)}</td>
+      </tr>`).join('') : `<tr><td colspan="11" class="center">Sin producción en este periodo.</td></tr>`;
 
       const mpArr = Object.entries(consumoMP).sort((a,b)=>b[1]-a[1]);
       const mpRows = mpArr.length ? mpArr.map(([mat,qty])=>`<tr>
         <td>${escHtml(mat)}</td>
         <td class="right">${fmtQty(qty)}</td>
         <td class="center">KG</td>
+        <td class="right">$${formato(costoKgMateriaPrima(mat))}</td>
+        <td class="right">$${formato(qty*costoKgMateriaPrima(mat))}</td>
         <td class="right">${totalMP>0 ? ((qty/totalMP)*100).toFixed(1) : '0.0'}%</td>
-      </tr>`).join('') : `<tr><td colspan="4" class="center">No hay materia prima calculable con las recetas actuales.</td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="6" class="center">No hay materia prima calculable con las recetas confirmadas.</td></tr>`;
 
       const porProductoArr = Object.entries(consumoPorProducto).sort((a,b)=>b[1].kg-a[1].kg);
       const porProductoRows = porProductoArr.length ? porProductoArr.map(([producto,val])=>`<tr>
-        <td>${escHtml(producto)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td>
-      </tr>`).join('') : `<tr><td colspan="4" class="center">Sin producción.</td></tr>`;
+        <td>${escHtml(producto)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td><td class="right">$${formato(val.costo)}</td>
+      </tr>`).join('') : `<tr><td colspan="5" class="center">Sin producción.</td></tr>`;
 
       const productorRows = Object.entries(resumenPorProductor).sort((a,b)=>b[1].kg-a[1].kg).map(([productor,val])=>`<tr>
-        <td>${escHtml(productor)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td>
-      </tr>`).join('') || `<tr><td colspan="4" class="center">Sin producción.</td></tr>`;
+        <td>${escHtml(productor)}</td><td class="right">${fmtQty(val.piezas)}</td><td class="right">${fmtQty(val.kg)}</td><td class="center">KG</td><td class="right">$${formato(val.costo)}</td>
+      </tr>`).join('') || `<tr><td colspan="5" class="center">Sin producción.</td></tr>`;
 
       const productorMaterialRows = Object.values(consumoPorProductorMaterial).sort((a,b)=>a.productor.localeCompare(b.productor) || b.kg-a.kg).map(x=>`<tr>
-        <td>${escHtml(x.productor)}</td><td>${escHtml(x.material)}</td><td class="right">${fmtQty(x.kg)}</td><td class="center">KG</td>
-      </tr>`).join('') || `<tr><td colspan="4" class="center">Sin consumo calculable.</td></tr>`;
+        <td>${escHtml(x.productor)}</td><td>${escHtml(x.material)}</td><td class="right">${fmtQty(x.kg)}</td><td class="center">KG</td><td class="right">$${formato(x.costo)}</td>
+      </tr>`).join('') || `<tr><td colspan="5" class="center">Sin consumo calculable.</td></tr>`;
 
       const sinRecetaRows = Object.values(sinRecetaDetalle).sort((a,b)=>a.producto.localeCompare(b.producto)).map(x=>`<tr>
         <td>${escHtml(x.producto)}</td><td class="center">${escHtml(capacidadReporte(x.cap))}</td><td>${escHtml(x.col)}</td><td class="right">${fmtQty(x.piezas)}</td>
@@ -3483,7 +3815,8 @@ function nombreMesReporte(fecha){
         <div class="center-title">REPORTE DE PRODUCCIÓN Y CONSUMO DE MATERIA PRIMA</div>
         <table class="report-summary"><tbody>
           <tr><td><strong>Periodo</strong></td><td>${escHtml(data.periodoLabel)}</td><td><strong>Productor</strong></td><td>${escHtml(data.fVend==='TODOS' ? 'Todos' : data.fVend)}</td></tr>
-          <tr><td><strong>Total producido</strong></td><td>${fmtQty(totalPiezas)} pzas</td><td><strong>Materia prima calculada</strong></td><td>${fmtQty(totalMP)} kg</td></tr>
+          <tr><td><strong>Total producido</strong></td><td>${fmtQty(totalPiezas)} pzas</td><td><strong>Materia prima según receta</strong></td><td>${fmtQty(totalMP)} kg</td></tr>
+          <tr><td><strong>Costo estándar MP</strong></td><td>$${formato(totalCostoMP)}</td><td><strong>Costo confirmado</strong></td><td>$39.00/kg Rotolene y Rotofoam</td></tr>
         </tbody></table>
 
         <div class="section-title">DETALLE DE PRODUCCIÓN</div>
@@ -3491,38 +3824,38 @@ function nombreMesReporte(fecha){
           <thead><tr>
             <th style="width:7%">MES</th><th style="width:9%">FECHA</th><th style="width:11%">PRODUCTOR</th><th style="width:9%">PRODUCTO</th>
             <th style="width:9%">CAP./MEDIDA</th><th style="width:12%">COLOR</th><th style="width:8%">TIPO</th><th style="width:8%">CANT.</th>
-            <th style="width:12%">KG / PZA</th><th style="width:15%">KG TOTAL</th>
+            <th style="width:10%">KG / PZA</th><th style="width:11%">KG TOTAL</th><th style="width:12%">COSTO MP</th>
           </tr></thead>
           <tbody>${prodRows}</tbody>
-          <tfoot><tr><td colspan="7" class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalPiezas)}</strong></td><td></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td></tr></tfoot>
+          <tfoot><tr><td colspan="7" class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalPiezas)}</strong></td><td></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td><td class="right"><strong>$${formato(totalCostoMP)}</strong></td></tr></tfoot>
         </table>
 
         <div class="section-title" style="margin-top:14px">MATERIA PRIMA CONSUMIDA - RESUMEN POR MATERIAL</div>
         <table class="report-long">
-          <thead><tr><th>MATERIAL</th><th style="width:22%">CONSUMO CALCULADO</th><th style="width:12%">UNIDAD</th><th style="width:14%">% DEL TOTAL</th></tr></thead>
+          <thead><tr><th>MATERIAL</th><th style="width:17%">CONSUMO</th><th style="width:9%">UNIDAD</th><th style="width:12%">$/KG</th><th style="width:17%">COSTO</th><th style="width:12%">% KG</th></tr></thead>
           <tbody>${mpRows}</tbody>
-          <tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td><td class="center">KG</td><td class="right"><strong>${totalMP>0?'100.0%':'0.0%'}</strong></td></tr></tfoot>
+          <tfoot><tr><td class="right"><strong>TOTAL</strong></td><td class="right"><strong>${fmtQty(totalMP)}</strong></td><td class="center">KG</td><td></td><td class="right"><strong>$${formato(totalCostoMP)}</strong></td><td class="right"><strong>${totalMP>0?'100.0%':'0.0%'}</strong></td></tr></tfoot>
         </table>
 
         <div class="section-title" style="margin-top:14px">RESUMEN DE CONSUMO POR PRODUCTOR</div>
         <table class="report-long">
-          <thead><tr><th>PRODUCTOR</th><th style="width:20%">PIEZAS</th><th style="width:24%">MATERIA PRIMA</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <thead><tr><th>PRODUCTOR</th><th style="width:17%">PIEZAS</th><th style="width:22%">MATERIA PRIMA</th><th style="width:10%">UNIDAD</th><th style="width:20%">COSTO MP</th></tr></thead>
           <tbody>${productorRows}</tbody>
         </table>
 
         <div class="section-title" style="margin-top:14px">MATERIA PRIMA CONSUMIDA POR PRODUCTOR</div>
         <table class="report-long">
-          <thead><tr><th style="width:24%">PRODUCTOR</th><th>MATERIAL</th><th style="width:22%">CONSUMO</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <thead><tr><th style="width:20%">PRODUCTOR</th><th>MATERIAL</th><th style="width:18%">CONSUMO</th><th style="width:10%">UNIDAD</th><th style="width:18%">COSTO</th></tr></thead>
           <tbody>${productorMaterialRows}</tbody>
         </table>
 
         <div class="section-title" style="margin-top:14px">CONSUMO DE MATERIA PRIMA POR PRODUCTO</div>
         <table class="report-long">
-          <thead><tr><th>PRODUCTO / CAPACIDAD / COLOR</th><th style="width:18%">PIEZAS</th><th style="width:22%">MATERIA PRIMA</th><th style="width:12%">UNIDAD</th></tr></thead>
+          <thead><tr><th>PRODUCTO / CAPACIDAD / COLOR</th><th style="width:15%">PIEZAS</th><th style="width:20%">MATERIA PRIMA</th><th style="width:10%">UNIDAD</th><th style="width:20%">COSTO MP</th></tr></thead>
           <tbody>${porProductoRows}</tbody>
         </table>
-        ${sinRecetaRows ? `<div class="section-title" style="margin-top:14px">PRODUCCIÓN SIN RECETA CONFIGURADA</div><table class="report-long"><thead><tr><th>PRODUCTO</th><th>CAP./MEDIDA</th><th>COLOR</th><th>PIEZAS</th></tr></thead><tbody>${sinRecetaRows}</tbody></table>` : ''}
-        <div class="report-note"><strong>Nota:</strong> el consumo se calcula con las recetas configuradas en la app (kg por pieza × piezas producidas). No modifica inventario. ${registrosSinReceta ? `Hay ${registrosSinReceta} registro(s) de producción sin receta configurada; se separan en una tabla para no inventar consumos.` : 'Todos los registros del periodo tienen una receta calculable.'}</div>
+        ${sinRecetaRows ? `<div class="section-title" style="margin-top:14px">PRODUCCIÓN SIN RECETA / MEDIDA CONFIGURADA</div><table class="report-long"><thead><tr><th>PRODUCTO</th><th>CAP./MEDIDA</th><th>COLOR</th><th>PIEZAS</th></tr></thead><tbody>${sinRecetaRows}</tbody></table>` : ''}
+        <div class="report-note"><strong>Nota:</strong> el consumo mostrado es consumo estándar según receta (kg por pieza × piezas producidas), no una medición de báscula. El costo usa $39.00/kg para todos los Rotolene y Rotofoam confirmados. La materia prima de una pieza defectuosa se considera consumida completamente; registrar después la pieza como merma no devuelve polvo al inventario. El reporte histórico no modifica inventario. ${registrosSinReceta ? `Hay ${registrosSinReceta} registro(s) cuya combinación producto/medida no tiene receta y se separan para no inventar consumos.` : 'Todas las combinaciones producto/medida del periodo tienen receta.'} ${coloresSinMapeoInventario.size ? `Colores sin equivalencia exacta de Rotolene en inventario: ${escHtml([...coloresSinMapeoInventario].sort().join(', '))}. Sus KG y costo sí se calculan en este reporte, pero no se descuentan automáticamente de un material de stock hasta confirmar su equivalencia.` : 'Todos los colores del periodo tienen equivalencia exacta de material para inventario.'}</div>
       `;
 
       printDocument(html, `PRODUCCIÓN Y MATERIA PRIMA - ${String(data.periodoLabel||'').toUpperCase()}`);
@@ -3574,7 +3907,7 @@ function nombreMesReporte(fecha){
       $('btnGuardarCierreSinAplicar').addEventListener('click', ()=>saveMonthlyDraft(false)); $('btnAplicarCierre').addEventListener('click', ()=>saveMonthlyDraft(true));
       $('btnAgregarTinaco').addEventListener('click', ()=>{ const entries=buildTinacoPendingEntries(); if(entries.length){ queueEntries(entries,'tinacos'); $('qTinaco').value=''; }}); $('btnAgregarTambo').addEventListener('click', ()=>{ const entries=buildTamboPendingEntries(); if(entries.length){ queueEntries(entries,'tambos'); $('qTambo').value=''; }}); $('btnAgregarProduccion').addEventListener('click', ()=>{ const entries=buildProductionPendingEntries(); if(entries.length){ queueEntries(entries,'produccion'); $('qProdNormal').value=''; $('qProdExtra').value=''; }}); $('btnAgregarGasto').addEventListener('click', ()=>{ const entries=buildGastoPendingEntries(); if(entries.length){ queueEntries(entries,'gastos'); $('montoGasto').value=''; $('descGasto').value=''; }}); $('btnGuardarRegistro').addEventListener('click', saveDailyRecord); $('btnRegistrarMerma').addEventListener('click', registerMerma); $('btnLimpiarPendientes').addEventListener('click', clearPendingEntries); $('compraMaterial').addEventListener('change', updateCompraUnits); $('btnRegistrarCompra').addEventListener('click', registerCompra);
       $('btnAplicarFiltroHistorial').addEventListener('click', renderHistory); $('btnLimpiarFiltroHistorial').addEventListener('click', ()=>{ $('historialFiltroVendedor').value='TODOS'; $('historialFiltroTexto').value=''; renderHistory(); });
-      $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnDescargarRespaldo')?.addEventListener('click', descargarRespaldoCompleto); $('btnBorrarTodoHistorial').addEventListener('click', borrarTodoHistorialSeguro); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
+      $('btnImprimirHistorial').addEventListener('click', ()=>imprimirTabla('tablaHistorial','REPORTE DE MOVIMIENTOS HISTÓRICOS')); $('btnDescargarRespaldo')?.addEventListener('click', descargarRespaldoCompleto); $('btnSincronizarNube')?.addEventListener('click', sincronizarNubeAhora); $('btnRestaurarNube')?.addEventListener('click', restaurarHistorialDesdeNube); $('btnBorrarTodoHistorial').addEventListener('click', borrarTodoHistorialSeguro); $('btnImportarArchivo').addEventListener('click', async ()=>{ const file = $('archivoImportacion').files && $('archivoImportacion').files[0]; await importHistoryFile(file, $('modoImportacion').value || 'agregar'); });
       $('btnGuardarPrecios')?.addEventListener('click', guardarPreciosProgramados); $('btnCargarPreciosActuales')?.addEventListener('click', cargarPreciosActualesEnEditor); $('btnQuitarPreciosProgramados')?.addEventListener('click', quitarPreciosProgramados);
       $('btnActualizarStockActual').addEventListener('click', ()=>{ reconstructStockFromMovements(state.movements); loadInventoryCacheFromSupabase().then(()=>loadMonthlyRows()); }); $('btnImprimirStockActual').addEventListener('click', ()=>imprimirTabla('tablaStockActual','REPORTE DE INVENTARIO - STOCK ACTUAL')); $('btnResetearStock').addEventListener('click', resetearStock); $('btnImprimirRuta').addEventListener('click', ()=>imprimirTabla('tablaStockRuta','REPORTE DE MERCANCÍA EN RUTA')); $('btnGenerarCorte').addEventListener('click', generateCutPDF); $('btnImprimirReportePro')?.addEventListener('click', generateDashboardReport);
       $('btnReporteVentas')?.addEventListener('click', generarReporteVentas);
@@ -3738,12 +4071,21 @@ function nombreMesReporte(fecha){
       state.inventoryCache = getInventoryCache();
       renderAll();
       updateCutDates();
-      await pingSupabase();
-      await loadInventoryCacheFromSupabase();
-      await syncApril2026BaselineIfNeeded([...(seededBaseline.added || []), ...(seededOperational.added || [])]);
+      const nubeOk = await pingSupabase();
+      if(nubeOk){
+        await syncApril2026BaselineIfNeeded([...(seededBaseline.added || []), ...(seededOperational.added || [])]);
+        await flushCloudSyncQueue();
+        await reconciliarHistorialConNube();
+        await loadInventoryCacheFromSupabase();
+        const cfgMaster = await cargarConfiguracionMaestraDesdeSupabase();
+        if(!cfgMaster) await guardarConfiguracionMaestraEnSupabase();
+      } else {
+        setCloudMasterStatus(`${getCloudSyncQueue().length} operación(es) pendiente(s); trabajando localmente`, 'warn');
+      }
       loadMonthlyRows();
       renderAll();
     }
+    window.addEventListener?.('online', ()=>{ flushCloudSyncQueue().then(()=>reconciliarHistorialConNube()).then(()=>guardarConfiguracionMaestraEnSupabase()).catch(()=>{}); });
     document.addEventListener('DOMContentLoaded', init);
 /* --- FUNCIONES NUEVAS DE DISEÑO --- */
 // Encender o apagar el Modo Oscuro

@@ -3951,94 +3951,96 @@ function renderStockTables(){
     function previewCutSummary(){ const c=buildCutData(); if(c.error){ $('previewCorte').innerHTML = `<div class="mini-note status-bad">${escHtml(c.error)}</div>`; return; } $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
     function printDocument(htmlContent, tituloDocumento){
+      // 1. Crear el contenedor de impresión si no existe en la app
+      let printZone = document.getElementById('plastinovaPrintZone');
+      if (!printZone) {
+        printZone = document.createElement('div');
+        printZone.id = 'plastinovaPrintZone';
+        document.body.appendChild(printZone);
+
+        // 2. Inyectar estilos para ocultar la app en la pantalla, pero mostrar el reporte en la impresora
+        const style = document.createElement('style');
+        style.innerHTML = `
+          @media screen {
+            #plastinovaPrintZone { display: none !important; }
+          }
+          @media print {
+            body > *:not(#plastinovaPrintZone) { display: none !important; }
+            #plastinovaPrintZone { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
+            @page { size: landscape; margin: 8mm; }
+            body { background: #fff !important; font-family: Arial, sans-serif; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            
+            .wrap{padding:4px 6px}
+            .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px}
+            .brand-box{display:flex;align-items:center;gap:12px}
+            .brand-logo{width:130px;height:auto;object-fit:contain}
+            .brand-fallback{width:56px;height:56px;border-radius:14px;border:2px solid #2c6aa6;align-items:center;justify-content:center;color:#2c6aa6;font-weight:900;font-size:22px;display:flex;}
+            .brand-name{font-weight:900;font-size:22px;color:#184c84;letter-spacing:.2px}
+            .brand-sub{font-size:13px;color:#4c6180}
+            .title{text-align:right}
+            .title h1{margin:0;font-size:20px;color:#2c6aa6;letter-spacing:.3px}
+            .title p{margin:4px 0 0;font-size:12px;color:#2b2b2b}
+            .center-title{text-align:center;font-weight:900;font-size:14px;line-height:1.2;margin:4px 0 14px;color:#111}
+            .section-title{margin:10px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:6px 10px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
+            #plastinovaPrintZone table{width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:avoid}
+            #plastinovaPrintZone th, #plastinovaPrintZone td{border:1px solid #202020;padding:5px 7px;vertical-align:middle;color:#000;}
+            #plastinovaPrintZone thead th{background:#2c6aa6 !important;color:#fff !important;font-size:11px;font-weight:900}
+            #plastinovaPrintZone td{font-size:11.5px}
+            .right{text-align:right}
+            .center{text-align:center}
+            .total{color:#c53333;font-weight:900}
+            .stack{display:grid;grid-template-columns:46% 54%;gap:12px;align-items:start;margin-top:10px;page-break-inside:avoid}
+            .firma{margin-top:16px;font-size:12px}
+            .empty td{height:25px}
+            .soft-note{color:#516885}
+            table.report-long{page-break-inside:auto;table-layout:fixed}
+            table.report-long thead{display:table-header-group}
+            table.report-long tfoot{display:table-row-group}
+            table.report-long tr{page-break-inside:avoid;page-break-after:auto}
+            table.report-long th,table.report-long td{font-size:9.5px;padding:4px 5px}
+            .report-summary{margin-bottom:10px;page-break-inside:avoid}
+            .report-note{font-size:10px;color:#516885;margin:8px 0 0;line-height:1.35}
+            .owner-badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#e7f1ff;color:#184c84;border:1px solid #b9d0ea;font-size:10px;font-weight:900;letter-spacing:.4px;text-transform:uppercase}
+            .owner-period{font-size:15px;font-weight:900;margin:8px 0 2px;color:#111}
+            .owner-cutoff{font-size:10px;color:#516885;margin-bottom:10px}
+            .owner-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:8px 0 10px;page-break-inside:avoid}
+            .owner-kpi{border:1px solid #bdd0e8;background:#f5f9ff;border-radius:8px;padding:8px;text-align:center}
+            .owner-kpi strong{display:block;font-size:8px;color:#536981;text-transform:uppercase;letter-spacing:.25px}
+            .owner-kpi span{display:block;font-size:16px;color:#174d84;font-weight:900;margin-top:4px}
+            .owner-reading{border:1px solid #c6d9ef;background:#eef6ff;border-radius:8px;padding:8px 10px;line-height:1.45;font-size:10.5px;margin:8px 0 10px;page-break-inside:avoid}
+            .owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;page-break-inside:avoid}
+            .owner-chart{border:1px solid #c6d6e8;border-radius:7px;padding:8px;background:#fff}
+            .owner-chart h3{font-size:11px;margin:0 0 7px;color:#184c84}
+            .owner-top-tinaco{display:grid;grid-template-columns:minmax(0,1fr) 150px 76px;gap:8px;align-items:center;border:1px solid #b9cee6;border-radius:7px;padding:7px 9px;margin-top:8px;background:#f5f9ff;page-break-inside:avoid}
+            .owner-top-tinaco strong{display:block;font-size:7.5px;color:#5d6f82;letter-spacing:.25px}
+            .owner-top-tinaco span{display:block;font-size:11px;font-weight:900;color:#174d84;margin-top:2px;line-height:1.1}
+            .owner-top-tinaco small{display:block;font-size:7px;color:#66788b;margin-top:2px;font-weight:700}
+            .owner-top-track{height:12px;background:#fff;border:1px solid #d7e2ef;border-radius:999px;overflow:hidden}
+            .owner-top-fill{height:100%;background:#2d77ba;border-radius:999px;min-width:2px}
+            .owner-top-value{text-align:right;font-size:14px;font-weight:900;color:#174d84}
+            .owner-top-value small{font-size:6.8px}
+            .owner-hbar{display:grid;grid-template-columns:74px 1fr 70px;gap:5px;align-items:center;margin:5px 0;font-size:8.5px}
+            .owner-hbar .name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .owner-track{height:12px;border:1px solid #d6e0ec;background:#edf3f9;border-radius:99px;overflow:hidden}
+            .owner-fill{height:100%;background:#2c6aa6;border-radius:99px;min-width:1px}
+            .owner-fill.prod{background:#d68a25}
+            .owner-hbar .value{text-align:right;font-weight:900}
+            .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
+            .owner-page-break{page-break-before:always}
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // 3. Preparar el HTML del reporte
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
-      const win = window.open('', '_blank');
-      if(!win){ alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.'); return false; }
+      printZone.innerHTML = `<div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>`;
 
-      // Se inyecta el comando de impresión en el onload con un ligero retraso (500ms)
-      // Se muestran los botones de impresión de respaldo inmediatamente por defecto.
-      win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(tituloDocumento)}</title><style>
-        @page{size:landscape;margin:8mm}
-        *{box-sizing:border-box}
-        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        .wrap{padding:4px 6px}
-        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px}
-        .brand-box{display:flex;align-items:center;gap:12px}
-        .brand-logo{width:130px;height:auto;object-fit:contain}
-        .brand-fallback{width:56px;height:56px;border-radius:14px;border:2px solid #2c6aa6;align-items:center;justify-content:center;color:#2c6aa6;font-weight:900;font-size:22px}
-        .brand-name{font-weight:900;font-size:22px;color:#184c84;letter-spacing:.2px}
-        .brand-sub{font-size:13px;color:#4c6180}
-        .title{text-align:right}
-        .title h1{margin:0;font-size:20px;color:#2c6aa6;letter-spacing:.3px}
-        .title p{margin:4px 0 0;font-size:12px;color:#2b2b2b}
-        .center-title{text-align:center;font-weight:900;font-size:14px;line-height:1.2;margin:4px 0 14px;color:#111}
-        .section-title{margin:10px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:6px 10px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
-        table{width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:avoid}
-        th,td{border:1px solid #202020;padding:5px 7px;vertical-align:middle}
-        thead th{background:#2c6aa6;color:#fff !important;font-size:11px;font-weight:900}
-        td{font-size:11.5px}
-        .right{text-align:right}
-        .center{text-align:center}
-        .total{color:#c53333;font-weight:900}
-        .stack{display:grid;grid-template-columns:46% 54%;gap:12px;align-items:start;margin-top:10px;page-break-inside:avoid}
-        .firma{margin-top:16px;font-size:12px}
-        .empty td{height:25px}
-        .soft-note{color:#516885}
-        table.report-long{page-break-inside:auto;table-layout:fixed}
-        table.report-long thead{display:table-header-group}
-        table.report-long tfoot{display:table-row-group}
-        table.report-long tr{page-break-inside:avoid;page-break-after:auto}
-        table.report-long th,table.report-long td{font-size:9.5px;padding:4px 5px}
-        .report-summary{margin-bottom:10px;page-break-inside:avoid}
-        .report-note{font-size:10px;color:#516885;margin:8px 0 0;line-height:1.35}
-        .owner-badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#e7f1ff;color:#184c84;border:1px solid #b9d0ea;font-size:10px;font-weight:900;letter-spacing:.4px;text-transform:uppercase}
-        .owner-period{font-size:15px;font-weight:900;margin:8px 0 2px;color:#111}
-        .owner-cutoff{font-size:10px;color:#516885;margin-bottom:10px}
-        .owner-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:8px 0 10px;page-break-inside:avoid}
-        .owner-kpi{border:1px solid #bdd0e8;background:#f5f9ff;border-radius:8px;padding:8px;text-align:center}
-        .owner-kpi strong{display:block;font-size:8px;color:#536981;text-transform:uppercase;letter-spacing:.25px}
-        .owner-kpi span{display:block;font-size:16px;color:#174d84;font-weight:900;margin-top:4px}
-        .owner-reading{border:1px solid #c6d9ef;background:#eef6ff;border-radius:8px;padding:8px 10px;line-height:1.45;font-size:10.5px;margin:8px 0 10px;page-break-inside:avoid}
-        .owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;page-break-inside:avoid}
-        .owner-chart{border:1px solid #c6d6e8;border-radius:7px;padding:8px;background:#fff}
-        .owner-chart h3{font-size:11px;margin:0 0 7px;color:#184c84}
-        .owner-top-tinaco{display:grid;grid-template-columns:minmax(0,1fr) 150px 76px;gap:8px;align-items:center;border:1px solid #b9cee6;border-radius:7px;padding:7px 9px;margin-top:8px;background:#f5f9ff;page-break-inside:avoid}
-        .owner-top-tinaco strong{display:block;font-size:7.5px;color:#5d6f82;letter-spacing:.25px}
-        .owner-top-tinaco span{display:block;font-size:11px;font-weight:900;color:#174d84;margin-top:2px;line-height:1.1}
-        .owner-top-tinaco small{display:block;font-size:7px;color:#66788b;margin-top:2px;font-weight:700}
-        .owner-top-track{height:12px;background:#fff;border:1px solid #d7e2ef;border-radius:999px;overflow:hidden}
-        .owner-top-fill{height:100%;background:#2d77ba;border-radius:999px;min-width:2px}
-        .owner-top-value{text-align:right;font-size:14px;font-weight:900;color:#174d84}
-        .owner-top-value small{font-size:6.8px}
-        .owner-hbar{display:grid;grid-template-columns:74px 1fr 70px;gap:5px;align-items:center;margin:5px 0;font-size:8.5px}
-        .owner-hbar .name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .owner-track{height:12px;border:1px solid #d6e0ec;background:#edf3f9;border-radius:99px;overflow:hidden}
-        .owner-fill{height:100%;background:#2c6aa6;border-radius:99px;min-width:1px}
-        .owner-fill.prod{background:#d68a25}
-        .owner-hbar .value{text-align:right;font-weight:900}
-        .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
-        .owner-page-break{page-break-before:always}
-        .print-actions{position:fixed;right:20px;bottom:20px;z-index:99999;display:flex;gap:12px;padding:12px;background:rgba(255,255,255,.97);border:1px solid #c7d6e8;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
-        .print-actions button{min-width:150px;border-radius:12px;padding:15px 20px;font-size:16px;font-weight:900;cursor:pointer}
-        .print-actions .print-now{border:0;background:#174d84;color:#fff}
-        .print-actions .close-now{border:1px solid #b8c8da;background:#fff;color:#174d84}
-        @media print{.print-actions{display:none !important}}
-      </style></head><body onload="setTimeout(function(){ window.focus(); window.print(); }, 500);">
-      <div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
-      <div class="print-actions" id="printActions">
-        <button type="button" class="print-now" id="btnPrintNow" onclick="window.print()">🖨️ IMPRIMIR</button>
-        <button type="button" class="close-now" id="btnClosePrint" onclick="window.close()">CERRAR</button>
-      </div>
-      </body></html>`);
+      // 4. Invocar impresión nativa (¡Garantizado de NO ser bloqueado por ningún celular o PC!)
+      setTimeout(() => {
+        window.print();
+      }, 250);
       
-      win.document.close();
-
-      try{
-        win.addEventListener('afterprint', () => {
-          setTimeout(() => { try{ if(!win.closed) win.close(); }catch(_e){} }, 120);
-        }, {once:true});
-      }catch(_e){}
-
       return true;
     }
     function generateCutPDF(){

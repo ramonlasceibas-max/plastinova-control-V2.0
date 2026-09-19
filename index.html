@@ -3954,6 +3954,9 @@ function renderStockTables(){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
       const win = window.open('', '_blank');
       if(!win){ alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.'); return false; }
+
+      // Se inyecta el comando de impresión en el onload con un ligero retraso (500ms)
+      // Se muestran los botones de impresión de respaldo inmediatamente por defecto.
       win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(tituloDocumento)}</title><style>
         @page{size:landscape;margin:8mm}
         *{box-sizing:border-box}
@@ -4015,73 +4018,29 @@ function renderStockTables(){
         .owner-hbar .value{text-align:right;font-weight:900}
         .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
         .owner-page-break{page-break-before:always}
-        .print-actions{display:none;position:fixed;right:20px;bottom:20px;z-index:99999;gap:12px;padding:12px;background:rgba(255,255,255,.97);border:1px solid #c7d6e8;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+        .print-actions{position:fixed;right:20px;bottom:20px;z-index:99999;display:flex;gap:12px;padding:12px;background:rgba(255,255,255,.97);border:1px solid #c7d6e8;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
         .print-actions button{min-width:150px;border-radius:12px;padding:15px 20px;font-size:16px;font-weight:900;cursor:pointer}
         .print-actions .print-now{border:0;background:#174d84;color:#fff}
         .print-actions .close-now{border:1px solid #b8c8da;background:#fff;color:#174d84}
         @media print{.print-actions{display:none !important}}
-      </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><div class="print-actions" id="printActions"><button type="button" class="print-now" id="btnPrintNow">🖨️ IMPRIMIR</button><button type="button" class="close-now" id="btnClosePrint">CERRAR</button></div></body></html>`);
+      </style></head><body onload="setTimeout(function(){ window.focus(); window.print(); }, 500);">
+      <div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
+      <div class="print-actions" id="printActions">
+        <button type="button" class="print-now" id="btnPrintNow" onclick="window.print()">🖨️ IMPRIMIR</button>
+        <button type="button" class="close-now" id="btnClosePrint" onclick="window.close()">CERRAR</button>
+      </div>
+      </body></html>`);
+      
       win.document.close();
 
-      // Chrome puede ignorar llamadas tardías a print() cuando ya se perdió el gesto del usuario.
-      // Por eso el primer intento se hace inmediatamente dentro del mismo clic que generó el reporte.
-      let printStarted = false;
-
-      const bindPrintControls = () => {
-        if(win.closed) return;
-        try{
-          const btnPrint = win.document.getElementById('btnPrintNow');
-          const btnClose = win.document.getElementById('btnClosePrint');
-          if(btnPrint && !btnPrint.dataset.bound){
-            btnPrint.dataset.bound = '1';
-            btnPrint.addEventListener('click', () => {
-              try{ win.focus(); win.print(); }
-              catch(err){ alert('No se pudo abrir la impresión. Usa Ctrl+P en esta ventana.'); }
-            });
-          }
-          if(btnClose && !btnClose.dataset.bound){
-            btnClose.dataset.bound = '1';
-            btnClose.addEventListener('click', () => { try{ win.close(); }catch(_e){} });
-          }
-        }catch(_e){}
-      };
-
-      const showPrintControls = () => {
-        bindPrintControls();
-        try{
-          const actions = win.document.getElementById('printActions');
-          if(actions) actions.style.display = 'flex';
-        }catch(_e){}
-      };
-
       try{
-        win.addEventListener('beforeprint', () => { printStarted = true; }, {once:true});
         win.addEventListener('afterprint', () => {
           setTimeout(() => { try{ if(!win.closed) win.close(); }catch(_e){} }, 120);
         }, {once:true});
-        win.addEventListener('load', bindPrintControls, {once:true});
       }catch(_e){}
-
-      // Asegura que los botones queden enlazados aunque load ya haya ocurrido.
-      setTimeout(bindPrintControls, 0);
-      setTimeout(bindPrintControls, 120);
-
-      try{
-        win.focus();
-        win.print();
-      }catch(err){
-        console.error('No se pudo abrir automáticamente el diálogo de impresión:', err);
-        showPrintControls();
-      }
-
-      // Si Chrome ignoró silenciosamente el print automático, mostramos un respaldo grande y funcional.
-      setTimeout(() => {
-        if(!win.closed && !printStarted) showPrintControls();
-      }, 700);
 
       return true;
     }
-
     function generateCutPDF(){
       const c=buildCutData();
       if(c.error){ alert(c.error); return; }

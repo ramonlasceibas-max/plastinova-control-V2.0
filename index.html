@@ -3952,16 +3952,9 @@ function renderStockTables(){
 
     function printDocument(htmlContent, tituloDocumento){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
-
-      // Abrir la ventana directamente desde el clic del usuario.
       const win = window.open('', '_blank');
-      if(!win){
-        alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.');
-        return false;
-      }
-
-      win.document.open();
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escHtml(tituloDocumento)}</title><style>
+      if(!win){ alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.'); return false; }
+      win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(tituloDocumento)}</title><style>
         @page{size:landscape;margin:8mm}
         *{box-sizing:border-box}
         body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -4022,54 +4015,70 @@ function renderStockTables(){
         .owner-hbar .value{text-align:right;font-weight:900}
         .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
         .owner-page-break{page-break-before:always}
-        .print-actions{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:8px}
-        .print-actions button{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.16)}
-        .print-actions .print-now{background:#174d84;color:#fff}
-        .print-actions .close-now{background:#fff;color:#174d84;border:1px solid #bbc9d8}
+        .print-actions{display:none;position:fixed;right:20px;bottom:20px;z-index:99999;gap:12px;padding:12px;background:rgba(255,255,255,.97);border:1px solid #c7d6e8;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+        .print-actions button{min-width:150px;border-radius:12px;padding:15px 20px;font-size:16px;font-weight:900;cursor:pointer}
+        .print-actions .print-now{border:0;background:#174d84;color:#fff}
+        .print-actions .close-now{border:1px solid #b8c8da;background:#fff;color:#174d84}
         @media print{.print-actions{display:none !important}}
-      </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${escHtml(tituloDocumento)}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><div class="print-actions"><button type="button" class="print-now" id="btnPrintNow">🖨️ Imprimir</button><button type="button" class="close-now" id="btnClosePrint">Cerrar</button></div></body></html>`);
+      </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><div class="print-actions" id="printActions"><button type="button" class="print-now" id="btnPrintNow">🖨️ IMPRIMIR</button><button type="button" class="close-now" id="btnClosePrint">CERRAR</button></div></body></html>`);
       win.document.close();
 
-      // Botones de respaldo: aunque el navegador bloquee el disparo automático,
-      // el reporte queda abierto y se puede imprimir manualmente.
+      // Chrome puede ignorar llamadas tardías a print() cuando ya se perdió el gesto del usuario.
+      // Por eso el primer intento se hace inmediatamente dentro del mismo clic que generó el reporte.
+      let printStarted = false;
+
+      const bindPrintControls = () => {
+        if(win.closed) return;
+        try{
+          const btnPrint = win.document.getElementById('btnPrintNow');
+          const btnClose = win.document.getElementById('btnClosePrint');
+          if(btnPrint && !btnPrint.dataset.bound){
+            btnPrint.dataset.bound = '1';
+            btnPrint.addEventListener('click', () => {
+              try{ win.focus(); win.print(); }
+              catch(err){ alert('No se pudo abrir la impresión. Usa Ctrl+P en esta ventana.'); }
+            });
+          }
+          if(btnClose && !btnClose.dataset.bound){
+            btnClose.dataset.bound = '1';
+            btnClose.addEventListener('click', () => { try{ win.close(); }catch(_e){} });
+          }
+        }catch(_e){}
+      };
+
+      const showPrintControls = () => {
+        bindPrintControls();
+        try{
+          const actions = win.document.getElementById('printActions');
+          if(actions) actions.style.display = 'flex';
+        }catch(_e){}
+      };
+
       try{
-        const btnPrint = win.document.getElementById('btnPrintNow');
-        const btnClose = win.document.getElementById('btnClosePrint');
-        if(btnPrint) btnPrint.addEventListener('click', () => { try{ win.focus(); win.print(); }catch(_e){} });
-        if(btnClose) btnClose.addEventListener('click', () => { try{ win.close(); }catch(_e){} });
+        win.addEventListener('beforeprint', () => { printStarted = true; }, {once:true});
+        win.addEventListener('afterprint', () => {
+          setTimeout(() => { try{ if(!win.closed) win.close(); }catch(_e){} }, 120);
+        }, {once:true});
+        win.addEventListener('load', bindPrintControls, {once:true});
       }catch(_e){}
 
-      let impresionLanzada = false;
-      const lanzarImpresion = () => {
-        if(impresionLanzada || win.closed) return;
-        impresionLanzada = true;
-        try{
-          win.focus();
-          win.print();
-        }catch(err){
-          impresionLanzada = false;
-          console.error('No se pudo abrir el diálogo de impresión:', err);
-        }
-      };
+      // Asegura que los botones queden enlazados aunque load ya haya ocurrido.
+      setTimeout(bindPrintControls, 0);
+      setTimeout(bindPrintControls, 120);
 
-      const esperarRecursos = async () => {
-        try{
-          if(win.document.fonts && win.document.fonts.ready) await win.document.fonts.ready;
-          const imgs = Array.from(win.document.images || []);
-          await Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
-            img.addEventListener('load', resolve, {once:true});
-            img.addEventListener('error', resolve, {once:true});
-          })));
-        }catch(_e){}
-        // Pequeño margen para que Chrome termine de maquetar antes de abrir impresión.
-        setTimeout(lanzarImpresion, 120);
-      };
+      try{
+        win.focus();
+        win.print();
+      }catch(err){
+        console.error('No se pudo abrir automáticamente el diálogo de impresión:', err);
+        showPrintControls();
+      }
 
-      if(win.document.readyState === 'complete') esperarRecursos();
-      else win.addEventListener('load', esperarRecursos, {once:true});
+      // Si Chrome ignoró silenciosamente el print automático, mostramos un respaldo grande y funcional.
+      setTimeout(() => {
+        if(!win.closed && !printStarted) showPrintControls();
+      }, 700);
 
-      // Respaldo si el evento load o algún recurso no responde como se espera.
-      setTimeout(lanzarImpresion, 1800);
       return true;
     }
 

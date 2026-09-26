@@ -3951,31 +3951,25 @@ function renderStockTables(){
     function previewCutSummary(){ const c=buildCutData(); if(c.error){ $('previewCorte').innerHTML = `<div class="mini-note status-bad">${escHtml(c.error)}</div>`; return; } $('previewCorte').innerHTML = `<div class="summary-box"><div class="summary-item"><strong>Total ventas tinacos</strong><span>$${formato(c.sumDTin)}</span></div><div class="summary-item"><strong>Total ventas tambos</strong><span>$${formato(c.sumDTam)}</span></div><div class="summary-item"><strong>Gastos</strong><span>$${formato(c.sumGastos)}</span></div><div class="summary-item"><strong>Total final</strong><span>$${formato(c.totalFinal)}</span></div></div><div class="table-wrap" style="margin-top:12px"><table class="db-table"><thead><tr><th>Sección</th><th>Dato</th><th>Total</th></tr></thead><tbody><tr><td>Tinacos</td><td>${c.sumQTin.toFixed(2)} pzas</td><td>$${formato(c.sumDTin)}</td></tr><tr><td>Tambos</td><td>${c.sumQTam.toFixed(2)} pzas</td><td>$${formato(c.sumDTam)}</td></tr><tr><td>Gastos</td><td>${c.gastos.length} registros</td><td>$${formato(c.sumGastos)}</td></tr><tr><td class="status-ok">Resumen</td><td>Subtotal después de gastos</td><td>$${formato(c.subtotalDespuesGastos)}</td></tr></tbody></table></div>`; }
 
    function printDocument(htmlContent, tituloDocumento){
-      // 1. Limpiamos cualquier impresión anterior que se haya quedado atorada
-      let oldContainer = document.getElementById('impresion-nativa-plastinova');
-      if(oldContainer) oldContainer.remove();
-
-      // 2. Creamos un contenedor en la misma pantalla (sin abrir ventanas emergentes)
-      const container = document.createElement('div');
-      container.id = 'impresion-nativa-plastinova';
-      
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
-
-      // 3. Le decimos a la app: "Ocúltate cuando se mande a imprimir, y muestra SOLO esto"
-      container.innerHTML = `
-        <style>
-          @media screen {
-            #impresion-nativa-plastinova { display: none !important; }
-          }
-          @media print {
-            /* Ocultar toda la app normal al imprimir */
-            body > *:not(#impresion-nativa-plastinova) { display: none !important; }
-            #impresion-nativa-plastinova { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-            
-            @page { size: landscape; margin: 8mm; }
-            body, html { background: #fff !important; margin: 0; padding: 0; }
-            #impresion-nativa-plastinova { font-family: Arial, sans-serif; color: #101820; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            
+      
+      const win = window.open('', '_blank');
+      if(!win){ 
+        alert('⚠️ Ve a Ajustes > Safari y apaga "Bloquear ventanas emergentes" para poder imprimir.'); 
+        return false; 
+      }
+      
+      win.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${escHtml(tituloDocumento)}</title>
+          <style>
+            @page{size:landscape;margin:8mm}
+            *{box-sizing:border-box}
+            body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
             .wrap{padding:4px 6px}
             .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px}
             .brand-box{display:flex;align-items:center;gap:12px}
@@ -4033,32 +4027,32 @@ function renderStockTables(){
             .owner-hbar .value{text-align:right;font-weight:900}
             .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
             .owner-page-break{page-break-before:always}
-          }
-        </style>
-        <div class="wrap">
-          <div class="head">
-            <div>${logoHTML}</div>
-            <div class="title">
-              <h1>${tituloDocumento}</h1>
-              <p>Generado: ${new Date().toLocaleString('es-MX')}</p>
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <div class="head">
+              <div>${logoHTML}</div>
+              <div class="title">
+                <h1>${tituloDocumento}</h1>
+                <p>Generado: ${new Date().toLocaleString('es-MX')}</p>
+              </div>
             </div>
+            ${htmlContent}
           </div>
-          ${htmlContent}
-        </div>
-      `;
+        </body>
+        </html>
+      `);
+      win.document.close();
 
-      document.body.appendChild(container);
-
-      // 4. Lanzar la impresora NATIVAMENTE en la ventana actual (como lo tenías antes)
-      window.print();
-
-      // 5. Se borra automáticamente el contenedor al cerrar la vista previa de impresión
-      setTimeout(() => {
-        if(document.getElementById('impresion-nativa-plastinova')) {
-          document.getElementById('impresion-nativa-plastinova').remove();
-        }
-      }, 2000);
-
+      // Mandar a imprimir de inmediato (igual que en tu app original)
+      try {
+        win.focus();
+        win.print();
+      } catch (err) {
+        console.error(err);
+      }
+      
       return true;
     }
     function generateCutPDF(){

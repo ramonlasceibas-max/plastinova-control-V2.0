@@ -3959,25 +3959,25 @@ function renderStockTables(){
         *{box-sizing:border-box}
         body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         .wrap{padding:4px 6px}
-        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px}
+        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px;min-width:0;gap:10px}
         .brand-box{display:flex;align-items:center;gap:12px}
         .brand-logo{width:130px;height:auto;object-fit:contain}
         .brand-fallback{width:56px;height:56px;border-radius:14px;border:2px solid #2c6aa6;align-items:center;justify-content:center;color:#2c6aa6;font-weight:900;font-size:22px}
         .brand-name{font-weight:900;font-size:22px;color:#184c84;letter-spacing:.2px}
         .brand-sub{font-size:13px;color:#4c6180}
-        .title{text-align:right}
+        .head>div{min-width:0;flex-shrink:1}.title{text-align:right;max-width:52%;min-width:0;overflow-wrap:anywhere}
         .title h1{margin:0;font-size:20px;color:#2c6aa6;letter-spacing:.3px}
         .title p{margin:4px 0 0;font-size:12px;color:#2b2b2b}
         .center-title{text-align:center;font-weight:900;font-size:14px;line-height:1.2;margin:4px 0 14px;color:#111}
         .section-title{margin:10px 0 0;font-size:12px;font-weight:900;text-transform:uppercase;text-align:left;border:1px solid #b7cae4;padding:6px 10px;background:#edf4fc;color:#184c84;border-left:4px solid #2c6aa6;border-radius:3px 3px 0 0}
-        table{width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:avoid}
-        th,td{border:1px solid #202020;padding:5px 7px;vertical-align:middle}
+        table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;page-break-inside:avoid}
+        th,td{border:1px solid #202020;padding:5px 7px;vertical-align:middle;overflow-wrap:break-word}
         thead th{background:#2c6aa6;color:#fff !important;font-size:11px;font-weight:900}
         td{font-size:11.5px}
         .right{text-align:right}
         .center{text-align:center}
         .total{color:#c53333;font-weight:900}
-        .stack{display:grid;grid-template-columns:46% 54%;gap:12px;align-items:start;margin-top:10px;page-break-inside:avoid}
+        .stack{display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:12px;align-items:start;margin-top:10px;page-break-inside:avoid;max-width:100%}.stack>div{min-width:0}
         .firma{margin-top:16px;font-size:12px}
         .empty td{height:25px}
         .soft-note{color:#516885}
@@ -3996,7 +3996,7 @@ function renderStockTables(){
         .owner-kpi strong{display:block;font-size:8px;color:#536981;text-transform:uppercase;letter-spacing:.25px}
         .owner-kpi span{display:block;font-size:16px;color:#174d84;font-weight:900;margin-top:4px}
         .owner-reading{border:1px solid #c6d9ef;background:#eef6ff;border-radius:8px;padding:8px 10px;line-height:1.45;font-size:10.5px;margin:8px 0 10px;page-break-inside:avoid}
-        .owner-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;page-break-inside:avoid}
+        .owner-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:8px;page-break-inside:avoid}.owner-grid>div{min-width:0}
         .owner-chart{border:1px solid #c6d6e8;border-radius:7px;padding:8px;background:#fff}
         .owner-chart h3{font-size:11px;margin:0 0 7px;color:#184c84}
         .owner-top-tinaco{display:grid;grid-template-columns:minmax(0,1fr) 150px 76px;gap:8px;align-items:center;border:1px solid #b9cee6;border-radius:7px;padding:7px 9px;margin-top:8px;background:#f5f9ff;page-break-inside:avoid}
@@ -4059,7 +4059,7 @@ function renderStockTables(){
           </label>
           <button id="btnGeneratePdf" type="button" onclick="prepararPdf()">↻ Aplicar y generar PDF</button>
         </div>
-        <p class="pdf-format-note">Papel: Carta (21.59 × 27.94 cm). Un reporte largo se reducirá para caber en una sola hoja.</p>
+        <p class="pdf-format-note">Motor PDF V6 · Papel: Carta (21.59 × 27.94 cm). Los reportes largos se reducen para caber en una sola hoja.</p>
       </section>
       <div id="printHelp" class="print-help" role="status" aria-live="polite"></div>
       <div class="wrap" id="reportRoot"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
@@ -4081,102 +4081,143 @@ function renderStockTables(){
           if(window.history.length>1){window.history.back();return;}
           window.close();
         }
-        function cargarGeneradorPdf(){
+        // Captura directa: no usar html2pdf.js, que reajustaba el ancho del DOM
+        // a un contenedor interno y podía truncar la ultima columna.
+        function cargarScript(url, estaListo){
           return new Promise(function(resolve,reject){
-            if(typeof html2pdf==='function'){resolve();return;}
-            var s=document.createElement('script');
-            s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-            s.onload=function(){typeof html2pdf==='function'?resolve():reject(new Error('No se inicializó el generador PDF'));};
-            s.onerror=function(){reject(new Error('No se pudo cargar el generador PDF. Comprueba la conexión a internet.'));};
-            document.head.appendChild(s);
+            if(estaListo()){resolve();return;}
+            var etiqueta=document.createElement('script');
+            etiqueta.src=url;
+            etiqueta.onload=function(){estaListo()?resolve():reject(new Error('No se inicializo una biblioteca PDF'));};
+            etiqueta.onerror=function(){reject(new Error('No se pudo cargar una biblioteca PDF. Revisa la conexion a internet.'));};
+            document.head.appendChild(etiqueta);
           });
         }
+        function cargarGeneradorPdf(){
+          return Promise.all([
+            cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',function(){return typeof window.html2canvas==='function';}),
+            cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',function(){return !!(window.jspdf&&typeof window.jspdf.jsPDF==='function');})
+          ]);
+        }
         function marcarPdfPendiente(){
-          pdfBlob=null;
-          pdfFile=null;
-          btnCompartir.disabled=true;
-          btnGuardar.disabled=true;
+          pdfBlob=null;pdfFile=null;
+          btnCompartir.disabled=true;btnGuardar.disabled=true;
           btnCompartir.textContent='📄 Falta generar PDF';
-          mensaje('Modificaste el formato. Pulsa «Aplicar y generar PDF» antes de compartir o imprimir.');
+          mensaje('Cambiaste el formato. Pulsa «Aplicar y generar PDF» antes de imprimir.');
         }
         async function esperarImagenes(){
-          if(document.fonts && document.fonts.ready){await document.fonts.ready;}
-          var imagenes=Array.from(document.querySelectorAll('#reportRoot img'));
-          await Promise.all(imagenes.map(function(im){
+          if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+          var imgs=Array.from(document.querySelectorAll('#reportRoot img'));
+          await Promise.all(imgs.map(function(im){
             return im.complete?Promise.resolve():new Promise(function(ok){
               im.addEventListener('load',ok,{once:true});im.addEventListener('error',ok,{once:true});
             });
           }));
         }
+        function dimensionesContenido(el){
+          var base=el.getBoundingClientRect();
+          var derecha=Math.max(el.scrollWidth,Math.ceil(base.width));
+          var abajo=Math.max(el.scrollHeight,Math.ceil(base.height));
+          el.querySelectorAll('table, .head, .section-title, .stack, .owner-grid, .owner-top-tinaco').forEach(function(n){
+            var r=n.getBoundingClientRect();
+            derecha=Math.max(derecha,Math.ceil(r.right-base.left));
+            abajo=Math.max(abajo,Math.ceil(r.bottom-base.top));
+          });
+          return {ancho:Math.ceil(derecha),alto:Math.ceil(abajo)};
+        }
+        function prepararCopia(sentido){
+          var anchoBase=sentido==='portrait'?760:1040;
+          var root=document.getElementById('reportRoot');
+          var copia=root.cloneNode(true);
+          copia.id='pdfRenderRoot';
+          copia.style.cssText='width:'+anchoBase+'px;max-width:none;min-width:0;box-sizing:border-box;margin:0;padding:5px 6px 14px;background:#ffffff;overflow:visible;display:block;';
+          var soporte=document.createElement('div');
+          soporte.id='pdfCaptureHost';
+          soporte.style.cssText='position:absolute;top:0;left:0;width:'+anchoBase+'px;z-index:999999;pointer-events:none;overflow:visible;background:#ffffff;';
+          soporte.appendChild(copia);
+          document.body.appendChild(soporte);
+          // Si algun contenido no cabe, ampliamos la captura en lugar de recortarlo.
+          var d=dimensionesContenido(copia);
+          if(d.ancho>anchoBase+1){
+            copia.style.width=d.ancho+'px';
+            soporte.style.width=d.ancho+'px';
+            d=dimensionesContenido(copia);
+          }
+          return {soporte:soporte,elemento:copia,medidas:d};
+        }
         async function prepararPdf(){
           if(generandoPdf)return;
-          generandoPdf=true;
-          pdfBlob=null;
-          pdfFile=null;
-          btnGenerar.disabled=true;
-          btnCompartir.disabled=true;
-          btnGuardar.disabled=true;
+          generandoPdf=true;pdfBlob=null;pdfFile=null;
+          btnGenerar.disabled=true;btnCompartir.disabled=true;btnGuardar.disabled=true;
           btnCompartir.textContent='📄 Preparando PDF…';
           var modo=distribucion.value;
           var sentido=orientacion.value;
-          mensaje('Preparando PDF tamaño carta '+(sentido==='portrait'?'vertical':'horizontal')+'…');
+          var maqueta=null;
+          mensaje('Generando PDF Carta '+(sentido==='portrait'?'vertical':'horizontal')+' con todas las columnas…');
           try{
             await cargarGeneradorPdf();
             await esperarImagenes();
-            var copia=document.getElementById('reportRoot').cloneNode(true);
-            copia.style.width=sentido==='portrait'?'790px':'1080px';
-            copia.style.maxWidth='none';
-            copia.style.padding='0';
-            copia.style.background='#fff';
-            var opciones={
-              margin:[6,6,6,6],filename:nombrePdf,
-              image:{type:'jpeg',quality:0.94},
-              html2canvas:{scale:1.2,useCORS:true,allowTaint:false,logging:false,backgroundColor:'#ffffff',scrollX:0,scrollY:0,windowWidth:1120},
-              jsPDF:{unit:'mm',format:'letter',orientation:sentido,compress:true},
-              pagebreak:{mode:modo==='one'?[]:['css','legacy']}
-            };
-            var trabajo=html2pdf().set(opciones).from(copia);
-            await trabajo.toPdf();
-            var pdf=await trabajo.get('pdf');
-            if(!pdf || !pdf.internal || !pdf.internal.pageSize){throw new Error('El generador no creó el documento PDF');}
-            var notaEscala='';
+            maqueta=prepararCopia(sentido);
+            var medidas=maqueta.medidas;
+            if(!medidas.ancho||!medidas.alto||medidas.ancho<200||medidas.alto<100){throw new Error('Las dimensiones del reporte no son validas');}
+            // Limites conservadores para la memoria grafica de Safari/iPhone.
+            var escala=Math.min(1.5,Math.sqrt(12500000/(medidas.ancho*medidas.alto)),12000/medidas.alto);
+            if(escala<0.5){throw new Error('Reporte demasiado extenso para capturar en este iPhone; reduce el rango de fechas');}
+            var lienzo=await window.html2canvas(maqueta.elemento,{
+              backgroundColor:'#ffffff',scale:escala,useCORS:true,allowTaint:false,
+              logging:false,scrollX:0,scrollY:0,
+              width:medidas.ancho,height:medidas.alto,
+              windowWidth:Math.max(1200,medidas.ancho+40),
+              windowHeight:Math.max(900,Math.min(16000,medidas.alto+40))
+            });
+            if(!lienzo||lienzo.width<100||lienzo.height<100)throw new Error('No se pudo capturar el reporte completo');
+            var pdf=new window.jspdf.jsPDF({unit:'mm',format:'letter',orientation:sentido,compress:true});
+            var margen=5;
+            var papelW=pdf.internal.pageSize.getWidth();
+            var papelH=pdf.internal.pageSize.getHeight();
+            var disponibleW=papelW-2*margen;
+            var disponibleH=papelH-2*margen;
+            var info='';
             if(modo==='one'){
-              // No usar el paginado del navegador: insertar la imagen íntegra en una hoja Carta.
-              var canvas=await trabajo.get('canvas');
-              if(!canvas || !canvas.width || !canvas.height){throw new Error('No se pudo dibujar el reporte completo');}
-              var totalPaginas=pdf.internal.getNumberOfPages();
-              // Agregar una hoja Carta nueva y quitar las páginas creadas automáticamente.
-              pdf.addPage('letter',sentido);
-              for(var i=totalPaginas;i>=1;i--){pdf.deletePage(i);}
-              pdf.setPage(1);
-              var margen=6;
-              var anchoDisponible=pdf.internal.pageSize.getWidth()-margen*2;
-              var altoDisponible=pdf.internal.pageSize.getHeight()-margen*2;
-              var ajuste=Math.min(anchoDisponible/canvas.width,altoDisponible/canvas.height);
-              var ancho=canvas.width*ajuste;
-              var alto=canvas.height*ajuste;
-              var x=margen+(anchoDisponible-ancho)/2;
-              var y=margen+(altoDisponible-alto)/2;
-              pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',x,y,ancho,alto,undefined,'FAST');
-              var relativo=Math.round(100*ajuste/(anchoDisponible/canvas.width));
-              if(relativo<65){notaEscala=' Aviso: el reporte es extenso; el texto queda a '+relativo+'% del tamaño de ancho completo. Cambia a «Varias hojas» si resulta demasiado pequeño.';}
+              // El ancho y alto del PNG son los del contenido COMPLETO, no del viewport.
+              var factor=Math.min(disponibleW/lienzo.width,disponibleH/lienzo.height);
+              var ancho=lienzo.width*factor, alto=lienzo.height*factor;
+              // Alineado al margen superior izquierdo; nunca trasladar/clipear la derecha.
+              pdf.addImage(lienzo.toDataURL('image/jpeg',0.94),'JPEG',margen,margen,ancho,alto,undefined,'FAST');
+              var porcentaje=Math.round(100*ancho/disponibleW);
+              if(porcentaje<90) info=' El contenido ocupa '+porcentaje+'% del ancho para caber tambien en altura. Para texto mas grande usa Varias hojas.';
+            }else{
+              // Mantiene el ancho completo y divide VERTICALMENTE el lienzo.
+              var alturaPorPagina=Math.max(1,Math.floor(disponibleH*lienzo.width/disponibleW));
+              var inicio=0;
+              while(inicio<lienzo.height){
+                var fragmentoH=Math.min(alturaPorPagina,lienzo.height-inicio);
+                var fragmento=document.createElement('canvas');
+                fragmento.width=lienzo.width;fragmento.height=fragmentoH;
+                var ctx=fragmento.getContext('2d');
+                if(!ctx)throw new Error('No se pudo dividir el PDF en paginas');
+                ctx.fillStyle='#ffffff';ctx.fillRect(0,0,fragmento.width,fragmento.height);
+                ctx.drawImage(lienzo,0,inicio,lienzo.width,fragmentoH,0,0,lienzo.width,fragmentoH);
+                if(inicio>0)pdf.addPage();
+                pdf.addImage(fragmento.toDataURL('image/jpeg',0.94),'JPEG',margen,margen,disponibleW,fragmentoH*disponibleW/lienzo.width,undefined,'FAST');
+                inicio+=fragmentoH;
+              }
             }
             var resultado=pdf.output('blob');
-            if(!(resultado instanceof Blob) || resultado.size<100){throw new Error('El PDF se generó vacío');}
+            if(!(resultado instanceof Blob)||resultado.size<200)throw new Error('El PDF se genero vacio');
             pdfBlob=resultado;
             pdfFile=new File([pdfBlob],nombrePdf,{type:'application/pdf'});
-            btnCompartir.disabled=false;
-            btnGuardar.disabled=false;
+            btnCompartir.disabled=false;btnGuardar.disabled=false;
             btnCompartir.textContent='📤 Compartir / Imprimir PDF';
             var paginas=pdf.internal.getNumberOfPages();
-            mensaje('PDF listo: Carta '+(sentido==='portrait'?'vertical':'horizontal')+' · '+paginas+' '+(paginas===1?'página':'páginas')+'. Pulsa Compartir / Imprimir PDF.'+notaEscala);
+            mensaje('PDF listo: Carta '+(sentido==='portrait'?'vertical':'horizontal')+' · '+paginas+' '+(paginas===1?'pagina':'paginas')+'. Todas las columnas incluidas.'+info);
           }catch(error){
-            console.error('Plastinova: error al generar PDF',error);
+            console.error('Plastinova: error de generacion de PDF',error);
             btnCompartir.textContent='⚠️ No se pudo generar PDF';
-            mensaje('No se pudo generar el PDF: '+String(error&&error.message||error)+'. Prueba el modo «Varias hojas» si el reporte es muy extenso.',true);
+            mensaje('Error al generar PDF: '+String(error&&error.message||error),true);
           }finally{
-            generandoPdf=false;
-            btnGenerar.disabled=false;
+            if(maqueta&&maqueta.soporte)maqueta.soporte.remove();
+            generandoPdf=false;btnGenerar.disabled=false;
           }
         }
         function compartirPdf(){
@@ -4284,7 +4325,7 @@ function renderStockTables(){
       ].map(r => `<tr><td${r.total?' class="total"':''}>${escHtml(r.label)}</td><td class="right${r.total?' total':''}">${fmtMoney(r.amount)}</td></tr>`).join('');
 
       const ocultarTambos = c.tam.length === 0;
-      const tinacosFilasRelleno = ocultarTambos ? 15 : 8; 
+      // Las tablas de ventas muestran solo movimientos reales, sin renglones vacíos de relleno.
       const estilosExtra = ocultarTambos ? `
         <style>
           td { font-size: 13px !important; }
@@ -4307,7 +4348,7 @@ function renderStockTables(){
               <th style="width:13%">TOTAL</th>
             </tr>
           </thead>
-          <tbody>${buildVentaRows(c.tam, 'Sin ventas registradas')}${padRows(c.tam.length || 1, 5, 7)}</tbody>
+          <tbody>${buildVentaRows(c.tam, 'Sin ventas registradas')}</tbody>
           <tfoot>
             <tr>
               <td colspan="4" class="right total">TOTAL</td>
@@ -4336,7 +4377,7 @@ function renderStockTables(){
               <th style="width:13%">TOTAL</th>
             </tr>
           </thead>
-          <tbody>${buildVentaRows(c.tin, 'Sin ventas registradas')}${padRows(c.tin.length || 1, tinacosFilasRelleno, 7)}</tbody>
+          <tbody>${buildVentaRows(c.tin, 'Sin ventas registradas')}</tbody>
           <tfoot>
             <tr>
               <td colspan="4" class="right total">TOTAL</td>

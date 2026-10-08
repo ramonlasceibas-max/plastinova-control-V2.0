@@ -4015,7 +4015,25 @@ function renderStockTables(){
         .owner-hbar .value{text-align:right;font-weight:900}
         .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
         .owner-page-break{page-break-before:always}
-      </style></head><body><div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div><script>setTimeout(()=>window.print(),500);window.onafterprint=()=>window.close();<\/script></body></html>`);
+        .print-toolbar{position:sticky;top:0;z-index:1000;display:flex;gap:10px;align-items:center;justify-content:center;padding:12px;background:#edf4fc;border-bottom:1px solid #b7cae4}
+        .print-toolbar button{font-size:16px;font-weight:700;padding:12px 16px;border:0;border-radius:9px;cursor:pointer}
+        .print-action{background:#12579b;color:#fff}
+        .close-action{background:#fff;color:#124776;border:1px solid #95b2d2!important}
+        .print-help{font-size:12px;color:#385775;margin:6px 12px;text-align:center}
+        @media print{.print-toolbar,.print-help{display:none!important}.wrap{padding:0}}
+      </style></head><body>
+      <nav class="print-toolbar"><button type="button" class="print-action" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button><button type="button" class="close-action" onclick="volverAApp()">✕ Cerrar / Volver</button></nav>
+      <div class="print-help">En iPhone pulsa Imprimir / Guardar PDF. Si la impresión no aparece desde la app instalada, abre Plastinova en Safari y vuelve a intentarlo.</div>
+      <div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
+      <script>
+        function volverAApp(){
+          if(window.opener && !window.opener.closed){window.close();return;}
+          if(window.history.length>1){window.history.back();return;}
+          window.close();
+        }
+        const dispositivoIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+        if(!dispositivoIOS){window.addEventListener('load',()=>setTimeout(()=>window.print(),500));}
+      <\/script></body></html>`);
       win.document.close();
       return true;
     }

@@ -4015,24 +4015,123 @@ function renderStockTables(){
         .owner-hbar .value{text-align:right;font-weight:900}
         .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
         .owner-page-break{page-break-before:always}
-        .print-toolbar{position:sticky;top:0;z-index:1000;display:flex;gap:10px;align-items:center;justify-content:center;padding:12px;background:#edf4fc;border-bottom:1px solid #b7cae4}
-        .print-toolbar button{font-size:16px;font-weight:700;padding:12px 16px;border:0;border-radius:9px;cursor:pointer}
+        .print-toolbar{position:sticky;top:0;z-index:1000;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:12px;background:#edf4fc;border-bottom:1px solid #b7cae4}
+        .print-toolbar button{font-size:15px;font-weight:700;padding:12px 15px;border:0;border-radius:9px;cursor:pointer;min-height:44px}
+        .print-toolbar button:disabled{opacity:.55;cursor:wait}
         .print-action{background:#12579b;color:#fff}
+        .save-action{background:#14704b;color:#fff}
         .close-action{background:#fff;color:#124776;border:1px solid #95b2d2!important}
-        .print-help{font-size:12px;color:#385775;margin:6px 12px;text-align:center}
+        .print-help{font-size:12px;color:#385775;margin:8px 12px;text-align:center;line-height:1.5}
+        .print-help.error{color:#a62929;font-weight:700}
+        @media(max-width:680px){.print-toolbar{gap:8px;padding:10px}.print-toolbar button{width:100%}}
         @media print{.print-toolbar,.print-help{display:none!important}.wrap{padding:0}}
       </style></head><body>
-      <nav class="print-toolbar"><button type="button" class="print-action" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button><button type="button" class="close-action" onclick="volverAApp()">✕ Cerrar / Volver</button></nav>
-      <div class="print-help">En iPhone pulsa Imprimir / Guardar PDF. Si la impresión no aparece desde la app instalada, abre Plastinova en Safari y vuelve a intentarlo.</div>
-      <div class="wrap"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
+      <nav class="print-toolbar">
+        <button type="button" id="btnNativePrint" class="print-action" onclick="window.print()">🖨️ Imprimir</button>
+        <button type="button" id="btnSharePdf" class="print-action" onclick="compartirPdf()" style="display:none" disabled>📄 Preparando PDF…</button>
+        <button type="button" id="btnSavePdf" class="save-action" onclick="descargarPdf()" style="display:none" disabled>⬇️ Guardar PDF</button>
+        <button type="button" class="close-action" onclick="volverAApp()">✕ Cerrar / Volver</button>
+      </nav>
+      <div id="printHelp" class="print-help" role="status" aria-live="polite"></div>
+      <div class="wrap" id="reportRoot"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
       <script>
+        'use strict';
+        var dispositivoIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+        var pdfBlob=null, pdfFile=null;
+        var nombrePdf=(document.title||'Reporte_Plastinova').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,65)+'.pdf';
+        var btnCompartir=document.getElementById('btnSharePdf');
+        var btnGuardar=document.getElementById('btnSavePdf');
+        var ayuda=document.getElementById('printHelp');
+
+        function mensaje(texto,fallo){ayuda.textContent=texto;ayuda.className='print-help'+(fallo?' error':'');}
         function volverAApp(){
           if(window.opener && !window.opener.closed){window.close();return;}
           if(window.history.length>1){window.history.back();return;}
           window.close();
         }
-        const dispositivoIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-        if(!dispositivoIOS){window.addEventListener('load',()=>setTimeout(()=>window.print(),500));}
+        function cargarGeneradorPdf(){
+          return new Promise(function(resolve,reject){
+            if(typeof html2pdf==='function'){resolve();return;}
+            var s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            s.onload=function(){typeof html2pdf==='function'?resolve():reject(new Error('No se inicializo html2pdf'));};
+            s.onerror=function(){reject(new Error('No se pudo descargar el generador de PDF'));};
+            document.head.appendChild(s);
+          });
+        }
+        async function prepararPdf(){
+          btnCompartir.disabled=true;
+          btnGuardar.disabled=true;
+          mensaje('Generando el archivo PDF en el iPhone. Los datos permanecen en el dispositivo.');
+          try {
+            await cargarGeneradorPdf();
+            if(document.fonts && document.fonts.ready){await document.fonts.ready;}
+            var imagenes=Array.from(document.querySelectorAll('#reportRoot img'));
+            await Promise.all(imagenes.map(function(im){return im.complete?Promise.resolve():new Promise(function(ok){im.addEventListener('load',ok,{once:true});im.addEventListener('error',ok,{once:true});});}));
+            var copia=document.getElementById('reportRoot').cloneNode(true);
+            copia.style.width='1080px';
+            copia.style.maxWidth='none';
+            copia.style.padding='0';
+            copia.style.background='#fff';
+            var opciones={
+              margin:[8,8,8,8],filename:nombrePdf,
+              image:{type:'jpeg',quality:0.94},
+              html2canvas:{scale:1.35,useCORS:true,allowTaint:false,logging:false,backgroundColor:'#ffffff',scrollX:0,scrollY:0,windowWidth:1120},
+              jsPDF:{unit:'mm',format:'a4',orientation:'landscape',compress:true},
+              pagebreak:{mode:['css','legacy']}
+            };
+            var resultado=await html2pdf().set(opciones).from(copia).outputPdf('blob');
+            if(!(resultado instanceof Blob) || resultado.size<100){throw new Error('El PDF esta vacio');}
+            pdfBlob=resultado;
+            pdfFile=new File([pdfBlob],nombrePdf,{type:'application/pdf'});
+            btnCompartir.disabled=false;
+            btnGuardar.disabled=false;
+            btnCompartir.textContent='📤 Compartir / Imprimir PDF';
+            mensaje('PDF listo. Pulsa Compartir / Imprimir PDF y selecciona Imprimir o Guardar en Archivos en el menu del iPhone.');
+          } catch (error) {
+            console.error('Plastinova: error al crear PDF',error);
+            btnCompartir.textContent='⚠️ No se pudo generar PDF';
+            mensaje('No se pudo generar el archivo. Verifica que tengas internet y abre Plastinova directamente en Safari para imprimir con su menu. Detalle: '+String(error&&error.message||error),true);
+          }
+        }
+        function compartirPdf(){
+          if(!pdfFile){mensaje('El PDF aun no esta listo. Intenta de nuevo cuando se active el boton.');return;}
+          if(typeof navigator.share==='function' && (!navigator.canShare || navigator.canShare({files:[pdfFile]}))){
+            try {
+              // La llamada debe ocurrir directamente al tocar el boton: iOS exige interaccion de usuario.
+              navigator.share({files:[pdfFile],title:document.title}).catch(function(error){
+                if(error && error.name==='AbortError')return;
+                console.warn('No se pudo abrir compartir',error);
+                mensaje('El menu Compartir no se pudo abrir. Usa Guardar PDF y abre el archivo desde Archivos.',true);
+              });
+            }catch(error){mensaje('El menu Compartir no esta disponible. Usa Guardar PDF.',true);}
+          }else{
+            mensaje('Este navegador no permite compartir archivos. Pulsa Guardar PDF y abre el PDF desde Archivos.',true);
+          }
+        }
+        function descargarPdf(){
+          if(!pdfBlob)return;
+          var url=URL.createObjectURL(pdfBlob);
+          var enlace=document.createElement('a');
+          enlace.href=url;
+          enlace.download=nombrePdf;
+          enlace.rel='noopener';
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+          setTimeout(function(){URL.revokeObjectURL(url);},60000);
+          mensaje('Se solicito guardar el PDF. Si iPhone lo abre como vista previa, utiliza Compartir para guardarlo en Archivos o imprimirlo.');
+        }
+        if(dispositivoIOS){
+          document.getElementById('btnNativePrint').style.display='none';
+          btnCompartir.style.display='inline-flex';
+          btnGuardar.style.display='inline-flex';
+          if(document.readyState==='complete')prepararPdf();
+          else window.addEventListener('load',prepararPdf,{once:true});
+        }else{
+          mensaje('Pulsa Imprimir para abrir el cuadro de impresion.');
+          window.addEventListener('load',function(){setTimeout(function(){window.print();},500);},{once:true});
+        }
       <\/script></body></html>`);
       win.document.close();
       return true;

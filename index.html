@@ -3954,10 +3954,10 @@ function renderStockTables(){
       const logoHTML = `<div class="brand-box"><img src="${LOGO_PLASTINOVA}" alt="Plastinova" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="brand-fallback" style="display:none">PN</div><div class="brand-copy"><div class="brand-name">PLASTINOVA</div><div class="brand-sub">Control gerencial</div></div></div>`;
       const win = window.open('', '_blank');
       if(!win){ alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app y vuelve a intentarlo.'); return false; }
-      win.document.write(`<!DOCTYPE html><html><head><title>${escHtml(tituloDocumento)}</title><style>
+      win.document.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escHtml(tituloDocumento)}</title><style>
         @page{size:letter landscape;margin:6mm}
         *{box-sizing:border-box}
-        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Arial,sans-serif;color:#101820;margin:0;padding:0;font-size:12px;background:#fff;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         .wrap{padding:4px 6px}
         .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2c6aa6;padding-bottom:10px;margin-bottom:12px;min-width:0;gap:10px}
         .brand-box{display:flex;align-items:center;gap:12px}
@@ -4014,7 +4014,30 @@ function renderStockTables(){
         .owner-fill.prod{background:#d68a25}
         .owner-hbar .value{text-align:right;font-weight:900}
         .owner-small-table th,.owner-small-table td{font-size:9px;padding:4px 5px}
-        .owner-page-break{page-break-before:always}
+        /* V7: optimizacion del CORTE DE CAJA cuando cabe en UNA hoja horizontal.
+           Se comprime el espacio entre filas y se omite el relleno artificial.
+           El texto y las columnas NO se estiran ni se recortan. */
+        #pdfRenderRoot.pdf-cut-compact .head{padding-bottom:5px;margin-bottom:6px}
+        #pdfRenderRoot.pdf-cut-compact .brand-logo{width:105px}
+        #pdfRenderRoot.pdf-cut-compact .brand-name{font-size:19px}
+        #pdfRenderRoot.pdf-cut-compact .brand-sub{font-size:11px}
+        #pdfRenderRoot.pdf-cut-compact .title h1{font-size:18px}
+        #pdfRenderRoot.pdf-cut-compact .title p{font-size:10px}
+        #pdfRenderRoot.pdf-cut-compact .center-title{font-size:13.5px;line-height:1.10;margin:4px 0 7px}
+        #pdfRenderRoot.pdf-cut-compact .section-title{font-size:11.5px;padding:3px 7px;margin-top:5px}
+        #pdfRenderRoot.pdf-cut-compact table th,#pdfRenderRoot.pdf-cut-compact table td{padding:var(--pdf-cell-y,4px) 5px;line-height:1.12}
+        #pdfRenderRoot.pdf-cut-compact table th{font-size:10.5px}
+        #pdfRenderRoot.pdf-cut-compact table td{font-size:11px}
+        #pdfRenderRoot.pdf-cut-compact .stack{gap:8px;margin-top:5px}
+        #pdfRenderRoot.pdf-cut-compact .firma{margin-top:8px}
+        #pdfRenderRoot.pdf-cut-compact tr.empty{display:none!important}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter .head{margin-bottom:4px;padding-bottom:4px}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter .center-title{font-size:12.5px;margin:3px 0 5px}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter .section-title{margin-top:3px;padding:2px 6px}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter table th,#pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter table td{padding:1px 4px;line-height:1.08}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter table td{font-size:10.5px}
+        #pdfRenderRoot.pdf-cut-compact.pdf-cut-tighter .stack{gap:6px;margin-top:3px}
+                .owner-page-break{page-break-before:always}
         .print-toolbar{position:sticky;top:0;z-index:1000;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:12px;background:#edf4fc;border-bottom:1px solid #b7cae4}
         .print-toolbar button{font-size:15px;font-weight:700;padding:12px 15px;border:0;border-radius:9px;cursor:pointer;min-height:44px}
         .print-toolbar button:disabled{opacity:.55;cursor:wait}
@@ -4059,7 +4082,7 @@ function renderStockTables(){
           </label>
           <button id="btnGeneratePdf" type="button" onclick="prepararPdf()">↻ Aplicar y generar PDF</button>
         </div>
-        <p class="pdf-format-note">Motor PDF V6 · Papel: Carta (21.59 × 27.94 cm). Los reportes largos se reducen para caber en una sola hoja.</p>
+        <p class="pdf-format-note">Motor PDF V7 · Aprovechamiento de hoja · Papel: Carta (21.59 × 27.94 cm). Los reportes largos se reducen para caber en una sola hoja.</p>
       </section>
       <div id="printHelp" class="print-help" role="status" aria-live="polite"></div>
       <div class="wrap" id="reportRoot"><div class="head"><div>${logoHTML}</div><div class="title"><h1>${tituloDocumento}</h1><p>Generado: ${new Date().toLocaleString('es-MX')}</p></div></div>${htmlContent}</div>
@@ -4125,11 +4148,15 @@ function renderStockTables(){
           });
           return {ancho:Math.ceil(derecha),alto:Math.ceil(abajo)};
         }
-        function prepararCopia(sentido){
+        function prepararCopia(sentido,modo){
           var anchoBase=sentido==='portrait'?760:1040;
           var root=document.getElementById('reportRoot');
           var copia=root.cloneNode(true);
           copia.id='pdfRenderRoot';
+          // Compactacion SOLO en corte de caja y solo si se pide una hoja horizontal.
+          // Vertical y multipagina mantienen sus dimensiones originales.
+          var ajustarCorte=modo==='one' && sentido==='landscape' && document.title.trim().toUpperCase()==='CORTE DE CAJA';
+          if(ajustarCorte)copia.classList.add('pdf-cut-compact');
           copia.style.cssText='width:'+anchoBase+'px;max-width:none;min-width:0;box-sizing:border-box;margin:0;padding:5px 6px 14px;background:#ffffff;overflow:visible;display:block;';
           var soporte=document.createElement('div');
           soporte.id='pdfCaptureHost';
@@ -4138,6 +4165,20 @@ function renderStockTables(){
           document.body.appendChild(soporte);
           // Si algun contenido no cabe, ampliamos la captura en lugar de recortarlo.
           var d=dimensionesContenido(copia);
+          if(ajustarCorte){
+            // Seleccionar el mayor espaciado que aun permite aprovechar ~99 %
+            // del ANCHO de Carta horizontal en una sola hoja. No se altera
+            // la proporcion de letras, tablas, ni imagenes.
+            for(var relleno=6;relleno>=1;relleno--){
+              copia.style.setProperty('--pdf-cell-y',relleno+'px');
+              d=dimensionesContenido(copia);
+              if(d.ancho/(d.alto*1.308)>=0.99)break;
+            }
+            if(d.ancho/(d.alto*1.308)<0.96){
+              copia.classList.add('pdf-cut-tighter');
+              d=dimensionesContenido(copia);
+            }
+          }
           if(d.ancho>anchoBase+1){
             copia.style.width=d.ancho+'px';
             soporte.style.width=d.ancho+'px';
@@ -4157,7 +4198,7 @@ function renderStockTables(){
           try{
             await cargarGeneradorPdf();
             await esperarImagenes();
-            maqueta=prepararCopia(sentido);
+            maqueta=prepararCopia(sentido,modo);
             var medidas=maqueta.medidas;
             if(!medidas.ancho||!medidas.alto||medidas.ancho<200||medidas.alto<100){throw new Error('Las dimensiones del reporte no son validas');}
             // Limites conservadores para la memoria grafica de Safari/iPhone.
@@ -4185,7 +4226,7 @@ function renderStockTables(){
               // Alineado al margen superior izquierdo; nunca trasladar/clipear la derecha.
               pdf.addImage(lienzo.toDataURL('image/jpeg',0.94),'JPEG',margen,margen,ancho,alto,undefined,'FAST');
               var porcentaje=Math.round(100*ancho/disponibleW);
-              if(porcentaje<90) info=' El contenido ocupa '+porcentaje+'% del ancho para caber tambien en altura. Para texto mas grande usa Varias hojas.';
+              if(porcentaje<90) info=' Este reporte ocupa '+porcentaje+'% del ancho al respetar una hoja. Para texto mas grande puedes elegir Varias hojas.';
             }else{
               // Mantiene el ancho completo y divide VERTICALMENTE el lienzo.
               var alturaPorPagina=Math.max(1,Math.floor(disponibleH*lienzo.width/disponibleW));
